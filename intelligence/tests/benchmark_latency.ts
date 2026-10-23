@@ -1,0 +1,1 @@
+const start=process.hrtime.bigint();for(let i=0;i<10000;i++)JSON.stringify({i,op:"hash-intent"});console.log(JSON.stringify({iterations:10000,serialization_ms:Number(process.hrtime.bigint()-start)/1e6,disclosure:"benchmark only; not end-to-end latency"}));
