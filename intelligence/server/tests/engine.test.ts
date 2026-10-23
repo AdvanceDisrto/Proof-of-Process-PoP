@@ -1,1 +1,2 @@
-import assert from "node:assert/strict"; import test from "node:test"; import {IDRSentinel} from "../core/IDRSentinel.js"; test("iDr requires a trusted key",()=>assert.throws(()=>new IDRSentinel().verifyGenesis(),/trusted genesis public key/));
+import assert from "node:assert/strict"; import test from "node:test"; import {IDRSentinel} from "../core/IDRSentinel.js";
+test("iDr requires a trusted genesis public key",()=>assert.throws(()=>new IDRSentinel().verifyGenesis(),/IDR_TRUSTED_PUBLIC_KEY_HEX/));
