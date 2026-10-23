@@ -10,9 +10,12 @@ jobs:
       - uses: actions/setup-python@v5
         with: {python-version: "3.12"}
       - run: pip install -r requirements.txt
-      - run: pytest -q
-      - run: python -m proof.parallel_pop
-      - run: python -m proof.universe_manifest
+      - name: Run tests
+        run: python -m pytest -q
+      - name: Generate Parallel PoP receipt
+        run: python -m proof.parallel_pop
+      - name: Generate reality manifest
+        run: python -m proof.universe_manifest
       - uses: actions/upload-artifact@v4
         with:
           name: i-parallel-pop-receipts
