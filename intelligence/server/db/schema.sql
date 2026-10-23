@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS pop_receipts(receipt_id TEXT PRIMARY KEY,spec TEXT NOT NULL,state TEXT NOT NULL,body_json JSONB NOT NULL,signature TEXT,created_at TIMESTAMPTZ NOT NULL DEFAULT now()); CREATE INDEX IF NOT EXISTS pop_receipts_state_idx ON pop_receipts(state);
