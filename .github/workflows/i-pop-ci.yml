@@ -15,6 +15,10 @@ jobs:
       - run: pip install -r requirements.txt
       - name: Bare-metal iBare C build and self-test
         run: make test-ibare
+      - name: Universal polyglot adapter self-test
+        run: python -m polyglot.adapter --self-test
+      - name: Generate polyglot ProcessReceipt
+        run: python -m polyglot.adapter --root . --output POLYGLOT_PROCESS_RECEIPT.json
       - name: Python evidence tests
         run: python -m pytest -q
       - name: FastAPI truth-boundary contract
@@ -39,3 +43,4 @@ jobs:
           path: |
             PARALLEL_MASTER_RECEIPT.json
             MASTER_REALITY_LEDGER.json
+            POLYGLOT_PROCESS_RECEIPT.json
