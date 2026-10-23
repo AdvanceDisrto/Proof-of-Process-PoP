@@ -1,4 +1,4 @@
-.PHONY: install test test-ibare build-ibare build-all
+.PHONY: install test test-ibare test-polyglot build-ibare build-all
 
 CC ?= cc
 CFLAGS ?= -O2 -std=c11 -Wall -Wextra -Werror -pedantic
@@ -18,7 +18,11 @@ build-ibare: $(IBARE_SRC) $(IBARE_HEADERS) baremetal/ibare_host.c baremetal/test
 	$(CC) $(CFLAGS) baremetal/ibare.c baremetal/sha256.c baremetal/ibare_host.c -o build/ibare_host
 	$(CC) $(CFLAGS) baremetal/ibare.c baremetal/sha256.c baremetal/test_ibare.c -o build/ibare_selftest
 
-test: test-ibare
+test-polyglot:
+	python -m polyglot.adapter --self-test
+	python -m polyglot.adapter --root . --output POLYGLOT_PROCESS_RECEIPT.json
+
+test: test-ibare test-polyglot
 	python -m pytest -q
 
 build-all: test
