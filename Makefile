@@ -2,8 +2,8 @@
 
 CC ?= cc
 CFLAGS ?= -O2 -std=c11 -Wall -Wextra -Werror -pedantic
-IBARE_SRC = baremetal/ibare.c baremetal/sha256.c
-IBARE_HEADERS = baremetal/ibare.h baremetal/sha256.h
+IBARE_SRC = baremetal/ibare.c baremetal/sha256.c baremetal/ibare_ffi.c
+IBARE_HEADERS = baremetal/ibare.h baremetal/sha256.h baremetal/ibare_ffi.h
 
 install:
 	python -m pip install -r requirements.txt
@@ -15,6 +15,8 @@ build-ibare: $(IBARE_SRC) $(IBARE_HEADERS) baremetal/ibare_host.c baremetal/test
 	mkdir -p build
 	$(CC) $(CFLAGS) -ffreestanding -fno-builtin -c baremetal/sha256.c -o build/sha256-freestanding.o
 	$(CC) $(CFLAGS) -ffreestanding -fno-builtin -c baremetal/ibare.c -o build/ibare-freestanding.o
+	$(CC) $(CFLAGS) -ffreestanding -fno-builtin -c baremetal/ibare_ffi.c -o build/ibare-ffi-freestanding.o
+	$(CC) $(CFLAGS) -fPIC -shared baremetal/sha256.c baremetal/ibare_ffi.c -o build/libibare.so
 	$(CC) $(CFLAGS) baremetal/ibare.c baremetal/sha256.c baremetal/ibare_host.c -o build/ibare_host
 	$(CC) $(CFLAGS) baremetal/ibare.c baremetal/sha256.c baremetal/test_ibare.c -o build/ibare_selftest
 
