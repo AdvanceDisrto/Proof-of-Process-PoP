@@ -1,9 +1,9 @@
-import crypto from "node:crypto"; import {TailwindAIPluginRegistry} from "./PluginRegistry.js"; import {IDRSentinel} from "./IDRSentinel.js";
+import crypto from "node:crypto"; import {TailwindAIPluginRegistry} from "./PluginRegistry.js"; import {IDRSentinel} from "./IDRSentinel.js"; import {SSNBoundary} from "./SSNBoundary.js";
 export interface PipelineContext{executionId:string;workflowKey:string;variables:Record<string,unknown>;history:Array<{layer:string;output:unknown;latencyMs:number}>}
 export interface TokenPrimitive{layer:string;action:string;parameters:string[];conditional?:string}
 export class TailwindAIEngine{
  private context:PipelineContext; private idr:IDRSentinel;
- constructor(workflowKey:string,initialVariables:Record<string,unknown>,idr=new IDRSentinel()){this.idr=idr;this.idr.verifyGenesis();this.context={executionId:crypto.randomUUID(),workflowKey,variables:initialVariables,history:[]}}
+ constructor(workflowKey:string,initialVariables:Record<string,unknown>,idr=new IDRSentinel()){this.idr=idr;this.idr.verifyGenesis();const executionId=crypto.randomUUID();let variables=initialVariables;const rawInput=typeof initialVariables.raw_input==="string"?initialVariables.raw_input:null;if(rawInput!==null){const keyHex=process.env.SSN_MASTER_KEY_HEX??"";if(!/^[0-9a-fA-F]{64}$/.test(keyHex))throw new Error("SSN boundary requires a 32-byte SSN_MASTER_KEY_HEX when raw_input is supplied");const sanitized=new SSNBoundary(Buffer.from(keyHex,"hex")).sanitize(rawInput,executionId);variables={...initialVariables,raw_input:sanitized.text,ssn_token_map:sanitized.tokenMap,ssn_receipt:sanitized.receipt};}this.context={executionId,workflowKey,variables,history:[]}}
  async executePipeline(pipeline:TokenPrimitive[]){
   for(const token of pipeline){
    if(!this.idr.checkAiAuthorization(token.action))throw new Error("iDr Boundary Violation: "+token.action);
