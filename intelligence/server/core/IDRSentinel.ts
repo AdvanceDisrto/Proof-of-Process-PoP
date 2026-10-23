@@ -1,0 +1,8 @@
+import crypto from "node:crypto"; import fs from "node:fs";
+function canonical(v:any):Buffer{if(Array.isArray(v))return Buffer.from("["+v.map(canonical).map(x=>x.toString()).join(",")+"]");if(v&&typeof v==="object"){return Buffer.from("{"+Object.keys(v).sort().map(k=>JSON.stringify(k)+":"+canonical(v[k]).toString()).join(",")+"}")}return Buffer.from(JSON.stringify(v))}
+export class IDRSentinel{
+ private root:any; private trustedKey:string; private loaded=false;
+ constructor(private path="IDR_ROOT.json",trustedKey=process.env.IDR_TRUSTED_PUBLIC_KEY_HEX??""){this.trustedKey=trustedKey}
+ verifyGenesis(){if(!this.trustedKey)throw new Error("iDr requires IDR_TRUSTED_PUBLIC_KEY_HEX");const sig=this.root.iDr_signature,claimed=this.root.iDr_root_id,body={...this.root};delete body.iDr_signature;delete body.iDr_root_id;const id="sha256:"+crypto.createHash("sha256").update(canonical(body)).digest("hex");if(id!==claimed)throw new Error("iDr root hash mismatch");const signed={...body,iDr_root_id:claimed};const der=Buffer.concat([Buffer.from("302a300506032b6570032100","hex"),Buffer.from(this.trustedKey,"hex")]);const ok=crypto.verify(null,canonical(signed),crypto.createPublicKey({key:der,format:"der",type:"spki"}),Buffer.from(sig.split(":")[1],"hex"));if(!ok)throw new Error("iDr genesis signature invalid");this.loaded=true;return true}
+ checkAiAuthorization(action:string){if(!this.loaded)return false;const gate=this.root.truth_boundary?.physical_gate;if(["fabricate","measure_joules","assert_silicon"].includes(action))return gate==="MEASURED_PASS";return true}
+}
