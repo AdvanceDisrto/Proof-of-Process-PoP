@@ -13,6 +13,8 @@ jobs:
         with: {node-version: "20"}
       - uses: dtolnay/rust-toolchain@stable
       - run: pip install -r requirements.txt
+      - name: Bare-metal iBare C build and self-test
+        run: make test-ibare
       - name: Python evidence tests
         run: python -m pytest -q
       - name: FastAPI truth-boundary contract
