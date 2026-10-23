@@ -15,10 +15,18 @@ jobs:
       - run: pip install -r requirements.txt
       - name: Python evidence tests
         run: python -m pytest -q
+      - name: FastAPI truth-boundary contract
+        run: python -m pytest -q tests/test_api_contract.py
       - name: Rust deterministic compiler tests
         run: cd intelligence/tai_compiler && cargo test
       - name: TypeScript engine compile and tests
         run: cd intelligence/server && npm install && npm run build && npm test
+      - name: Docker build
+        run: docker build -t i-pop-core:ci .
+
+      - name: Cloudflare Worker syntax
+        run: node --check cloudflare-worker/index.js
+
       - name: Generate parallel evidence
         run: python -m proof.parallel_pop
       - name: Generate reality manifest
