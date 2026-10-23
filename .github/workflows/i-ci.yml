@@ -1,0 +1,21 @@
+name: i™ Parallel Proof CI
+on:
+  push:
+  pull_request:
+jobs:
+  test-and-seal:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install -r requirements.txt
+      - run: pytest -q
+      - run: python -m proof.parallel_pop
+      - run: python -m proof.universe_manifest
+      - uses: actions/upload-artifact@v4
+        with:
+          name: i-parallel-pop-receipts
+          path: |
+            PARALLEL_MASTER_RECEIPT.json
+            MASTER_REALITY_LEDGER.json
