@@ -1,7 +1,5 @@
 #include "sha256.h"
 
-#include <string.h>
-
 static const uint32_t k[64] = {
     0x428a2f98U, 0x71374491U, 0xb5c0fbcfU, 0xe9b5dba5U,
     0x3956c25bU, 0x59f111f1U, 0x923f82a4U, 0xab1c5ed5U,
@@ -145,7 +143,9 @@ void ibare_sha256_final(ibare_sha256_ctx *ctx, uint8_t hash[32]) {
             ctx->data[i++] = 0U;
         }
         transform(ctx, ctx->data);
-        memset(ctx->data, 0, 56U);
+        for (i = 0U; i < 56U; ++i) {
+            ctx->data[i] = 0U;
+        }
     }
 
     ctx->bitlen += (uint64_t)ctx->datalen * 8U;
