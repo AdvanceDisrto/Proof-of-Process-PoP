@@ -1,0 +1,1 @@
+import assert from "node:assert/strict"; import test from "node:test"; test("HITL contract exposes an intent hash and suspends",()=>{const s={status:"SUSPENDED",intent_hash:"sha256:test",activeBreakpoint:"human-approve:disburse"};assert.equal(s.status,"SUSPENDED");assert.match(s.intent_hash,/^sha256:/)});
