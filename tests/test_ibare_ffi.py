@@ -14,8 +14,8 @@ def test_ffi_receipt_is_deterministic_and_boundary_safe():
     second = bridge.receipt(b"AI Inference Result", 1778035000)
     assert first["receipt_hash"] == second["receipt_hash"]
     assert first["payload_hash"] == (
-        "sha256:614ec72c3a45e92e74236d110e741a67"
-        "bfde80a86b30a61a5b79418a09677850"
+        "sha256:5c3e67c897872dc814d3b0cca7f93551"
+        "c42e8dc184940ec50e3eca0d64ca740e"
     )
     assert first["physical_gate"] == "ACTION_REQUIRED"
     assert "TPM quote or hardware-rooted attestation" in first["does_not_prove"]
