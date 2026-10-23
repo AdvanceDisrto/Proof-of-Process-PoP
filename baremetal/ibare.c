@@ -1,7 +1,48 @@
 #include "ibare.h"
 #include "sha256.h"
 
-#include <stdio.h>
+static int append_text(
+    char *out,
+    size_t out_size,
+    size_t *used,
+    const char *text
+) {
+    size_t i = 0U;
+
+    while (text[i] != '\0') {
+        if (*used + 1U >= out_size) {
+            return -1;
+        }
+        out[*used] = text[i];
+        ++(*used);
+        ++i;
+    }
+    return 0;
+}
+
+static int append_u64(
+    char *out,
+    size_t out_size,
+    size_t *used,
+    uint64_t value
+) {
+    char digits[20];
+    size_t count = 0U;
+
+    do {
+        digits[count++] = (char)('0' + (value % 10U));
+        value /= 10U;
+    } while (value != 0U && count < sizeof(digits));
+
+    while (count > 0U) {
+        if (*used + 1U >= out_size) {
+            return -1;
+        }
+        out[*used] = digits[--count];
+        ++(*used);
+    }
+    return 0;
+}
 
 const char *ibare_architecture(void) {
 #if defined(__x86_64__) || defined(_M_X64)
@@ -22,26 +63,36 @@ int ibare_make_payload(
     char *out,
     size_t out_size
 ) {
+    size_t used = 0U;
+
     if (observation == NULL || out == NULL || out_size == 0U) {
         return -1;
     }
 
-    int written = snprintf(
-        out,
-        out_size,
-        "{\"spec\":\"innovulis-ibare/1.0\",\"arch\":\"%s\","
-        "\"timestamp_utc\":%llu,\"tpm_device_present\":%s}",
-        observation->architecture != NULL
-            ? observation->architecture
-            : "unknown",
-        (unsigned long long)observation->timestamp_utc,
-        observation->tpm_device_present ? "true" : "false"
-    );
-
-    if (written < 0 || (size_t)written >= out_size) {
+    if (append_text(
+            out, out_size, &used,
+            "{\"spec\":\"innovulis-ibare/1.0\",\"arch\":\"") < 0 ||
+        append_text(
+            out, out_size, &used,
+            observation->architecture != NULL
+                ? observation->architecture
+                : "unknown") < 0 ||
+        append_text(
+            out, out_size, &used,
+            "\",\"timestamp_utc\":") < 0 ||
+        append_u64(out, out_size, &used, observation->timestamp_utc) < 0 ||
+        append_text(
+            out, out_size, &used,
+            ",\"tpm_device_present\":") < 0 ||
+        append_text(
+            out, out_size, &used,
+            observation->tpm_device_present ? "true" : "false") < 0 ||
+        append_text(out, out_size, &used, "}") < 0) {
         return -1;
     }
-    return written;
+
+    out[used] = '\0';
+    return (int)used;
 }
 
 int ibare_receipt_hash(const char *payload, uint8_t hash[32]) {
@@ -54,6 +105,7 @@ int ibare_receipt_hash(const char *payload, uint8_t hash[32]) {
 
 int ibare_hex(const uint8_t hash[32], char *out, size_t out_size) {
     static const char digits[] = "0123456789abcdef";
+
     if (hash == NULL || out == NULL || out_size < 65U) {
         return -1;
     }
