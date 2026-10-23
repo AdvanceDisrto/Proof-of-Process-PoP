@@ -1,0 +1,31 @@
+name: i™ Unified Proof of Process CI
+on:
+  push:
+  pull_request:
+jobs:
+  unified:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - uses: actions/setup-node@v4
+        with: {node-version: "20"}
+      - uses: dtolnay/rust-toolchain@stable
+      - run: pip install -r requirements.txt
+      - name: Python evidence tests
+        run: python -m pytest -q
+      - name: Rust deterministic compiler tests
+        run: cd intelligence/tai_compiler && cargo test
+      - name: TypeScript engine compile and tests
+        run: cd intelligence/server && npm install && npm run build && npm test
+      - name: Generate parallel evidence
+        run: python -m proof.parallel_pop
+      - name: Generate reality manifest
+        run: python -m proof.universe_manifest
+      - uses: actions/upload-artifact@v4
+        with:
+          name: i-unified-pop-evidence
+          path: |
+            PARALLEL_MASTER_RECEIPT.json
+            MASTER_REALITY_LEDGER.json
