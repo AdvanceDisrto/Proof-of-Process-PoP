@@ -132,6 +132,8 @@ def emit_receipt(out_path: str, scenarios: list[dict]) -> dict:
         json.dumps(receipt, indent=2) + "\n",
         encoding="utf-8",
     )
+    if not all_pass:
+        raise RuntimeError("C/Python antimatter model cross-check failed; see evidence receipt")
     return receipt
 
 
