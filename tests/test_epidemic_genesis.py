@@ -47,3 +47,19 @@ def test_supersession_is_not_quarantine():
     assert model.supersede('v-old') == 1
     assert agent.states['v-old'].state == SUPERSEDED
     assert agent.states['v-old'].state != QUARANTINED
+
+
+def test_supersession_requires_successor_adoption():
+    from tools.epidemic_genesis import AgentVariantState
+    agent = Agent("a0")
+    agent.states["v-old"] = AgentVariantState(state=ADOPTED)
+    agent.states["v-new"] = AgentVariantState(state=TRIAL)
+    model = EpidemicGenesis(
+        [agent], {"a0": []},
+        EpidemicParameters(beta=0.1, contacts=1, alpha=1, gamma=1, delta=0.1, kappa=0.1, mutation=0.1),
+    )
+    assert model.supersede_on_successor_adoption("v-old", "v-new") == 0
+    assert agent.states["v-old"].state == ADOPTED
+    agent.states["v-new"].state = ADOPTED
+    assert model.supersede_on_successor_adoption("v-old", "v-new") == 1
+    assert agent.states["v-old"].state == SUPERSEDED
