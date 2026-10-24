@@ -54,3 +54,12 @@ def test_external_ground_truth_positive_control_discriminates_models():
     assert result["recovered_ground_truth"] is True
     assert result["discriminates_known_process"] is True
     assert result["criterion_pass"] is True
+
+
+def test_symmetric_external_ground_truth_control_reports_both_directions():
+    from tools.epidemic_calibration import symmetric_external_ground_truth_control
+    result = symmetric_external_ground_truth_control()
+    assert result["bass_truth_direction"]["pass"] is True
+    assert result["eGi_truth_direction"]["pass"] is True
+    assert result["bidirectional"] is True
+    assert result["tier_claim"] == "FIT_DISCRIMINATION_BIDIRECTIONAL"
