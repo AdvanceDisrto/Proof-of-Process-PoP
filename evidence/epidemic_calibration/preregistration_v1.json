@@ -157,8 +157,32 @@
       "trust": 1
     },
     "promotion_rule": "Bass must beat fitted eGi on Bass-generated data and fitted eGi must beat fitted Bass on eGi-generated data. Both directions are required for a bidirectional discrimination claim.",
-    "recovery_tolerance": 0.01,
+    "recovery_tolerance": 0.002,
     "truth_alignment": "OFF_GRID",
-    "off_grid_purpose": "Ensure the fitter must select the nearest registered grid node rather than trivially recovering a grid-aligned truth."
+    "off_grid_purpose": "Ensure the fitter must select registered grid nodes from off-grid truth; recovery is capped at two grid steps per fitted parameter.",
+    "eGi_recovery_tolerance": 0.02,
+    "recovery_criterion": {
+      "rule": "absolute error <= 2 grid steps for every fitted parameter",
+      "grid_steps": {
+        "Bass": {
+          "p": 0.001,
+          "q": 0.01
+        },
+        "eGi": {
+          "effective_transmission": 0.01,
+          "delta": 0.01
+        }
+      },
+      "max_errors": {
+        "Bass": {
+          "p": 0.002,
+          "q": 0.02
+        },
+        "eGi": {
+          "effective_transmission": 0.02,
+          "delta": 0.02
+        }
+      }
+    }
   }
 }
