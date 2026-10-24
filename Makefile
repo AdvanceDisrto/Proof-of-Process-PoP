@@ -1,4 +1,4 @@
-.PHONY: install test test-antimatter test-tee-scrape test-on-silicon test-iska test-imcp test-ledger test-truth test-attestation-router test-physical-merkle test-ibare test-polyglot test-e2e test-daemon test-hardened test-spu test-spu-reference test-spu-rtl test-spu-custody test-spu-materialization test-spu-ml-dsa test-spu-orfs test-spu-source-policy build-ibare build-rtl build-daemon build-hardened build-spu-reference build-all
+.PHONY: install test test-omnipresent test-ambient test-am-tiered build-omnipresent build-ambient build-am-physics test-antimatter test-tee-scrape test-on-silicon test-iska test-imcp test-ledger test-truth test-attestation-router test-physical-merkle test-ibare test-polyglot test-e2e test-daemon test-hardened test-spu test-spu-reference test-spu-rtl test-spu-custody test-spu-materialization test-spu-ml-dsa test-spu-orfs test-spu-source-policy build-ibare build-rtl build-daemon build-hardened build-spu-reference build-all
 
 CC ?= cc
 CFLAGS ?= -O2 -std=c11 -Wall -Wextra -Werror -pedantic
@@ -37,7 +37,7 @@ test-iska:
 test-ledger:
 	python -m pytest -q test_ledger_persistence.py
 
-test: test-ibare test-render test-polyglot test-iska test-imcp test-ledger test-tee-scrape test-antimatter
+test: test-ibare test-render test-polyglot test-iska test-imcp test-ledger test-tee-scrape test-antimatter test-am-tiered test-ambient test-omnipresent
 	python -m pytest -q
 
 build-all: test
@@ -133,3 +133,28 @@ build-antimatter:
 test-antimatter: build-antimatter
 	python -m pytest -q tests/test_antimatter.py
 	python tools/antimatter_simulator.py evidence/antimatter_evidence_receipt.json
+
+build-omnipresent:
+	mkdir -p build
+	$(CC) $(CFLAGS) -Ibaremetal -Ibaremetal/include baremetal/omnipresent_mesh.c baremetal/sha256.c baremetal/test_omnipresent_mesh.c -o build/mesh_test
+	./build/mesh_test
+
+test-omnipresent: build-omnipresent
+	python -m pytest -q tests/test_omnipresent_mesh.py
+	python tools/omnipresent_mesh_verifier.py
+
+build-ambient:
+	mkdir -p build
+	$(CC) $(CFLAGS) -Ibaremetal -Ibaremetal/include -c baremetal/ambient_harvester.c -o build/ambient_harvester.o
+
+test-ambient: build-ambient
+	python -m pytest -q tests/test_ambient_harvester.py
+	python tools/ambient_harvester_verifier.py
+
+build-am-physics:
+	mkdir -p build
+	$(CC) $(CFLAGS) -Ibaremetal -Ibaremetal/include -c baremetal/antimatter_physics.c -o build/antimatter_physics.o
+
+test-am-tiered: build-am-physics
+	python -m pytest -q tests/test_antimatter_tiered.py
+	python tools/antimatter_tiered_receipt.py
