@@ -23,6 +23,8 @@ jobs:
         run: make test-truth
       - name: GPU provider attestation router truth boundary
         run: make test-attestation-router
+      - name: Physical evidence Merkle fail-closed gate
+        run: make test-physical-merkle
       - name: SPU C++ reference, ECC, MMIO and materialization gates
         run: make test-spu-reference
       - name: SPU ML-DSA-87 verification
