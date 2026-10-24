@@ -75,3 +75,14 @@ def test_external_bass_control_records_fit_provenance_not_oracle_claim():
     assert isinstance(result["reported_q_equals_ground_truth"], bool)
     assert result["p_absolute_error"] >= 0.0
     assert result["q_absolute_error"] >= 0.0
+
+
+def test_symmetric_control_records_fit_provenance_and_generator_scope():
+    from tools.epidemic_calibration import symmetric_external_ground_truth_control
+    result = symmetric_external_ground_truth_control()
+    assert result["fit_provenance"]["Bass"]["method"] == "deterministic_grid_search_over_preregistered_p_q_grid"
+    assert result["fit_provenance"]["eGi"]["method"] == "deterministic_grid_search_over_effective_transmission_and_delta"
+    assert result["eGi_truth_direction"]["eGi_fit"]["parameters"] != result["eGi_truth_direction"]["ground_truth_parameters"] or result["eGi_truth_direction"]["eGi_fit"]["rmse"] >= 0.0
+    assert result["generator_scope"]["implementation"] == "actual simulate() eGi recurrence"
+    assert "kappa" in result["generator_scope"]["inactive_in_current_simulator"]
+    assert "mutation" in result["generator_scope"]["inactive_in_current_simulator"]
