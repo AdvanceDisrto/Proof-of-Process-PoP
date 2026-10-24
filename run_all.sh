@@ -7,6 +7,7 @@ cd "$ROOT"
 RUN_ID="${GITHUB_RUN_ID:-local-$(date -u +%Y%m%dT%H%M%SZ)}"
 OUT="evidence/run-all/$RUN_ID"
 mkdir -p "$OUT"
+export RUN_ALL_OUT="$OUT"
 
 log_step() {
   local name="$1"; shift
@@ -92,12 +93,12 @@ python3 -m pytest tests/test_envelop.py tests/test_ilogic.py -q --no-header
 
 python3 - <<'PY'
 import json
+import os
 from pathlib import Path
 from tools.envelop import Envelop, Content, verify
 from tools.ilogic import Engine, Claim, Rule, ESTABLISHED, ATTESTED, UNATTESTED, MODE_EVIDENCE
 
-E = Path("evidence")
-E.mkdir(exist_ok=True)
+E = Path(os.environ["RUN_ALL_OUT"])
 claims = [
     Claim("c:sha256-known-vector", "sha256", "matches_nist_vector", 1, ESTABLISHED, UNATTESTED),
     Claim("c:isa-detected", "host", "isa_is_x86_64", 1, ESTABLISHED, UNATTESTED),
