@@ -19,6 +19,8 @@ jobs:
         run: make test-ibare
       - name: CPU renderer verification
         run: make test-render
+      - name: Verifiable Truth Infrastructure fail-closed reference
+        run: make test-truth
       - name: SPU C++ reference, ECC, MMIO and materialization gates
         run: make test-spu-reference
       - name: SPU ML-DSA-87 verification
