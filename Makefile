@@ -55,3 +55,29 @@ build-hardened:
 test-hardened: build-hardened
 	./build/omnibus_hardened
 	@if [ -x build/omnibus_hardened_avx2 ] && grep -qw avx2 /proc/cpuinfo; then ./build/omnibus_hardened_avx2; else echo "AVX2 hardened runtime skipped: CPU support not advertised"; fi
+
+build-spu-reference:
+	cmake -S . -B build/spu -DCMAKE_BUILD_TYPE=Release
+	cmake --build build/spu --parallel
+
+test-spu-reference: build-spu-reference
+	ctest --test-dir build/spu --output-on-failure
+
+test-spu-rtl:
+	mkdir -p build/spu
+	iverilog -g2012 -Wall -o build/spu/route_tb rtl/route_partition_1024.sv rtl/tb_route_partition_1024.sv
+	vvp build/spu/route_tb
+	iverilog -g2012 -Wall -o build/spu/ispu10240_tb rtl/ispu10240/*.sv rtl/tb_ispu10240.sv
+	vvp build/spu/ispu10240_tb
+
+test-spu-custody:
+	python tools/validate_spu_custody.py
+
+test-spu-materialization:
+	python tools/validate_materialization_topology.py materialization/topology.pending.json --expect-blocked
+
+test-spu-ml-dsa:
+	python -m pytest -q tests/test_ml_dsa.py
+
+test-spu: test-spu-reference test-spu-rtl test-spu-custody test-spu-materialization test-spu-ml-dsa
+	@echo "SPU software/RTL verification complete; physical gate remains ACTION_REQUIRED"
