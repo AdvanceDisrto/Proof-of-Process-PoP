@@ -1,0 +1,13 @@
+name: Ambient Harvester Verifier
+on: {push: {branches: [main]}, pull_request: {branches: [main]}}
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pytest
+      - run: make test-ambient
+      - uses: actions/upload-artifact@v4
+        with: {name: ambient-harvester-evidence, path: 'evidence/ambient_*.json'}
