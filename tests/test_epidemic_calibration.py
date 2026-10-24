@@ -63,3 +63,12 @@ def test_symmetric_external_ground_truth_control_reports_both_directions():
     assert result["eGi_truth_direction"]["pass"] is True
     assert result["bidirectional"] is True
     assert result["tier_claim"] == "FIT_DISCRIMINATION_BIDIRECTIONAL"
+
+
+def test_external_bass_control_records_fit_provenance_not_oracle_claim():
+    from tools.epidemic_calibration import external_ground_truth_positive_control
+    result = external_ground_truth_positive_control()
+    assert result["fit_method"] == "deterministic_grid_search_over_preregistered_p_q_grid"
+    assert result["fit_resolution"]["p"] == 0.001
+    assert result["fit_resolution"]["q"] == 0.01
+    assert result["reported_p_equals_ground_truth"] is True
