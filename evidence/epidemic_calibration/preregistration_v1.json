@@ -1,5 +1,5 @@
 {
-  "spec": "innovulis-epidemic-genesis-preregistration/1.1",
+  "spec": "innovulis-epidemic-genesis-preregistration/1.2",
   "registered_before_rerun": true,
   "ckm_case": {
     "observed_points": 17,
@@ -142,20 +142,23 @@
     "noise_sigma": 0.002,
     "noise_seed": 20261024,
     "bass_ground_truth": {
-      "p": 0.084,
-      "q": 0.18
+      "p": 0.0837,
+      "q": 0.1813
     },
     "eGi_ground_truth_parameters": {
-      "beta": 0.08,
+      "beta": 0.07925,
       "contacts": 4,
       "alpha": 1,
       "gamma": 1,
-      "delta": 0.15,
-      "kappa": 0.05,
-      "mutation": 0.1,
+      "delta": 0.153,
+      "kappa": 0.07,
+      "mutation": 0.17,
       "fidelity": 1,
       "trust": 1
     },
-    "promotion_rule": "Bass must beat fitted eGi on Bass-generated data and fitted eGi must beat fitted Bass on eGi-generated data. Both directions are required for a bidirectional discrimination claim."
+    "promotion_rule": "Bass must beat fitted eGi on Bass-generated data and fitted eGi must beat fitted Bass on eGi-generated data. Both directions are required for a bidirectional discrimination claim.",
+    "recovery_tolerance": 0.005,
+    "truth_alignment": "OFF_GRID",
+    "off_grid_purpose": "Ensure the fitter must select the nearest registered grid node rather than trivially recovering a grid-aligned truth."
   }
 }
