@@ -178,7 +178,7 @@ test-epidemic-genesis:
 	python -m pytest -q tests/test_epidemic_genesis.py
 	python -c "from tools.epidemic_genesis import EpidemicParameters; p=EpidemicParameters(beta=0.7, contacts=3.0, alpha=1.0, gamma=1.0, delta=0.2, kappa=0.3, mutation=0.1, fidelity=0.9, trust=0.9); print({'spec':'innovulis-epidemic-genesis-smoke/1.0','R0':p.r0,'Rt':p.effective_rt(),'physical_gate':'ACTION_REQUIRED'})"
 	python -m pytest -q tests/test_epidemic_calibration.py
-	python tools/epidemic_calibration.py
+	python -m tools.epidemic_calibration
 
 
 test-cce:
