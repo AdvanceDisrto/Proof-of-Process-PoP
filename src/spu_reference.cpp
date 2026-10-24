@@ -3,7 +3,7 @@ namespace spu {
 static int is_parity_pos(int p){return p==1||p==2||p==4||p==8||p==16||p==32||p==64;}
 static bool getbit(const EccWord& w,int pos){
  if(pos>=1&&pos<=71){
-  if(is_parity_pos(pos)) return (w.parity >> ({1:0,2:1,4:2,8:3,16:4,32:5,64:6}.at(pos)))&1u;
+  if(is_parity_pos(pos)) int k=0; switch(pos){case 1:k=0;break;case 2:k=1;break;case 4:k=2;break;case 8:k=3;break;case 16:k=4;break;case 32:k=5;break;default:k=6;} return (w.parity>>k)&1u;
   int di=0; for(int p=1;p<pos;p++) if(!is_parity_pos(p)) ++di;
   return (w.data>>di)&1ULL;
  }
