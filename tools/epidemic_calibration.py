@@ -144,6 +144,72 @@ def positive_control() -> dict:
 
 
 
+
+def fit_egi_effective(observed: list[float]) -> tuple[dict, float, list[float]]:
+    """Fit the parameters that the current eGi simulator actually uses."""
+    best_error = float("inf")
+    best_params = {}
+    best_pred: list[float] = []
+    for transmission in [round(0.02 + i * 0.01, 3) for i in range(31)]:
+        for delta in [round(0.02 + i * 0.01, 3) for i in range(29)]:
+            params = EpidemicParameters(
+                beta=transmission, contacts=1.0, alpha=1.0, gamma=1.0,
+                delta=delta, kappa=0.05, mutation=0.10,
+                fidelity=1.0, trust=1.0,
+            )
+            pred = simulate(params, len(observed), initial_adopted=0.10)
+            error = rmse(pred, observed)
+            if error < best_error:
+                best_error = error
+                best_params = {"effective_transmission": transmission, "delta": delta}
+                best_pred = pred
+    return best_params, best_error, best_pred
+
+
+def symmetric_external_ground_truth_control() -> dict:
+    """Run noisy external ground truth in both directions using actual model code."""
+    import random
+    control = json.loads(PREREG.read_text())["symmetric_control"]
+    steps = control["observed_points"]
+    initial = control["initial_adoption"]
+    sigma = control["noise_sigma"]
+    rng = random.Random(control["noise_seed"])
+
+    bass_gt = control["bass_ground_truth"]
+    clean_bass = simulate_bass(bass_gt["p"], bass_gt["q"], steps, initial_adopted=initial)
+    observed_bass = [min(1.0, max(0.0, v + rng.gauss(0.0, sigma))) for v in clean_bass]
+    bass_fit_params, bass_fit_error, _ = fit_bass_baseline(observed_bass)
+    egi_on_bass_params, egi_on_bass_error, _ = fit_egi_effective(observed_bass)
+
+    egi_gt = EpidemicParameters(**control["eGi_ground_truth_parameters"])
+    clean_egi = simulate(egi_gt, steps, initial_adopted=initial)
+    observed_egi = [min(1.0, max(0.0, v + rng.gauss(0.0, sigma))) for v in clean_egi]
+    bass_on_egi_params, bass_on_egi_error, _ = fit_bass_baseline(observed_egi)
+    egi_fit_params, egi_fit_error, _ = fit_egi_effective(observed_egi)
+
+    bass_pass = bass_fit_error < egi_on_bass_error
+    egi_pass = egi_fit_error < bass_on_egi_error
+    return {
+        "case": "symmetric_external_ground_truth",
+        "noise": {"distribution": "Gaussian", "sigma": sigma, "seed": control["noise_seed"]},
+        "bass_truth_direction": {
+            "ground_truth_parameters": bass_gt,
+            "Bass_fit": {"parameters": bass_fit_params, "rmse": round(bass_fit_error, 6)},
+            "eGi_fit": {"parameters": egi_on_bass_params, "rmse": round(egi_on_bass_error, 6)},
+            "winner": "Bass" if bass_pass else "eGi",
+            "pass": bass_pass,
+        },
+        "eGi_truth_direction": {
+            "ground_truth_parameters": asdict(egi_gt),
+            "Bass_fit": {"parameters": bass_on_egi_params, "rmse": round(bass_on_egi_error, 6)},
+            "eGi_fit": {"parameters": egi_fit_params, "rmse": round(egi_fit_error, 6)},
+            "winner": "eGi" if egi_pass else "Bass",
+            "pass": egi_pass,
+        },
+        "bidirectional": bass_pass and egi_pass,
+        "tier_claim": "FIT_DISCRIMINATION_BIDIRECTIONAL" if bass_pass and egi_pass else "FIT_DISCRIMINATION_ONE_DIRECTIONAL",
+    }
+
 def external_ground_truth_positive_control() -> dict:
     """Generate noisy data from a known Bass process and test discrimination."""
     import random
@@ -184,6 +250,12 @@ def external_ground_truth_positive_control() -> dict:
         },
         "ground_truth_parameters": {"p": p, "q": q},
         "recovered_baseline_parameters": baseline_params,
+        "fit_method": "deterministic_grid_search_over_preregistered_p_q_grid",
+        "fit_resolution": {"p": 0.001, "q": 0.01},
+        "reported_p_equals_ground_truth": baseline_params["p"] == p,
+        "reported_q_equals_ground_truth": baseline_params["q"] == q,
+        "p_absolute_error": round(abs(baseline_params["p"] - p), 12),
+        "q_absolute_error": round(abs(baseline_params["q"] - q), 12),
         "recovery_tolerance": control["recovery_tolerance"],
         "bass_rmse": round(baseline_error, 6),
         "eGi_rmse": round(eGi_error, 6),
@@ -237,6 +309,7 @@ def calibrate() -> dict:
         "post_quarantine_protocol": prereg["post_quarantine_protocol"],
         "positive_control": positive_control(),
         "external_ground_truth_positive_control": external_ground_truth_positive_control(),
+        "symmetric_external_ground_truth_control": symmetric_external_ground_truth_control(),
         "result": "CALIBRATED" if error <= threshold else "QUARANTINED",
         "eGi_calibration_tier": "VERIFIED_PROCESS" if error <= threshold else "ACTION_REQUIRED",
         "diffusion_submodel_tier": "VERIFIED_PROCESS" if baseline_error <= threshold else "ACTION_REQUIRED",
