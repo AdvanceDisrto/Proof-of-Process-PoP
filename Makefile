@@ -42,7 +42,7 @@ test-platform-architecture:
 	python -m pytest -q tests/test_platform_architecture.py
 
 
-test: test-platform-architecture test-ibare test-render test-polyglot test-iska test-imcp test-ledger test-tee-scrape test-antimatter test-am-tiered test-ambient test-omnipresent test-buddy-liveness test-inetty test-mmr test-platform-architecture
+test: test-platform-architecture test-ibare test-render test-polyglot test-iska test-imcp test-ledger test-tee-scrape test-antimatter test-am-tiered test-ambient test-omnipresent test-buddy-liveness test-inetty test-mmr
 	python -m pytest -q
 
 build-all: test
