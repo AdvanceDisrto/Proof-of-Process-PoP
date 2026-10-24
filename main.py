@@ -13,6 +13,9 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 
+from iska_authority import verify_receipt
+from ledger_persistence import commit_verified_receipt, validate_ledger_record
+
 BASE_DIR = Path(__file__).resolve().parent
 UI_PATH = BASE_DIR / "index.html"
 
@@ -76,6 +79,25 @@ class AttestationSubmission(BaseModel):
     workload_hash: str
 
 
+class LedgerCommitRequest(BaseModel):
+    signed_receipt: dict[str, object]
+    receipt_id: str
+    instance_id: str
+    provider_name: str | None = None
+    hardware_type: str
+    workload_hash: str
+    evidence_sha256: str
+    attestation_verification: str
+    physical_gate: str
+    evidence_origin: str
+    verifier_receipt_id: str
+    identity_root_id: str | None = None
+    identity_epoch: str | None = None
+    receipt_signature: str | None = None
+    delegation_certificate: dict[str, object] | None = None
+    metadata: dict[str, object] = {}
+
+
 @app.post("/api/lifecycle/challenge")
 def issue_attestation_challenge(request: ChallengeRequest):
     nonce = secrets.token_hex(32)
@@ -131,6 +153,43 @@ def verify_attestation_submission(submission: AttestationSubmission):
         "action_required": "Verify vendor hardware quote and certificate chain before promotion.",
     }
 
+
+
+@app.get("/api/identity/manifest")
+def identity_manifest():
+    root_id = os.getenv("ISKA_ROOT_ID")
+    root_public_key = os.getenv("ISKA_ROOT_PUBLIC_KEY")
+    if not root_id or not root_public_key:
+        return {
+            "status": "ACTION_REQUIRED",
+            "identity_state": "UNCONFIGURED",
+            "root_private_key": "NOT_PRESENT_IN_BACKEND",
+            "reason": "Configure the public iSKA identity only; never place the root private key on the provider backend.",
+        }
+    return {
+        "status": "VERIFIED_PROCESS",
+        "identity_state": "ROOT_PUBLIC_IDENTITY_CONFIGURED",
+        "root_id": root_id,
+        "root_public_key": root_public_key,
+        "root_private_key": "NOT_PRESENT_IN_BACKEND",
+        "provider_key": "DELEGATED_ONLY",
+    }
+
+
+@app.post("/api/ledger/commit")
+def commit_ledger_record(request: LedgerCommitRequest):
+    if not verify_receipt(request.signed_receipt):
+        raise HTTPException(status_code=422, detail="iSKA receipt signature/delegation verification failed.")
+    record = request.model_dump(exclude={"signed_receipt"})
+    try:
+        validate_ledger_record(record)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    try:
+        row = commit_verified_receipt(record)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    return {"status": "COMMITTED_VERIFIED_RECEIPT", "ledger_record": row}
 
 @app.get("/")
 def serve_ui():
