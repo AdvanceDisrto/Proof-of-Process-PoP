@@ -1,0 +1,79 @@
+name: CCE Epistemic Genesis Proof
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/cce_prototype.py"
+      - "tests/test_cce_prototype.py"
+      - ".github/workflows/cce-epistemic-genesis.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install cryptography pytest
+
+      - name: Boundary declaration check
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          s = Path("tools/cce_prototype.py").read_text()
+          for marker in ["resource.setrlimit", "RLIMIT_CPU", "RLIMIT_AS", "network_enforcement", "kernel_isolation"]:
+              assert marker in s, marker
+          print("CCE boundary declarations present.")
+          PY
+
+      - name: Run CCE tests
+        run: python -m pytest tests/test_cce_prototype.py -q --no-header
+
+      - name: Run CCE proof
+        run: |
+          mkdir -p evidence/cce
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from tools.cce_prototype import run
+          receipt = run()
+          Path("evidence/cce/cce_receipt.json").write_text(
+              json.dumps(receipt, indent=2, sort_keys=True) + "\n"
+          )
+          print(json.dumps(receipt["ilogic"], indent=2))
+          print("physical_gate:", receipt["physical_gate"])
+          PY
+
+      - name: Re-verify CCE proof
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from tools.cce_prototype import verify_epistemic_genesis
+          r = json.loads(Path("evidence/cce/cce_receipt.json").read_text())
+          check = {"execution": r["execution"], "validation": r["validation"],
+                   "ilogic": r["ilogic"], "physical_gate": r["physical_gate"]}
+          errors = verify_epistemic_genesis(check)
+          assert not errors, errors
+          assert r["physical_gate"] == "ACTION_REQUIRED"
+          assert r["ilogic"]["attestation_axis"] == "UNATTESTED"
+          print("CCE proof re-verifies.")
+          PY
+
+      - name: Upload CCE evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cce-epistemic-genesis-${{ github.run_id }}
+          path: evidence/cce/
