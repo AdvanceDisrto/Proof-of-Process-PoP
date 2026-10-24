@@ -87,7 +87,49 @@ print(json.dumps({
 }, indent=2))
 PY
 
-python3 tools/mmr_pipeline.py 5000 "$OUT/mmr_5000.json"
+
+python3 -m pytest tests/test_envelop.py tests/test_ilogic.py -q --no-header
+
+python3 - <<'PY'
+import json
+from pathlib import Path
+from tools.envelop import Envelop, Content, verify
+from tools.ilogic import Engine, Claim, Rule, ESTABLISHED, ATTESTED, UNATTESTED, MODE_EVIDENCE
+
+E = Path("evidence")
+E.mkdir(exist_ok=True)
+claims = [
+    Claim("c:sha256-known-vector", "sha256", "matches_nist_vector", 1, ESTABLISHED, UNATTESTED),
+    Claim("c:isa-detected", "host", "isa_is_x86_64", 1, ESTABLISHED, UNATTESTED),
+    Claim("c:tee-absent", "host", "has_tee_device", -1, ESTABLISHED, UNATTESTED),
+]
+eng = Engine(claims)
+eng._check_contradictions()
+eng.apply(Rule("and-isa-sha", MODE_EVIDENCE, ("c:sha256-known-vector", "c:isa-detected"), "composite", "software_process_verified"))
+eng.apply(Rule("and-with-tee-absence", MODE_EVIDENCE, ("c:sha256-known-vector", "c:tee-absent"), "composite", "physical_attestation_available"))
+(E / "ilogic_derivation.json").write_text(json.dumps(eng.receipt(), indent=2) + "\n")
+
+KIND = {
+    "gate_verification.json": "receipt",
+    "mmr_5000.json": "receipt",
+    "ilogic_derivation.json": "derivation",
+    "host_capabilities.json": "log",
+}
+contents = []
+for f in sorted(E.glob("*.json")):
+    if f.name in {"MASTER_RUN_RECEIPT.json", "envelope.json"}:
+        continue
+    contents.append(Content(f.name, KIND.get(f.name, "log"), f.read_bytes()))
+
+signer = Envelop(Envelop.keypair())
+env = signer.seal(contents, purpose="run-all receipt set")
+(E / "envelope.json").write_text(json.dumps(env, indent=2) + "\n")
+v = verify(env, {c.path: c.data for c in contents})
+assert v["ok"], v["errors"]
+print("[iLogic] derivations=", len(eng.derived), "gate=", eng.receipt()["physical_gate"])
+print("[Envelop] contents=", len(contents), "manifest_root=", v["manifest_mmr_root"])
+print("[Envelop] gate=", v["physical_gate"], "self_verify=OK")
+\npython3 tools/mmr_pipeline.py 5000 "$OUT/mmr_5000.json"
 python3 tools/master_run_receipt.py "$OUT"
 
 echo
