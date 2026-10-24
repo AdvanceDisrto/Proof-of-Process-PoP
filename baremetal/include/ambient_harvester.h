@@ -6,5 +6,5 @@ typedef struct{double barometric_m2,teg_cm2,radiative_cm2,piezo_cm2;}HarvesterIn
 typedef struct{double idle_power_w,useful_load_w;}HarvesterLoad;
 typedef struct{double harvested_w,self_sustaining,can_power_load,coverage_ratio;}HarvesterBudget;
 int harvester_compute(const HarvesterDensities*,const HarvesterInstallation*,const HarvesterLoad*,HarvesterBudget*);
-int harvester_emit_receipt(const HarvesterBudget*,ibare_u8 out_hash[32]);
+int harvester_emit_receipt(const HarvesterBudget*,uint8_t out_hash[32]);
 #endif
