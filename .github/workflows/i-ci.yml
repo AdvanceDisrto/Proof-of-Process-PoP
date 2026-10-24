@@ -12,6 +12,8 @@ jobs:
       - run: pip install -r requirements.txt
       - name: Build Verifiable Truth Infrastructure reference
         run: make build-truth
+      - name: GPU provider attestation router truth boundary
+        run: make test-attestation-router
       - name: Run tests
         run: python -m pytest -q
       - name: SPU ML-DSA-87 verification
