@@ -1,4 +1,4 @@
-.PHONY: install test test-omnipresent test-ambient test-am-tiered build-omnipresent build-ambient build-am-physics test-antimatter test-tee-scrape test-on-silicon test-iska test-imcp test-ledger test-truth test-attestation-router test-physical-merkle test-ibare test-polyglot test-e2e test-daemon test-hardened test-spu test-spu-reference test-spu-rtl test-spu-custody test-spu-materialization test-spu-ml-dsa test-spu-orfs test-spu-source-policy build-ibare build-rtl build-daemon build-hardened build-spu-reference build-all
+.PHONY: install test test-buddy-liveness test-inetty test-signal-proof test-omnipresent test-ambient test-am-tiered build-omnipresent build-ambient build-am-physics test-antimatter test-tee-scrape test-on-silicon test-iska test-imcp test-ledger test-truth test-attestation-router test-physical-merkle test-ibare test-polyglot test-e2e test-daemon test-hardened test-spu test-spu-reference test-spu-rtl test-spu-custody test-spu-materialization test-spu-ml-dsa test-spu-orfs test-spu-source-policy build-ibare build-rtl build-daemon build-hardened build-spu-reference build-all
 
 CC ?= cc
 CFLAGS ?= -O2 -std=c11 -Wall -Wextra -Werror -pedantic
@@ -37,7 +37,7 @@ test-iska:
 test-ledger:
 	python -m pytest -q test_ledger_persistence.py
 
-test: test-ibare test-render test-polyglot test-iska test-imcp test-ledger test-tee-scrape test-antimatter test-am-tiered test-ambient test-omnipresent
+test: test-ibare test-render test-polyglot test-iska test-imcp test-ledger test-tee-scrape test-antimatter test-am-tiered test-ambient test-omnipresent test-buddy-liveness test-inetty
 	python -m pytest -q
 
 build-all: test
@@ -158,6 +158,19 @@ build-am-physics:
 test-am-tiered: build-am-physics
 	python -m pytest -q tests/test_antimatter_tiered.py
 	python tools/antimatter_tiered_receipt.py
+
+# Sovereign signal / iNetty proof-of-process surfaces. These are cryptographic software proofs;
+# physical radio and TEE gates remain ACTION_REQUIRED.
+test-buddy-liveness:
+	python -m pytest -q tests/test_buddy_liveness.py
+	python tools/buddy_liveness_proof.py self-test
+
+test-inetty:
+	python -m pytest -q tests/test_inetty_smallest_proof.py
+	python tools/inetty_smallest_proof.py
+
+test-signal-proof: test-buddy-liveness test-inetty
+	@echo "Signal proof-of-process complete; physical gate remains ACTION_REQUIRED"
 
 .PHONY: test-ci-receipts status
 
