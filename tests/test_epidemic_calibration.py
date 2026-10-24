@@ -84,10 +84,12 @@ def test_symmetric_control_records_fit_provenance_and_generator_scope():
     assert result["fit_provenance"]["eGi"]["method"] == "deterministic_grid_search_over_effective_transmission_and_delta"
     assert set(result["eGi_truth_direction"]["eGi_fit"]["parameters"]) == {"effective_transmission", "delta"}
     assert result["off_grid_truth_control"]["truth_alignment"] == "OFF_GRID"
-    assert result["off_grid_truth_control"]["Bass_absolute_errors"]["p"] <= 0.01
-    assert result["off_grid_truth_control"]["Bass_absolute_errors"]["q"] <= 0.01
-    assert result["off_grid_truth_control"]["eGi_absolute_errors"]["effective_transmission"] <= 0.01
-    assert result["off_grid_truth_control"]["eGi_absolute_errors"]["delta"] <= 0.01
+    assert result["off_grid_recovery_pass"] is True
+    assert result["off_grid_truth_control"]["Bass_absolute_errors"]["p"] <= 0.002
+    assert result["off_grid_truth_control"]["Bass_absolute_errors"]["q"] <= 0.02
+    assert result["off_grid_truth_control"]["eGi_absolute_errors"]["effective_transmission"] <= 0.02
+    assert result["off_grid_truth_control"]["eGi_absolute_errors"]["delta"] <= 0.02
+    assert result["off_grid_truth_control"]["delta_fit_not_nearest_node"] is True
     assert result["generator_scope"]["implementation"] == "actual simulate() eGi recurrence"
     assert "kappa" in result["generator_scope"]["inactive_in_current_simulator"]
     assert "mutation" in result["generator_scope"]["inactive_in_current_simulator"]
