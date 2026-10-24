@@ -17,4 +17,4 @@ COPY . .
 
 EXPOSE 10000
 
-CMD ["sh", "-c", "exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-10000} --loop uvloop --http httptools --workers ${WEB_CONCURRENCY:-4}"]
+CMD ["sh", "-c", "exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-10000} --loop uvloop --http httptools --workers ${WEB_CONCURRENCY:-1}"]
