@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import base64
+import hashlib
 import os
+import secrets
 import time
 from pathlib import Path
 
 import orjson
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
+from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 
@@ -37,7 +41,7 @@ app.add_middleware(
         "http://localhost:8000",
     ],
     allow_credentials=True,
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
@@ -53,6 +57,79 @@ async def security_headers(request: Request, call_next):
     response.headers["Permissions-Policy"] = "microphone=(), camera=(), geolocation=()"
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return response
+
+
+CHALLENGE_TTL_SECONDS = 300
+ACTIVE_CHALLENGES: dict[str, dict[str, object]] = {}
+
+
+class ChallengeRequest(BaseModel):
+    provider_name: str
+    instance_id: str
+    hardware_type: str
+
+
+class AttestationSubmission(BaseModel):
+    instance_id: str
+    nonce: str
+    attestation_token_b64: str
+    workload_hash: str
+
+
+@app.post("/api/lifecycle/challenge")
+def issue_attestation_challenge(request: ChallengeRequest):
+    nonce = secrets.token_hex(32)
+    ACTIVE_CHALLENGES[request.instance_id] = {
+        "nonce": nonce,
+        "expires": time.time() + CHALLENGE_TTL_SECONDS,
+        "provider_name": request.provider_name,
+        "hardware_type": request.hardware_type,
+    }
+    return {
+        "status": "ELIGIBLE_FOR_ATTESTATION",
+        "physical_gate": "ACTION_REQUIRED",
+        "instance_id": request.instance_id,
+        "challenge_nonce": nonce,
+        "expires_in_seconds": CHALLENGE_TTL_SECONDS,
+    }
+
+
+@app.post("/api/lifecycle/verify")
+def verify_attestation_submission(submission: AttestationSubmission):
+    session = ACTIVE_CHALLENGES.pop(submission.instance_id, None)
+    if session is None:
+        raise HTTPException(status_code=403, detail="No active challenge or challenge already consumed.")
+    if time.time() > float(session["expires"]):
+        raise HTTPException(status_code=408, detail="Challenge expired.")
+    if not secrets.compare_digest(submission.nonce, str(session["nonce"])):
+        raise HTTPException(status_code=401, detail="Nonce mismatch; evidence rejected.")
+
+    try:
+        evidence = base64.b64decode(submission.attestation_token_b64, validate=True)
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail="Malformed base64 attestation evidence.") from exc
+    if len(evidence) < 64:
+        raise HTTPException(status_code=422, detail="Attestation evidence is structurally insufficient.")
+    if len(submission.workload_hash) != 64:
+        raise HTTPException(status_code=422, detail="workload_hash must be a SHA-256 hex digest.")
+    try:
+        bytes.fromhex(submission.workload_hash)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail="workload_hash is not hexadecimal.") from exc
+
+    # Structural ingestion is intentionally not hardware verification. Promotion
+    # requires a provider/vendor verifier that validates the signed quote,
+    # certificate chain, nonce binding, device measurement and workload binding.
+    return {
+        "status": "EVIDENCE_RECEIVED_UNVERIFIED",
+        "physical_gate": "ACTION_REQUIRED",
+        "materialization": "BLOCKED",
+        "evidence_sha256": hashlib.sha256(evidence).hexdigest(),
+        "workload_hash": submission.workload_hash,
+        "provider_name": session["provider_name"],
+        "hardware_type": session["hardware_type"],
+        "action_required": "Verify vendor hardware quote and certificate chain before promotion.",
+    }
 
 
 @app.get("/")
