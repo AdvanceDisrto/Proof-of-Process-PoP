@@ -39,7 +39,7 @@ struct EnergySample { bool available=false; uint64_t microjoules=0; };
 class HardwareTelemetry {
  static EnergySample read_path(const char* path){
   int fd=open(path,O_RDONLY); if(fd<0)return {}; char buf[64]{}; ssize_t n=read(fd,buf,sizeof(buf)-1); close(fd);
-  if(n<=0)return {}; uint64_t v=0; auto [p,ec]=std::from_chars(buf,buf+n,v); if(ec!=std::errc())return {}; return {true,v};
+  if(n<=0) return {};\n  uint64_t v=0;\n  auto result=std::from_chars(buf,buf+n,v);\n  if(result.ec!=std::errc()) return {};\n  return {true,v};
  }
 public:
  static EnergySample read_rapl(){ return read_path("/sys/class/powercap/intel-rapl/intel-rapl:0/energy_uj"); }
