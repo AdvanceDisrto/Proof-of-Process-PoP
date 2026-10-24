@@ -25,8 +25,8 @@ jobs:
         run: make test-spu-ml-dsa
       - name: SPU RTL route and locked hierarchy simulation
         run: make test-spu-rtl
-      - name: SPU source custody and fail-closed materialization
-        run: make test-spu-custody test-spu-materialization
+      - name: SPU source custody, policy and fail-closed materialization
+        run: make test-spu-custody test-spu-source-policy test-spu-materialization test-spu-orfs
       - name: RTL + software E2E truth-boundary verification
         run: make test-e2e
       - name: Portable SIMD daemon build and self-test
