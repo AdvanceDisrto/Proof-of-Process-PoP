@@ -1,5 +1,5 @@
 from tools.epidemic_genesis import (
-    ADOPTED, FAILED, QUARANTINED, RETAINED, UNEXPOSED, Agent, Evidence,
+    ADOPTED, FAILED, QUARANTINED, RETAINED, SUPERSEDED, UNEXPOSED, Agent, Evidence,
     EpidemicGenesis, EpidemicParameters, EpistemicGenerator,
 )
 
@@ -38,3 +38,12 @@ def test_epidemic_propagation_and_quarantine():
 def test_high_mutation_low_fidelity_reduces_transmission_effectiveness():
     params = EpidemicParameters(beta=0.8, contacts=4.0, alpha=1.0, gamma=1.0, delta=0.2, kappa=0.2, mutation=0.9, fidelity=0.2, trust=1.0)
     assert params.effective_rt() < params.r0
+
+
+def test_supersession_is_not_quarantine():
+    agent = Agent('a0')
+    agent.states['v-old'] = __import__('tools.epidemic_genesis', fromlist=['AgentVariantState']).AgentVariantState(state=ADOPTED)
+    model = EpidemicGenesis([agent], {'a0': []}, EpidemicParameters(beta=0.1, contacts=1, alpha=1, gamma=1, delta=0.1, kappa=0.1, mutation=0.1))
+    assert model.supersede('v-old') == 1
+    assert agent.states['v-old'].state == SUPERSEDED
+    assert agent.states['v-old'].state != QUARANTINED
