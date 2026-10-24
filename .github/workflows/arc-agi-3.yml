@@ -31,7 +31,7 @@ jobs:
       - name: Play game
         env:
           ARC_API_KEY: ${{ secrets.ARC_API_KEY }}
-        run: python -m tools.arc3_play --game "${{ matrix.game }}" --max-actions "${{ inputs.max_actions }}" --out evidence
+        run: python -m tools.arc3_play --game "${{ matrix.game }}" --max-actions "${{ inputs.max_actions || '5000' }}" --out evidence
       - name: Derive and verify receipt
         env:
           GAME: ${{ matrix.game }}
