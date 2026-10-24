@@ -18,6 +18,7 @@ import time
 from dataclasses import dataclass
 from typing import Any, Mapping
 
+from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
 
@@ -178,7 +179,7 @@ def verify_delegation(
             _unb64(cert.signature),
             DOMAIN_DELEGATION + _canonical(cert.payload()),
         )
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, InvalidSignature):
         return False
     expected_root_id = f"did:iska:root:{cert.root_public_key[:16]}"
     return secrets.compare_digest(cert.root_id, expected_root_id)
@@ -227,7 +228,7 @@ def verify_receipt(
             DOMAIN_RECEIPT + _canonical(payload),
         )
         return True
-    except (KeyError, ValueError, TypeError, ed25519.InvalidSignature):
+    except (KeyError, ValueError, TypeError, InvalidSignature):
         return False
 
 
