@@ -12,7 +12,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: {node-version: "20"}
       - uses: dtolnay/rust-toolchain@stable
-      - run: pip install -r requirements.txt
+      - run: sudo apt-get update && sudo apt-get install -y iverilog\n      - run: pip install -r requirements.txt
       - name: Bare-metal iBare C build and self-test
         run: make test-ibare
       - name: CPU renderer verification
@@ -47,4 +47,4 @@ jobs:
           path: |
             PARALLEL_MASTER_RECEIPT.json
             MASTER_REALITY_LEDGER.json
-            POLYGLOT_PROCESS_RECEIPT.json
+            POLYGLOT_PROCESS_RECEIPT.json\n            E2E_REALITY_MANIFEST.json
