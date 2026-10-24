@@ -6,5 +6,5 @@
 #define AM_CHEM_JKG 4.4e7
 typedef struct{double e_per_collision_j,energy_density_j_per_kg,ratio_vs_chemical;}AntimatterPhysics;
 int am_compute_physics(AntimatterPhysics*);
-int am_emit_receipt(const AntimatterPhysics*,ibare_u8 out_hash[32]);
+int am_emit_receipt(const AntimatterPhysics*,uint8_t out_hash[32]);
 #endif
