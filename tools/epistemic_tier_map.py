@@ -5,6 +5,35 @@ are deliberately separated from behavioral/function receipts.
 """
 
 TIER_MAP = {
+
+    "ckm_diffusion_submodel_has_external_comparator": {
+        "tier": "VERIFIED_PROCESS",
+        "evidence_type": "comparative_calibration_receipt",
+        "tester": "tools/epidemic_calibration.py",
+        "tester_observable": True,
+        "why": "The fixed eGi diffusion candidate is compared against a Bass-style baseline on the same 17 CKM-derived adoption points.",
+    },
+    "eGi_specific_parameters_identified_by_CKM": {
+        "tier": "REFUTED",
+        "evidence_type": "identifiability_boundary",
+        "tester": "CKM data schema",
+        "tester_observable": True,
+        "why": "CKM records adoption timing but not local tests, receipt strength, contradictions, quarantine, or mutation lineage; kappa and mutation are therefore not identifiable from this dataset.",
+    },
+    "eGi_calibration_claim": {
+        "tier": "ACTION_REQUIRED",
+        "evidence_type": "external_calibration",
+        "tester": "tools/epidemic_calibration.py",
+        "tester_observable": True,
+        "why": "The fixed eGi candidate failed the pre-registered RMSE criterion and did not outperform the baseline comparator.",
+    },
+    "supersession_is_distinct_from_quarantine": {
+        "tier": "VERIFIED_PROCESS",
+        "evidence_type": "behavior_receipt",
+        "tester": "tests/test_epidemic_genesis.py",
+        "tester_observable": True,
+        "why": "The model now has a distinct SUPERSEDED state so displacement by a successor is not mislabeled as contradiction-driven quarantine.",
+    },
     "epidemic_genesis_model_exists": {
         "tier": "EXISTENCE_RECEIPT",
         "evidence_type": "repository_presence",
