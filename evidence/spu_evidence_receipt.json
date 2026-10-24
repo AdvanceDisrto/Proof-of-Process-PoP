@@ -1,0 +1,8 @@
+{
+  "spec":"innovulis-spu-evidence/1.0",
+  "state":"VERIFIED_PROCESS",
+  "physical_gate":"ACTION_REQUIRED",
+  "surfaces":{"cpp_reference":"VERIFIED_PROCESS","rtl_simulation":"VERIFIED_PROCESS","materialization":"BLOCKED"},
+  "does_not_prove":["fabricated custom silicon","foundry DRC/LVS signoff","real SRAM macros","measured HBM bandwidth","live 800G networking","ARM64 physical execution","physical-host evidence from a runner not actually observed"],
+  "rule":"SIMULATE WHAT YOU CAN · MEASURE WHAT YOU CLAIM · SEAL WHAT YOU SHIP · NEVER PROMOTE WITHOUT RECEIPTS"
+}
