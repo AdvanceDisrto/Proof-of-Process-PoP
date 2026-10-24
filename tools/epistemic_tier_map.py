@@ -126,9 +126,11 @@ TIER_MAP = {
         "evidence_type": "mechanism_active_synthetic_control",
         "tester": "tools/epidemic_calibration.py",
         "tester_observable": True,
-        "claim_scope": "MECHANISM_ACTIVE_SYNTHETIC_DISCRIMINATION",
-        "why": "GitHub Actions run 40138455439 exercised simulate_mechanism_active with receipt weighting, quarantine feedback, and mutation; fitted eGi RMSE 0.001992 beat fitted Bass RMSE 0.002838.",
-        "does_not_prove": "This control does not validate the current CKM candidate, does not retroactively widen the baseline simulator claim, and does not establish performance on external real-world mechanism-observing data.",
+        "claim_scope": "MECHANISM_ACTIVE_SYNTHETIC_DISCRIMINATION_WITH_PAIRED_BOOTSTRAP",
+        "why": "Run 40138455439 exercised receipt weighting, quarantine feedback, and mutation on a one-seed noisy synthetic control; fitted eGi RMSE 0.001992 beat fitted Bass RMSE 0.002838. The paired bootstrap is now required to determine whether that point-estimate margin excludes zero.",
+        "parameter_regime": "Ground truth beta=0.07925, contacts=4, delta=0.153, kappa=0.07, mutation=0.17, receipt_strength=0.85, contradiction_rate=0.18.",
+        "bass_gap": "Bass is a close but worse fit; the current RMSE gap is 0.000846, so this is not an order-of-magnitude Bass failure.",
+        "does_not_prove": "This control does not validate the current CKM candidate, does not retroactively widen the baseline simulator claim, and does not establish performance on external real-world mechanism-observing data."
     },
     "candidate_validity_never_inherited_from_harness_validity": {
         "tier": "DEFINITIONAL",
