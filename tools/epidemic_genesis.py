@@ -144,9 +144,9 @@ class EpidemicGenesis:
 
             counts[av.state] += 1
 
+        total = max(1, len(self.agents))
+        susceptible = counts[UNEXPOSED] / total
         counts["R0"] = self.params.r0
-        counts["Rt"] = self.params.effective_rt(
-            susceptible=sum(v == 0 for v in [counts[ADOPTED]]) if counts else 1.0
-        )
+        counts["Rt"] = self.params.effective_rt(susceptible=susceptible)
         counts["mutation_escape_pressure"] = self.params.mutation * (1.0 - self.params.fidelity)
         return counts
