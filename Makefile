@@ -1,4 +1,4 @@
-.PHONY: install test test-ibare test-polyglot test-e2e test-daemon build-ibare build-rtl build-daemon build-all
+.PHONY: install test test-ibare test-polyglot test-e2e test-daemon test-hardened build-ibare build-rtl build-daemon build-hardened build-all
 
 CC ?= cc
 CFLAGS ?= -O2 -std=c11 -Wall -Wextra -Werror -pedantic
@@ -46,3 +46,12 @@ build-daemon:
 test-daemon: build-daemon
 	./build/ibare_daemon --self-test
 	@if [ -x build/ibare_daemon_avx2 ] && grep -qw avx2 /proc/cpuinfo; then ./build/ibare_daemon_avx2 --self-test; else echo "AVX2 runtime skipped: CPU support not advertised"; fi
+
+build-hardened:
+	mkdir -p build
+	$(CXX) -std=c++20 -O3 -Wall -Wextra -Werror -pthread daemon/omnibus_hardened.cpp -o build/omnibus_hardened -lcrypto
+	@if [ "$$(uname -m)" = "x86_64" ]; then $(CXX) -std=c++20 -O3 -Wall -Wextra -Werror -pthread -mavx2 daemon/omnibus_hardened.cpp -o build/omnibus_hardened_avx2 -lcrypto; fi
+
+test-hardened: build-hardened
+	./build/omnibus_hardened
+	@if [ -x build/omnibus_hardened_avx2 ] && grep -qw avx2 /proc/cpuinfo; then ./build/omnibus_hardened_avx2; else echo "AVX2 hardened runtime skipped: CPU support not advertised"; fi
