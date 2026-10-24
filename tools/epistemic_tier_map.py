@@ -1,6 +1,22 @@
 """Machine-readable honest tier map for Epistemic Genesis claims."""
 
 TIER_MAP = {
+    "epidemic_genesis_generate_and_test_loop": {
+        "tier": "VERIFIED_PROCESS",
+        "why": "The repository now contains an executable generator/tester model that separates receipt strength from external verification.",
+    },
+    "epidemic_genesis_graph_propagation_model": {
+        "tier": "VERIFIED_PROCESS",
+        "why": "The repository models exposure, trial, adoption, retention, failure, quarantine, R0, Rt, mutation, and fidelity on an agent graph.",
+    },
+    "high_r0_variant_is_verified_truth": {
+        "tier": "REFUTED",
+        "why": "Reproduction above one measures propagation potential; it does not establish external correctness.",
+    },
+    "receipt_self_consistency_is_external_truth": {
+        "tier": "REFUTED",
+        "why": "A cryptographic receipt can bind an observed process without independently proving the payload's truth.",
+    },
     "today_ai_can_generate_new_solver_code": {
         "tier": "PROVEN_LAW",
         "why": "Program synthesis and LLM code generation are established capabilities/fields.",
