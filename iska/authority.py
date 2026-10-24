@@ -227,7 +227,7 @@ def verify_receipt(
             DOMAIN_RECEIPT + _canonical(payload),
         )
         return True
-    except (KeyError, ValueError, TypeError):
+    except (KeyError, ValueError, TypeError, ed25519.InvalidSignature):
         return False
 
 
