@@ -5,19 +5,19 @@ from tools.antimatter_simulator import closed_form, emit_receipt
 
 def test_closed_form_0_10c():
     result = closed_form(0.10, 0.60)
-    assert abs(result["mass_ratio_one_way"] - 1.18197) < 1e-4
+    assert abs(result["mass_ratio_one_way"] - 1.182020875) < 1e-4
     assert abs(result["proper_time_accel_years"] - 0.0972) < 1e-3
 
 
 def test_closed_form_0_20c():
     result = closed_form(0.20, 0.60)
-    assert abs(result["mass_ratio_one_way"] - 1.40223) < 1e-4
+    assert abs(result["mass_ratio_one_way"] - 1.401982898) < 1e-4
     assert abs(result["mass_fraction_round_trip"] - 0.4915) < 1e-3
 
 
 def test_photon_rocket_limit():
     result = closed_form(0.10, 1.0)
-    assert abs(result["mass_ratio_one_way"] - 1.10558) < 1e-4
+    assert abs(result["mass_ratio_one_way"] - 1.105541597) < 1e-4
 
 
 def test_mass_fraction_increases_with_dv():
