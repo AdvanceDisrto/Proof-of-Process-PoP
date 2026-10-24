@@ -300,6 +300,7 @@ def symmetric_external_ground_truth_control() -> dict:
             "winner": "eGi" if mechanism_fit_error < bass_on_mechanism_error else "Bass",
             "point_estimate_pass": mechanism_fit_error < bass_on_mechanism_error,
             "comparative_pass": mechanism_fit_error < bass_on_mechanism_error and mechanism_bootstrap["excludes_zero"],
+            "pass": mechanism_fit_error < bass_on_mechanism_error and mechanism_bootstrap["excludes_zero"],
             "claim_scope": "MECHANISM_ACTIVE_SYNTHETIC_DISCRIMINATION_WITH_PAIRED_BOOTSTRAP" if mechanism_bootstrap["excludes_zero"] else "MECHANISM_ACTIVE_POINT_ESTIMATE_ONLY",
             "note": "New synthetic mechanism-active control; receipt weighting, quarantine feedback, and mutation are active. The noisy generator uses one preregistered seed; the paired bootstrap quantifies point-estimate uncertainty but is not an independent-seed replication. This does not retroactively upgrade the CKM candidate or baseline simulator claim.",
         },
