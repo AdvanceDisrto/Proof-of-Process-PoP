@@ -1,4 +1,4 @@
-.PHONY: install test test-ibare test-polyglot test-e2e build-ibare build-rtl build-all
+.PHONY: install test test-ibare test-polyglot test-e2e test-daemon build-ibare build-rtl build-daemon build-all
 
 CC ?= cc
 CFLAGS ?= -O2 -std=c11 -Wall -Wextra -Werror -pedantic
@@ -37,3 +37,12 @@ test: test-ibare test-render test-polyglot
 build-all: test
 	python -m proof.parallel_pop
 	python -m proof.universe_manifest
+
+build-daemon:
+	mkdir -p build
+	$(CXX) -std=c++20 -O3 -Wall -Wextra -Werror -pthread daemon/system_core.cpp -o build/ibare_daemon
+	@if [ "$$(uname -m)" = "x86_64" ]; then $(CXX) -std=c++20 -O3 -Wall -Wextra -Werror -pthread -mavx2 daemon/system_core.cpp -o build/ibare_daemon_avx2; fi
+
+test-daemon: build-daemon
+	./build/ibare_daemon --self-test
+	@if [ -x build/ibare_daemon_avx2 ] && grep -qw avx2 /proc/cpuinfo; then ./build/ibare_daemon_avx2 --self-test; else echo "AVX2 runtime skipped: CPU support not advertised"; fi
