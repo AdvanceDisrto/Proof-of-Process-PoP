@@ -175,10 +175,10 @@ test-inetty:
 	python tools/inetty_smallest_proof.py
 
 test-cce:
-	mkdir -p "${RUN_ALL_OUT:-evidence}"
+	mkdir -p "evidence/run-all/$(if $(GITHUB_RUN_ID),$(GITHUB_RUN_ID),local)"
 	python -m pytest -q tests/test_cce.py
-	python -m tools.cce_prototype > "${RUN_ALL_OUT:-evidence}/cce_prototype_receipt.json"
-	python tools/epistemic_tier_map.py > "${RUN_ALL_OUT:-evidence}/epistemic_tier_map.json"
+	python -m tools.cce_prototype > "evidence/run-all/$(if $(GITHUB_RUN_ID),$(GITHUB_RUN_ID),local)/cce_prototype_receipt.json"
+	python tools/epistemic_tier_map.py > "evidence/run-all/$(if $(GITHUB_RUN_ID),$(GITHUB_RUN_ID),local)/epistemic_tier_map.json"
 
 test-signal-proof: test-buddy-liveness test-inetty
 	@echo "Signal proof-of-process complete; physical gate remains ACTION_REQUIRED"
