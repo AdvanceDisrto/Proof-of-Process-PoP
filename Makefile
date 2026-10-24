@@ -1,4 +1,4 @@
-.PHONY: install test test-platform-architecture test-buddy-liveness test-inetty test-signal-proof test-omnipresent test-ambient test-am-tiered build-omnipresent build-ambient build-am-physics test-antimatter test-tee-scrape test-on-silicon test-iska test-imcp test-ledger test-truth test-attestation-router test-physical-merkle test-ibare test-polyglot test-e2e test-daemon test-mmr test-hardened test-spu test-spu-reference test-spu-rtl test-spu-custody test-spu-materialization test-spu-ml-dsa test-spu-orfs test-spu-source-policy build-ibare build-rtl build-daemon build-hardened build-spu-reference build-all
+.PHONY: install test test-cce test-platform-architecture test-buddy-liveness test-inetty test-signal-proof test-omnipresent test-ambient test-am-tiered build-omnipresent build-ambient build-am-physics test-antimatter test-tee-scrape test-on-silicon test-iska test-imcp test-ledger test-truth test-attestation-router test-physical-merkle test-ibare test-polyglot test-e2e test-daemon test-mmr test-hardened test-spu test-spu-reference test-spu-rtl test-spu-custody test-spu-materialization test-spu-ml-dsa test-spu-orfs test-spu-source-policy build-ibare build-rtl build-daemon build-hardened build-spu-reference build-all
 
 CC ?= cc
 CFLAGS ?= -O2 -std=c11 -Wall -Wextra -Werror -pedantic
@@ -173,6 +173,11 @@ test-buddy-liveness:
 test-inetty:
 	python -m pytest -q tests/test_inetty_smallest_proof.py
 	python tools/inetty_smallest_proof.py
+
+test-cce:
+	python -m pytest -q tests/test_cce.py
+	python tools/cce_prototype.py > evidence/cce_prototype_receipt.json
+	python tools/epistemic_tier_map.py > evidence/epistemic_tier_map.json
 
 test-signal-proof: test-buddy-liveness test-inetty
 	@echo "Signal proof-of-process complete; physical gate remains ACTION_REQUIRED"
