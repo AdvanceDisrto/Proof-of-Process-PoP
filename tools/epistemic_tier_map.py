@@ -117,7 +117,7 @@ TIER_MAP = {
         "evidence_type": "symmetric_external_ground_truth_control",
         "tester": "tools/epidemic_calibration.py",
         "tester_observable": True,
-        "why": "GitHub Actions run 40138455439 observed both directions using actual fitted parameters: Bass fit by deterministic p/q grid search and eGi fit by deterministic effective-transmission/delta grid search. The truth fixtures are deliberately off-grid (Bass p=0.0837/q=0.1813; eGi effective transmission=0.317/delta=0.153), and the fitted nodes recover within the preregistered 0.01 tolerance. The eGi-generated direction is specifically scoped to the structure emitted by the current simulate() recurrence; on the preregistered 17-point noisy control, the fitted eGi recurrence beats the fitted Bass comparator.",
+        "why": "GitHub Actions run 40138455439 observed both directions using actual fitted parameters: Bass fit by deterministic p/q grid search and eGi fit by deterministic effective-transmission/delta grid search. The truth fixtures are deliberately off-grid (Bass p=0.0837/q=0.1813; eGi effective transmission=0.317/delta=0.153), and the fitted nodes recover within the tightened two-grid-step cap. eGi delta fits 0.16 even though 0.15 is the nearest registered node to 0.153, documenting noise-driven fitting rather than nearest-node rounding. The eGi-generated direction is specifically scoped to the structure emitted by the current simulate() recurrence; on the preregistered 17-point noisy control, the fitted eGi recurrence beats the fitted Bass comparator.",
         "claim_scope": "FIT_DISCRIMINATION_BIDIRECTIONAL_ON_CURRENT_EGI_SIMULATOR_STRUCTURE",
         "does_not_prove": "This row proves the harness can distinguish the current simulator's emitted eGi recurrence from the Bass comparator on the preregistered synthetic controls. It does not prove global mathematical non-equivalence of the model families, does not validate inactive eGi mechanisms such as kappa, mutation, fidelity, or trust weighting, and does not prove the current eGi candidate is validated. The CKM calibration row records that the current candidate does not beat Bass on the CKM adoption curve, and that quarantine remains in force regardless of this row's tier."
     },
@@ -127,9 +127,9 @@ TIER_MAP = {
         "tester": "tools/epidemic_calibration.py",
         "tester_observable": True,
         "claim_scope": "MECHANISM_ACTIVE_SYNTHETIC_DISCRIMINATION_WITH_PAIRED_BOOTSTRAP",
-        "why": "Run 40138455439 exercised receipt weighting, quarantine feedback, and mutation on a one-seed noisy synthetic control; fitted eGi RMSE 0.001992 beat fitted Bass RMSE 0.002838. The paired bootstrap is now required to determine whether that point-estimate margin excludes zero.",
-        "parameter_regime": "Ground truth beta=0.07925, contacts=4, delta=0.153, kappa=0.07, mutation=0.17, receipt_strength=0.85, contradiction_rate=0.18.",
-        "bass_gap": "Bass is a close but worse fit; the current RMSE gap is 0.000846, so this is not an order-of-magnitude Bass failure.",
+        "why": "Run 40139073769 exercised receipt weighting, quarantine feedback, and mutation on a one-seed noisy synthetic control; fitted eGi RMSE 0.001992 beat fitted Bass RMSE 0.002838, with a paired 90% bootstrap CI of [-0.001727, -0.000016] for eGi-minus-Bass RMSE, excluding zero.",
+        "parameter_regime": "Ground truth beta=0.07925, contacts=4, delta=0.153, kappa=0.07, mutation=0.17, receipt_strength=0.85, contradiction_rate=0.18; one noisy generator seed.",
+        "bass_gap": "Bass is a close but worse fit; RMSE gap is 0.000846, so this is not an order-of-magnitude Bass failure.",
         "does_not_prove": "This control does not validate the current CKM candidate, does not retroactively widen the baseline simulator claim, and does not establish performance on external real-world mechanism-observing data."
     },
     "candidate_validity_never_inherited_from_harness_validity": {
