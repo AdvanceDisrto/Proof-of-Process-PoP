@@ -145,4 +145,4 @@ if __name__ == "__main__":
         {"name": "sublight_0.50c", "delta_v_c": 0.50, "effective_beta": 0.60},
     ]
     output = sys.argv[1] if len(sys.argv) > 1 else "evidence/antimatter_evidence_receipt.json"
-    print(json.dumps(emit_receipt(output, scenarios), indent=2))
+    print(json.dumps(emit_receipt(output, scenarios, strict=True), indent=2))
