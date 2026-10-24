@@ -1,0 +1,52 @@
+name: "iNetty Verifier"
+on:
+  push:
+    branches: [main]
+    paths:
+      - "iNetty/**"
+      - "tools/inetty_verifier.py"
+      - "tools/sovereign_mesh_node.py"
+      - "tests/test_inetty.py"
+      - ".github/workflows/inetty-verifier.yml"
+  pull_request:
+    paths:
+      - "iNetty/**"
+      - "tools/inetty_verifier.py"
+      - "tools/sovereign_mesh_node.py"
+      - "tests/test_inetty.py"
+      - ".github/workflows/inetty-verifier.yml"
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install pytest cryptography
+      - name: Verify manifest boundary
+        run: |
+          python - <<'PY'
+          import json
+          m=json.load(open("iNetty/NETTY_MANIFEST.json"))
+          assert m["mark"]=="iNetty™️🧾"
+          assert m["physical_gate"]=="ACTION_REQUIRED"
+          assert any(x["tier"]=="ACTION_REQUIRED" for x in m["tiered_evidence"])
+          print("iNetty manifest boundary PASS")
+          PY
+      - name: Run iNetty tests
+        run: python -m pytest tests/test_inetty.py -q
+      - name: Emit sovereign mesh receipt
+        run: python tools/sovereign_mesh_node.py
+      - name: Emit routing receipt
+        run: python tools/inetty_verifier.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: inetty-evidence
+          path: evidence/inetty_*.json
