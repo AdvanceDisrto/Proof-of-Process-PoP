@@ -53,4 +53,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mmr-5000-${{ github.run_id }}
-          path: |\n            evidence/mmr_5000.json\n            evidence/mmr_artifact_seal.json
+          path: |
+            evidence/mmr_5000.json
+            evidence/mmr_artifact_seal.json
