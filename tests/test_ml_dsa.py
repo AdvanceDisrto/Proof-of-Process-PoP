@@ -1,10 +1,8 @@
-from cryptography.hazmat.primitives.asymmetric.ml_dsa import MLDSA87PrivateKey
+from pqcrypto.sign import ml_dsa_87
+
 def test_ml_dsa_87_sign_verify():
-    sk=MLDSA87PrivateKey.generate()
-    pk=sk.public_key()
-    msg=b"iSPU receipt ML-DSA-87 test vector"
-    sig=sk.sign(msg)
-    pk.verify(sig,msg)
-    try: pk.verify(sig,b"tampered")
-    except Exception: pass
-    else: raise AssertionError("tamper accepted")
+    public_key, secret_key = ml_dsa_87.generate_keypair()
+    message = b"iSPU receipt ML-DSA-87 test vector"
+    signature = ml_dsa_87.sign(secret_key, message)
+    assert ml_dsa_87.verify(public_key, message, signature)
+    assert not ml_dsa_87.verify(public_key, b"tampered", signature)
