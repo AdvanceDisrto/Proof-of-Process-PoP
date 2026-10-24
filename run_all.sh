@@ -45,7 +45,7 @@ log_step inetty make test-inetty
 log_step mmr make test-mmr
 log_step cce make test-cce
 log_step epidemic_genesis make test-epidemic-genesis
-log_step epidemic_calibration bash -lc 'python3 tools/epidemic_calibration.py | tee "$RUN_ALL_OUT/epidemic_calibration.json"'
+log_step epidemic_calibration bash -lc 'python3 -m tools.epidemic_calibration | tee "$RUN_ALL_OUT/epidemic_calibration.json"'
 
 python3 - <<'PY' > "$OUT/tester_observability.json"
 import json
