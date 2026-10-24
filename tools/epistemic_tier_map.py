@@ -1,57 +1,100 @@
-"""Machine-readable honest tier map for Epistemic Genesis claims."""
+"""Machine-readable honest tier map for Epistemic Genesis claims.
+
+Every claim names its evidence type and tester observability. Existence receipts
+are deliberately separated from behavioral/function receipts.
+"""
 
 TIER_MAP = {
-    "epidemic_genesis_generate_and_test_loop": {
-        "tier": "VERIFIED_PROCESS",
-        "why": "The repository now contains an executable generator/tester model that separates receipt strength from external verification.",
+    "epidemic_genesis_model_exists": {
+        "tier": "EXISTENCE_RECEIPT",
+        "evidence_type": "repository_presence",
+        "tester": "GitHub source tree",
+        "tester_observable": True,
+        "why": "The model file and documentation are present in main; this does not establish behavioral correctness.",
     },
-    "epidemic_genesis_graph_propagation_model": {
+    "epidemic_genesis_generator_changes_variants_under_mutation": {
         "tier": "VERIFIED_PROCESS",
-        "why": "The repository models exposure, trial, adoption, retention, failure, quarantine, R0, Rt, mutation, and fidelity on an agent graph.",
+        "evidence_type": "behavior_receipt",
+        "tester": "tests/test_epidemic_genesis.py",
+        "tester_observable": True,
+        "why": "The test exercises mutation/copy behavior rather than checking only return types.",
+    },
+    "epidemic_genesis_tester_rejects_weak_external_evidence": {
+        "tier": "VERIFIED_PROCESS",
+        "evidence_type": "behavior_receipt",
+        "tester": "tests/test_epidemic_genesis.py",
+        "tester_observable": True,
+        "why": "The tester is exercised with weak self-consistency evidence and must reject it.",
+    },
+    "epidemic_genesis_graph_propagation_and_quarantine_are_exercised": {
+        "tier": "VERIFIED_PROCESS",
+        "evidence_type": "simulation_behavior_receipt",
+        "tester": "tests/test_epidemic_genesis.py",
+        "tester_observable": True,
+        "why": "The test drives propagation, R0/Rt, failure, and contradiction-triggered quarantine.",
+    },
+    "epidemic_genesis_calibration_harness_runs": {
+        "tier": "VERIFIED_PROCESS",
+        "evidence_type": "external_calibration_attempt",
+        "tester": "tools/epidemic_calibration.py",
+        "tester_observable": True,
+        "why": "The harness consumes an externally sourced adoption curve and emits a machine-readable calibration result.",
+    },
+    "epidemic_genesis_calibrated_against_observed_epidemic": {
+        "tier": "ACTION_REQUIRED",
+        "evidence_type": "external_calibration",
+        "tester": "tools/epidemic_calibration.py",
+        "tester_observable": True,
+        "why": "The current calibration run is intentionally not promoted unless RMSE meets the stated threshold.",
+    },
+    "intelligence_as_generate_and_test": {
+        "tier": "DEFINITIONAL",
+        "evidence_type": "definition",
+        "tester": "none",
+        "tester_observable": False,
+        "why": "This is the project's operational definition of intelligence, not an empirical finding.",
+    },
+    "github_push_workflow_result_is_machine_observable": {
+        "tier": "ACTION_REQUIRED",
+        "evidence_type": "CI_observability",
+        "tester": "GitHub Actions",
+        "tester_observable": False,
+        "why": "The push-triggered workflow was triggered, but its result was not independently exposed by the available connector endpoint in this execution.",
     },
     "high_r0_variant_is_verified_truth": {
         "tier": "REFUTED",
-        "why": "Reproduction above one measures propagation potential; it does not establish external correctness.",
+        "evidence_type": "logical_boundary",
+        "tester": "model definition",
+        "tester_observable": True,
+        "why": "R0 above one measures propagation potential; it does not establish external correctness.",
     },
     "receipt_self_consistency_is_external_truth": {
         "tier": "REFUTED",
+        "evidence_type": "logical_boundary",
+        "tester": "model definition",
+        "tester_observable": True,
         "why": "A cryptographic receipt can bind an observed process without independently proving the payload's truth.",
     },
     "today_ai_can_generate_new_solver_code": {
         "tier": "PROVEN_LAW",
+        "evidence_type": "established_capability",
+        "tester": "field evidence",
+        "tester_observable": True,
         "why": "Program synthesis and LLM code generation are established capabilities/fields.",
-    },
-    "system_can_evaluate_generated_solver": {
-        "tier": "VERIFIED_PROCESS",
-        "why": "The repository can execute generated code and bind the observed result to receipts.",
-    },
-    "epistemic_genesis_prototype_is_implementable_today": {
-        "tier": "VERIFIED_PROCESS",
-        "why": "The CCE prototype is runnable in the repository test environment.",
-    },
-    "verifier_accepts_without_trusting_model": {
-        "tier": "VERIFIED_PROCESS",
-        "why": "The verifier recomputes success from execution hashes and exit status; this is a software verification property, not a physical law.",
-    },
-    "invented_method_is_fundamental_new_way_of_knowing": {
-        "tier": "JUDGMENT",
-        "why": "The prototype emits code inside an existing computational substrate; novelty of epistemology is not established by the receipt.",
-    },
-    "method_is_safe": {
-        "tier": "ACTION_REQUIRED",
-        "why": "Resource limits and a child socket policy are tested, but this is not a complete adversarial sandbox or alignment proof.",
     },
     "physical_gate_opens": {
         "tier": "REFUTED",
-        "why": "No hardware attestation or measured physical evidence is supplied by this prototype.",
+        "evidence_type": "hardware_boundary",
+        "tester": "TEE/physical attestation requirement",
+        "tester_observable": True,
+        "why": "No network telemetry or software receipt supplies a hardware TEE quote.",
     },
     "method_success_proves_agi": {
         "tier": "REFUTED",
+        "evidence_type": "scope_boundary",
+        "tester": "task verifier",
+        "tester_observable": True,
         "why": "Success on a bounded task establishes only task-specific verified process behavior.",
-    },
-    "entity_is_alive_or_conscious": {
-        "tier": "REFUTED",
-        "why": "The implementation is an engineered software process; no consciousness evidence is established.",
     },
 }
 
