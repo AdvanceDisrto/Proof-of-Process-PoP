@@ -120,6 +120,14 @@ TIER_MAP = {
         "why": "GitHub Actions run 40136772890 observed both known-Bass and known-eGi noisy directions passing with the corresponding model beating the competitor. This validates the harness's bidirectional fit discrimination capability on synthetic ground-truth processes.",
         "does_not_prove": "This row proves the harness can distinguish the two model classes on synthetic data; it does not prove the current eGi candidate is validated. The CKM calibration row records that the current candidate does not beat Bass on the CKM adoption curve, and that quarantine remains in force regardless of this row's tier.",
     },
+    "candidate_validity_never_inherited_from_harness_validity": {
+        "tier": "DEFINITIONAL",
+        "evidence_type": "tier_map_invariant",
+        "tester": "tier-map policy",
+        "tester_observable": True,
+        "why": "Candidate validity is never inherited from harness validity; each candidate's tier is set only by the test that ran against that candidate.",
+        "dependency": "Harness validation is necessary for interpreting future candidate tests, not for retroactively reinterpreting past candidate tests.",
+    },
     "custom_domain_edge_smoke_tester_blind": {
         "tier": "ACTION_REQUIRED",
         "evidence_type": "edge_smoke_observability_boundary",
