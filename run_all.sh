@@ -43,6 +43,7 @@ log_step omnipresent make test-omnipresent
 log_step buddy_liveness make test-buddy-liveness
 log_step inetty make test-inetty
 log_step mmr make test-mmr
+log_step cce make test-cce
 
 log_step pytest_all python3 -m pytest -q
 
