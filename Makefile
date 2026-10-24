@@ -1,4 +1,4 @@
-.PHONY: install test test-ibare test-polyglot build-ibare build-all
+.PHONY: install test test-ibare test-polyglot test-e2e build-ibare build-rtl build-all
 
 CC ?= cc
 CFLAGS ?= -O2 -std=c11 -Wall -Wextra -Werror -pedantic
