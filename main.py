@@ -180,6 +180,17 @@ def identity_manifest():
 def commit_ledger_record(request: LedgerCommitRequest):
     if not verify_receipt(request.signed_receipt):
         raise HTTPException(status_code=422, detail="iSKA receipt signature/delegation verification failed.")
+    signed_payload = request.signed_receipt.get("receipt", {})
+    if not isinstance(signed_payload, dict):
+        raise HTTPException(status_code=422, detail="Signed receipt payload is malformed.")
+    if signed_payload.get("physical_gate") != "MEASURED_PASS":
+        raise HTTPException(status_code=422, detail="Signed receipt is not a verified physical receipt.")
+    if signed_payload.get("attestation_verification") != "VERIFIED":
+        raise HTTPException(status_code=422, detail="Signed receipt lacks independent attestation verification.")
+    if signed_payload.get("evidence_origin") in {"SIMULATED", "MOCK", "SYNTHETIC"}:
+        raise HTTPException(status_code=422, detail="Synthetic evidence cannot enter the physical ledger.")
+    if signed_payload.get("workload_hash") != request.workload_hash:
+        raise HTTPException(status_code=422, detail="Signed receipt workload hash does not match ledger record.")
     record = request.model_dump(exclude={"signed_receipt"})
     try:
         validate_ledger_record(record)
