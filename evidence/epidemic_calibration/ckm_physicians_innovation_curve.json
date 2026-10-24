@@ -1,0 +1,97 @@
+{
+  "spec": "innovulis-epidemic-calibration-fixture/1.0",
+  "dataset": "CKM-Physicians-Innovation",
+  "source_repo": "CoMuNeLab/CKM-Physicians-Innovation",
+  "source_path": "Dataset/CKM-Physicians-Innovation_nodes.txt",
+  "source_basis": "Coleman, Katz and Menzel medical innovation study; tetracycline adoption dates",
+  "transform": "Count nodeAdoptionDate codes 1..17 cumulatively; exclude 18, 98, 99 from the observed-adoption denominator because they represent no prescription / unavailable data.",
+  "rows": 246,
+  "observed_adoption_rows": 109,
+  "curve": [
+    {
+      "month": 1,
+      "cumulative_adoption_count": 11,
+      "fraction": 0.100917
+    },
+    {
+      "month": 2,
+      "cumulative_adoption_count": 20,
+      "fraction": 0.183486
+    },
+    {
+      "month": 3,
+      "cumulative_adoption_count": 29,
+      "fraction": 0.266055
+    },
+    {
+      "month": 4,
+      "cumulative_adoption_count": 40,
+      "fraction": 0.366972
+    },
+    {
+      "month": 5,
+      "cumulative_adoption_count": 51,
+      "fraction": 0.46789
+    },
+    {
+      "month": 6,
+      "cumulative_adoption_count": 62,
+      "fraction": 0.568807
+    },
+    {
+      "month": 7,
+      "cumulative_adoption_count": 75,
+      "fraction": 0.688073
+    },
+    {
+      "month": 8,
+      "cumulative_adoption_count": 82,
+      "fraction": 0.752294
+    },
+    {
+      "month": 9,
+      "cumulative_adoption_count": 86,
+      "fraction": 0.788991
+    },
+    {
+      "month": 10,
+      "cumulative_adoption_count": 87,
+      "fraction": 0.798165
+    },
+    {
+      "month": 11,
+      "cumulative_adoption_count": 92,
+      "fraction": 0.844037
+    },
+    {
+      "month": 12,
+      "cumulative_adoption_count": 95,
+      "fraction": 0.87156
+    },
+    {
+      "month": 13,
+      "cumulative_adoption_count": 98,
+      "fraction": 0.899083
+    },
+    {
+      "month": 14,
+      "cumulative_adoption_count": 102,
+      "fraction": 0.93578
+    },
+    {
+      "month": 15,
+      "cumulative_adoption_count": 106,
+      "fraction": 0.972477
+    },
+    {
+      "month": 16,
+      "cumulative_adoption_count": 108,
+      "fraction": 0.990826
+    },
+    {
+      "month": 17,
+      "cumulative_adoption_count": 109,
+      "fraction": 1
+    }
+  ]
+}
