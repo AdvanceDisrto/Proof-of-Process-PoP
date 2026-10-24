@@ -14,6 +14,8 @@ KIND_BY_BASENAME = {
     "mmr_5000.json": "receipt",
     "gate_verification.json": "receipt",
     "host_capabilities.json": "log",
+    "ilogic_derivation.json": "derivation",
+    "envelope.json": "envelope",
 }
 
 def artifact_kind(path: Path) -> str:
