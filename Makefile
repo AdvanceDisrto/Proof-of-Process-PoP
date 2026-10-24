@@ -1,4 +1,4 @@
-.PHONY: install test test-tee-scrape test-on-silicon test-iska test-imcp test-ledger test-truth test-attestation-router test-physical-merkle test-ibare test-polyglot test-e2e test-daemon test-hardened test-spu test-spu-reference test-spu-rtl test-spu-custody test-spu-materialization test-spu-ml-dsa test-spu-orfs test-spu-source-policy build-ibare build-rtl build-daemon build-hardened build-spu-reference build-all
+.PHONY: install test test-antimatter test-tee-scrape test-on-silicon test-iska test-imcp test-ledger test-truth test-attestation-router test-physical-merkle test-ibare test-polyglot test-e2e test-daemon test-hardened test-spu test-spu-reference test-spu-rtl test-spu-custody test-spu-materialization test-spu-ml-dsa test-spu-orfs test-spu-source-policy build-ibare build-rtl build-daemon build-hardened build-spu-reference build-all
 
 CC ?= cc
 CFLAGS ?= -O2 -std=c11 -Wall -Wextra -Werror -pedantic
@@ -37,7 +37,7 @@ test-iska:
 test-ledger:
 	python -m pytest -q test_ledger_persistence.py
 
-test: test-ibare test-render test-polyglot test-iska test-imcp test-ledger test-tee-scrape
+test: test-ibare test-render test-polyglot test-iska test-imcp test-ledger test-tee-scrape test-antimatter
 	python -m pytest -q
 
 build-all: test
@@ -123,3 +123,13 @@ test-on-silicon:
 
 test-tee-scrape:
 	python -m pytest tests/test_tee_scrape.py -v
+
+build-antimatter:
+	mkdir -p build
+	$(CC) $(CFLAGS) -Ibaremetal -Ibaremetal/include \
+		baremetal/antimatter_core.c baremetal/sha256.c baremetal/test_antimatter.c \
+		-o build/antimatter_kernel
+
+test-antimatter: build-antimatter
+	python -m pytest -q tests/test_antimatter.py
+	python tools/antimatter_simulator.py evidence/antimatter_evidence_receipt.json
