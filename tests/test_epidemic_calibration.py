@@ -28,3 +28,20 @@ def test_calibration_does_not_promote_ckm_specific_eGi_parameters():
     assert 'kappa' in result['identifiability']['not_identifiable']
     assert 'mutation' in result['identifiability']['not_identifiable']
     assert result['eGi_calibration_tier'] == 'ACTION_REQUIRED'
+
+
+def test_positive_control_promotes_known_good_variant():
+    from tools.epidemic_calibration import positive_control
+    result = positive_control()
+    assert result["criterion_pass"] is True
+    assert result["promotion"] == "VERIFIED_PROCESS"
+    assert result["eGi_rmse"] < result["baseline_rmse"]
+
+
+def test_ckm_delta_has_deterministic_90_percent_ci_excluding_zero():
+    result = calibrate()
+    ci = result["comparison"]["bootstrap_90_ci"]
+    assert ci["confidence_level"] == 0.9
+    assert ci["lower"] > 0.0
+    assert ci["upper"] > ci["lower"]
+    assert ci["excludes_zero"] is True
