@@ -1,0 +1,96 @@
+{
+  "spec": "innovulis-epidemic-genesis-preregistration/1.0",
+  "registered_before_rerun": true,
+  "ckm_case": {
+    "observed_points": 17,
+    "criterion": "RMSE <= 0.020 is required for CALIBRATED; otherwise the calibration claim is QUARANTINED/ACTION_REQUIRED.",
+    "threshold": 0.02,
+    "threshold_status": "pre-registered for this rerun",
+    "eGi_parameters_fixed": {
+      "beta": 0.1,
+      "contacts": 6.5,
+      "alpha": 1,
+      "gamma": 1,
+      "delta": 0.2,
+      "kappa": 0.1,
+      "mutation": 0.1,
+      "fidelity": 1,
+      "trust": 1
+    },
+    "baseline": {
+      "model": "discrete Bass-style diffusion recurrence",
+      "initial_adoption": 0.1,
+      "p_grid": [
+        0.001,
+        0.1,
+        0.001
+      ],
+      "q_grid": [
+        0.01,
+        5,
+        0.01
+      ],
+      "purpose": "descriptive comparator on the same observed curve; not an eGi calibration claim"
+    },
+    "identifiability": {
+      "constrained_by_CKM": [
+        "diffusion trajectory under the observed adoption encoding"
+      ],
+      "not_identifiable": [
+        "kappa",
+        "mutation",
+        "receipt_strength",
+        "external_verification",
+        "contradiction_detection"
+      ],
+      "reason": "CKM adoption dates do not record local tests, receipt strength, contradiction events, quarantine, or mutation lineage."
+    },
+    "post_quarantine_protocol": [
+      "retain the failed calibration receipt and parameters unchanged",
+      "run the pre-registered baseline comparator",
+      "record identifiability limits",
+      "do not tune eGi parameters against the same held-out curve",
+      "select a new case or a new held-out partition before revising parameters",
+      "any structural extension is a new model variant and requires a new preregistration"
+    ]
+  },
+  "h_pylori_case": {
+    "status": "event-anchor study, not adoption-curve calibration",
+    "anchors": [
+      {
+        "year": 1982,
+        "event": "culture/histology observations and discovery work",
+        "type": "event_anchor"
+      },
+      {
+        "year": 1984,
+        "event": "Marshall/Warren Lancet report",
+        "type": "event_anchor"
+      },
+      {
+        "year": 1985,
+        "event": "Marshall/Armstrong/McGechie/Glancy attempt to fulfill Koch postulates",
+        "type": "event_anchor"
+      },
+      {
+        "year": 1994,
+        "event": "NIH Consensus Development Conference",
+        "type": "institutional_shock_anchor"
+      },
+      {
+        "year": 1997,
+        "event": "Maastricht Consensus Report",
+        "type": "guideline_anchor"
+      },
+      {
+        "year": 2005,
+        "event": "Nobel Prize awarded to Marshall and Warren",
+        "type": "recognition_anchor"
+      }
+    ],
+    "missing_for_curve_fit": [
+      "clean longitudinal physician-adoption fractions"
+    ],
+    "model_gap": "observed supersession/displacement is not represented by the current Q-only vocabulary"
+  }
+}
