@@ -23,6 +23,8 @@ jobs:
         run: make test-e2e
       - name: Portable SIMD daemon build and self-test
         run: make test-daemon
+      - name: Hardened Ed25519 + SIMD truth-boundary verification
+        run: make test-hardened
       - name: iBare Python FFI bridge test
         run: python -m pytest -q tests/test_ibare_ffi.py
       - name: Universal polyglot adapter self-test
