@@ -55,7 +55,7 @@ manifest = {
         {"claim": "epidemic_genesis_generator_behavior", "tester": "tests/test_epidemic_genesis.py", "kind": "unit_behavior", "machine_readable": True},
         {"claim": "epidemic_genesis_population_behavior", "tester": "tests/test_epidemic_genesis.py", "kind": "simulation_behavior", "machine_readable": True},
         {"claim": "epidemic_genesis_external_calibration", "tester": "tools/epidemic_calibration.py", "kind": "external_dataset_calibration", "machine_readable": True},
-        {"claim": "github_push_workflow_result", "tester": "GitHub Actions", "kind": "ci", "machine_readable": False, "observability": "connector endpoint did not expose the triggered run result in this execution"},
+        {"claim": "github_push_workflow_result", "tester": "GitHub Actions", "kind": "ci", "machine_readable": True, "observability": "GitHub Actions run API returned the triggered run status and conclusion"},
         {"claim": "render_deployment", "tester": "Render deploy events", "kind": "deployment", "machine_readable": True},
     ],
     "rule": "A claim cannot inherit VERIFIED_PROCESS solely from the existence of a tester; the tester output must be observable and behaviorally discriminative.",
