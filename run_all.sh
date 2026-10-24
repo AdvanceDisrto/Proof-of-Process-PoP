@@ -45,6 +45,23 @@ log_step inetty make test-inetty
 log_step mmr make test-mmr
 log_step cce make test-cce
 log_step epidemic_genesis make test-epidemic-genesis
+log_step epidemic_calibration bash -lc 'python3 tools/epidemic_calibration.py | tee "$RUN_ALL_OUT/epidemic_calibration.json"'
+
+python3 - <<'PY' > "$OUT/tester_observability.json"
+import json
+manifest = {
+    "spec": "innovulis-tester-observability/1.0",
+    "testers": [
+        {"claim": "epidemic_genesis_generator_behavior", "tester": "tests/test_epidemic_genesis.py", "kind": "unit_behavior", "machine_readable": True},
+        {"claim": "epidemic_genesis_population_behavior", "tester": "tests/test_epidemic_genesis.py", "kind": "simulation_behavior", "machine_readable": True},
+        {"claim": "epidemic_genesis_external_calibration", "tester": "tools/epidemic_calibration.py", "kind": "external_dataset_calibration", "machine_readable": True},
+        {"claim": "github_push_workflow_result", "tester": "GitHub Actions", "kind": "ci", "machine_readable": False, "observability": "connector endpoint did not expose the triggered run result in this execution"},
+        {"claim": "render_deployment", "tester": "Render deploy events", "kind": "deployment", "machine_readable": True},
+    ],
+    "rule": "A claim cannot inherit VERIFIED_PROCESS solely from the existence of a tester; the tester output must be observable and behaviorally discriminative.",
+}
+print(json.dumps(manifest, indent=2))
+PY
 
 log_step pytest_all python3 -m pytest -q
 
