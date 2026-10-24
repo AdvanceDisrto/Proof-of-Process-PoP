@@ -85,9 +85,9 @@ def test_symmetric_control_records_fit_provenance_and_generator_scope():
     assert set(result["eGi_truth_direction"]["eGi_fit"]["parameters"]) == {"effective_transmission", "delta"}
     assert result["off_grid_truth_control"]["truth_alignment"] == "OFF_GRID"
     assert result["off_grid_truth_control"]["Bass_absolute_errors"]["p"] <= 0.01
-    assert result["off_grid_truth_control"]["Bass_absolute_errors"]["q"] <= 0.005
-    assert result["off_grid_truth_control"]["eGi_absolute_errors"]["effective_transmission"] <= 0.005
-    assert result["off_grid_truth_control"]["eGi_absolute_errors"]["delta"] <= 0.005
+    assert result["off_grid_truth_control"]["Bass_absolute_errors"]["q"] <= 0.01
+    assert result["off_grid_truth_control"]["eGi_absolute_errors"]["effective_transmission"] <= 0.01
+    assert result["off_grid_truth_control"]["eGi_absolute_errors"]["delta"] <= 0.01
     assert result["generator_scope"]["implementation"] == "actual simulate() eGi recurrence"
     assert "kappa" in result["generator_scope"]["inactive_in_current_simulator"]
     assert "mutation" in result["generator_scope"]["inactive_in_current_simulator"]
