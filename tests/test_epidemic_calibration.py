@@ -45,3 +45,12 @@ def test_ckm_delta_has_deterministic_90_percent_ci_excluding_zero():
     assert ci["lower"] > 0.0
     assert ci["upper"] > ci["lower"]
     assert ci["excludes_zero"] is True
+
+
+def test_external_ground_truth_positive_control_discriminates_models():
+    from tools.epidemic_calibration import external_ground_truth_positive_control
+    result = external_ground_truth_positive_control()
+    assert result["source_process"] == "Bass"
+    assert result["recovered_ground_truth"] is True
+    assert result["discriminates_known_process"] is True
+    assert result["criterion_pass"] is True
