@@ -1,6 +1,10 @@
 name = "innovulis-pop-edge"
 main = "index.js"
 compatibility_date = "2026-10-23"
+compatibility_flags = ["webcrypto_modern_algorithms"]
 
 [vars]
 ORIGIN_HOST = "proofofprocess.onrender.com"
+
+# IPOP_PUBLIC_KEY is intentionally NOT committed.
+# Configure the 32-byte Ed25519 public key as a Worker secret/environment value.
