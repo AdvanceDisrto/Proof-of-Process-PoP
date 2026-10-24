@@ -37,7 +37,7 @@ test-iska:
 test-ledger:
 	python -m pytest -q test_ledger_persistence.py
 
-test: test-ibare test-render test-polyglot test-iska test-imcp test-ledger test-tee-scrape test-antimatter test-am-tiered test-ambient test-omnipresent test-buddy-liveness test-inetty
+test: test-ibare test-render test-polyglot test-iska test-imcp test-ledger test-tee-scrape test-antimatter test-am-tiered test-ambient test-omnipresent test-buddy-liveness test-inetty test-mmr
 	python -m pytest -q
 
 build-all: test
