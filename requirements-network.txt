@@ -1,0 +1,3 @@
+# Optional network-edge dependencies; keep these out of the core Render image.
+meraki
+cisco-gnmi
