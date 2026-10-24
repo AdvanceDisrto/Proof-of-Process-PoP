@@ -5,6 +5,8 @@ from pathlib import Path
 
 
 def run_renderer() -> dict[str, str]:
+    if not Path("build/render_combo").exists():
+        subprocess.run(["make", "build-render"], check=True)
     result = subprocess.run(
         ["./build/render_combo"], check=True, capture_output=True, text=True
     )
