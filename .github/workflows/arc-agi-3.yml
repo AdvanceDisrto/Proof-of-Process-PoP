@@ -25,7 +25,15 @@ jobs:
       - name: Install ARC toolkit
         run: |
           python -m pip install --upgrade pip
-          python -m pip install arc-agi pytest cryptography
+          python -m pip install pytest cryptography
+          python -m pip install "git+https://github.com/arcprize/ARC-AGI.git"
+      - name: Verify ARC toolkit API
+        run: |
+          python - <<'PY'
+          import arc_agi
+          assert hasattr(arc_agi, "Arcade"), (arc_agi.__file__, dir(arc_agi))
+          print("ARC Arcade API:", arc_agi.__file__)
+          PY
       - name: Boundary tests
         run: python -m pytest -q tests/test_arc3.py --no-header
       - name: Play game
