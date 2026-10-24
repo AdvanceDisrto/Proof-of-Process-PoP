@@ -52,7 +52,26 @@
       "do not tune eGi parameters against the same held-out curve",
       "select a new case or a new held-out partition before revising parameters",
       "any structural extension is a new model variant and requires a new preregistration"
-    ]
+    ],
+    "policy_decision": {
+      "policy": "B",
+      "status": "EXHAUSTED",
+      "decision": "Do not tune eGi parameters against the same CKM curve; retain the failed receipt unchanged and move to a new case.",
+      "reason": "CKM is adoption-only and cannot identify kappa, mutation, receipt strength, external verification, or contradiction detection."
+    },
+    "positive_control": {
+      "required": true,
+      "purpose": "Distinguish a discriminating harness from a harness that quarantines every candidate.",
+      "promotion_rule": "A known-good synthetic eGi curve must pass the preregistered threshold and beat the Bass comparator."
+    },
+    "bootstrap": {
+      "required": true,
+      "method": "paired bootstrap over the 17 observed points",
+      "confidence_level": 0.9,
+      "seed": 20261024,
+      "iterations": 10000,
+      "finding_rule": "The eGi-minus-Bass RMSE delta is comparative evidence only when the 90% interval excludes zero."
+    }
   },
   "h_pylori_case": {
     "status": "event-anchor study, not adoption-curve calibration",
@@ -92,5 +111,10 @@
       "clean longitudinal physician-adoption fractions"
     ],
     "model_gap": "observed supersession/displacement is not represented by the current Q-only vocabulary"
+  },
+  "next_case_goal": {
+    "selected_goal": "generalization_of_diffusion_fit",
+    "reason": "The current datasets are adoption-only; closing identification of eGi-specific parameters requires a mechanism-observing dataset with tests, contradictions, quarantine, mutation lineage, or receipt strength.",
+    "not_claimed": "H. pylori or CKM does not identify kappa, mutation, receipt strength, external verification, or contradiction detection."
   }
 }
