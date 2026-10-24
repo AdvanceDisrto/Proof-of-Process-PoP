@@ -33,3 +33,5 @@ jobs:
           name: master-run-all-${{ github.run_id }}
           path: evidence/run-all/${{ github.run_id }}/
           if-no-files-found: error
+
+# UI deployment trigger: four holographic glass modes
