@@ -123,7 +123,7 @@ def bootstrap_rmse_delta_ci(
 
 
 def positive_control() -> dict:
-    """Known-good synthetic control: eGi-generated curve must beat Bass."""
+    """Round-trip control: eGi-generated data must be recovered by the same eGi simulator."""
     params = EpidemicParameters(
         beta=0.08, contacts=4.0, alpha=1.0, gamma=1.0,
         delta=0.15, kappa=0.05, mutation=0.10, fidelity=1.0, trust=1.0,
@@ -133,7 +133,7 @@ def positive_control() -> dict:
     baseline_params, baseline_error, _ = fit_bass_baseline(observed)
     eGi_error = rmse(predicted, observed)
     return {
-        "case": "synthetic_eGi_known_good",
+        "case": "synthetic_eGi_round_trip",
         "observed_points": len(observed),
         "eGi_rmse": round(eGi_error, 6),
         "baseline_rmse": round(baseline_error, 6),
@@ -142,6 +142,56 @@ def positive_control() -> dict:
         "promotion": "VERIFIED_PROCESS" if eGi_error <= 0.020 and eGi_error < baseline_error else "ACTION_REQUIRED",
     }
 
+
+
+def external_ground_truth_positive_control() -> dict:
+    """Generate noisy data from a known Bass process and test discrimination."""
+    import random
+
+    control = json.loads(PREREG.read_text())["external_ground_truth_control"]
+    p = control["bass_parameters"]["p"]
+    q = control["bass_parameters"]["q"]
+    steps = control["observed_points"]
+    initial = control["initial_adoption"]
+    rng = random.Random(control["noise_seed"])
+    clean = simulate_bass(p, q, steps, initial_adopted=initial)
+    sigma = control["noise_sigma"]
+    observed = [
+        min(1.0, max(0.0, value + rng.gauss(0.0, sigma)))
+        for value in clean
+    ]
+
+    baseline_params, baseline_error, baseline_pred = fit_bass_baseline(observed)
+    prereg = json.loads(PREREG.read_text())
+    eGi_params = EpidemicParameters(**prereg["ckm_case"]["eGi_parameters_fixed"])
+    eGi_pred = simulate(eGi_params, steps, initial_adopted=initial)
+    eGi_error = rmse(eGi_pred, observed)
+
+    recovered = (
+        abs(baseline_params["p"] - p) <= control["recovery_tolerance"]
+        and abs(baseline_params["q"] - q) <= control["recovery_tolerance"]
+    )
+    discriminates = baseline_error < eGi_error
+    return {
+        "case": "synthetic_external_bass_ground_truth",
+        "source_process": "Bass",
+        "observed_points": steps,
+        "initial_adoption": initial,
+        "noise": {
+            "distribution": "Gaussian",
+            "sigma": sigma,
+            "seed": control["noise_seed"],
+        },
+        "ground_truth_parameters": {"p": p, "q": q},
+        "recovered_baseline_parameters": baseline_params,
+        "recovery_tolerance": control["recovery_tolerance"],
+        "bass_rmse": round(baseline_error, 6),
+        "eGi_rmse": round(eGi_error, 6),
+        "recovered_ground_truth": recovered,
+        "discriminates_known_process": discriminates,
+        "criterion_pass": recovered and discriminates,
+        "promotion": "VERIFIED_PROCESS" if recovered and discriminates else "ACTION_REQUIRED",
+    }
 
 def calibrate() -> dict:
     fixture = json.loads(FIXTURE.read_text())
@@ -186,6 +236,7 @@ def calibrate() -> dict:
         "criterion": {"threshold": threshold, "threshold_status": prereg["threshold_status"]},
         "post_quarantine_protocol": prereg["post_quarantine_protocol"],
         "positive_control": positive_control(),
+        "external_ground_truth_positive_control": external_ground_truth_positive_control(),
         "result": "CALIBRATED" if error <= threshold else "QUARANTINED",
         "eGi_calibration_tier": "VERIFIED_PROCESS" if error <= threshold else "ACTION_REQUIRED",
         "diffusion_submodel_tier": "VERIFIED_PROCESS" if baseline_error <= threshold else "ACTION_REQUIRED",
