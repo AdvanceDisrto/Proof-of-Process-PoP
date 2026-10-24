@@ -13,7 +13,7 @@ def test_external_calibration_is_behavioral_and_can_quarantine():
 
     # Current model is intentionally not promoted merely because the harness runs.
     if result["result"] == "QUARANTINED":
-        assert result["tier"] == "ACTION_REQUIRED"
+        assert result["eGi_calibration_tier"] == "ACTION_REQUIRED"
 
 
 def test_baseline_is_available_on_same_observed_curve():
