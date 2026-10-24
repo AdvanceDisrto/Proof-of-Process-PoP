@@ -12,11 +12,15 @@ jobs:
       - uses: actions/setup-node@v4
         with: {node-version: "20"}
       - uses: dtolnay/rust-toolchain@stable
-      - run: sudo apt-get update && sudo apt-get install -y iverilog\n      - run: pip install -r requirements.txt
+      - name: Install RTL simulator
+        run: sudo apt-get update && sudo apt-get install -y iverilog
+      - run: pip install -r requirements.txt
       - name: Bare-metal iBare C build and self-test
         run: make test-ibare
       - name: CPU renderer verification
         run: make test-render
+      - name: RTL + software E2E truth-boundary verification
+        run: make test-e2e
       - name: iBare Python FFI bridge test
         run: python -m pytest -q tests/test_ibare_ffi.py
       - name: Universal polyglot adapter self-test
@@ -33,10 +37,8 @@ jobs:
         run: cd intelligence/server && npm install && npm run build && npm test
       - name: Docker build
         run: docker build -t i-pop-core:ci .
-
       - name: Cloudflare Worker syntax
         run: node --check cloudflare-worker/index.js
-
       - name: Generate parallel evidence
         run: python -m proof.parallel_pop
       - name: Generate reality manifest
@@ -47,4 +49,5 @@ jobs:
           path: |
             PARALLEL_MASTER_RECEIPT.json
             MASTER_REALITY_LEDGER.json
-            POLYGLOT_PROCESS_RECEIPT.json\n            E2E_REALITY_MANIFEST.json
+            POLYGLOT_PROCESS_RECEIPT.json
+            E2E_REALITY_MANIFEST.json
