@@ -20,11 +20,18 @@ build-ibare: $(IBARE_SRC) $(IBARE_HEADERS) baremetal/ibare_host.c baremetal/test
 	$(CC) $(CFLAGS) baremetal/ibare.c baremetal/sha256.c baremetal/ibare_host.c -o build/ibare_host
 	$(CC) $(CFLAGS) baremetal/ibare.c baremetal/sha256.c baremetal/test_ibare.c -o build/ibare_selftest
 
+build-render: build-ibare baremetal/render_combo.c
+	$(CC) $(CFLAGS) -O2 baremetal/render_combo.c baremetal/sha256.c baremetal/ibare_ffi.c -o build/render_combo -lm
+
+test-render: build-render
+	python tools/generate_render_receipt.py
+	python -m pytest -q tests/test_render_combo.py
+
 test-polyglot:
 	python -m polyglot.adapter --self-test
 	python -m polyglot.adapter --root . --output POLYGLOT_PROCESS_RECEIPT.json
 
-test: test-ibare test-polyglot
+test: test-ibare test-render test-polyglot
 	python -m pytest -q
 
 build-all: test
