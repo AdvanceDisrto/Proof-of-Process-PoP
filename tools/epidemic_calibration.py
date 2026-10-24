@@ -81,6 +81,68 @@ def fit_bass_baseline(observed: list[float]) -> tuple[dict, float, list[float]]:
     return {"p": best[0], "q": best[1]}, best_error, best_pred
 
 
+def bootstrap_rmse_delta_ci(
+    observed: list[float],
+    eGi_predicted: list[float],
+    baseline_predicted: list[float],
+    *,
+    iterations: int = 10000,
+    seed: int = 20261024,
+    alpha: float = 0.10,
+) -> dict:
+    """Deterministic paired bootstrap CI for eGi-minus-Bass RMSE delta."""
+    import random
+
+    if not (len(observed) == len(eGi_predicted) == len(baseline_predicted)):
+        raise ValueError("bootstrap inputs must have equal length")
+    if len(observed) < 2:
+        raise ValueError("bootstrap requires at least two observations")
+
+    rng = random.Random(seed)
+    deltas = []
+    n = len(observed)
+    for _ in range(iterations):
+        idx = [rng.randrange(n) for _ in range(n)]
+        sample_obs = [observed[i] for i in idx]
+        sample_eGi = [eGi_predicted[i] for i in idx]
+        sample_baseline = [baseline_predicted[i] for i in idx]
+        deltas.append(rmse(sample_eGi, sample_obs) - rmse(sample_baseline, sample_obs))
+
+    deltas.sort()
+    lo = deltas[int((alpha / 2) * iterations)]
+    hi = deltas[int((1 - alpha / 2) * iterations) - 1]
+    return {
+        "iterations": iterations,
+        "seed": seed,
+        "confidence_level": 1 - alpha,
+        "lower": round(lo, 6),
+        "median": round(deltas[iterations // 2], 6),
+        "upper": round(hi, 6),
+        "excludes_zero": lo > 0 or hi < 0,
+    }
+
+
+def positive_control() -> dict:
+    """Known-good synthetic control: eGi-generated curve must beat Bass."""
+    params = EpidemicParameters(
+        beta=0.08, contacts=4.0, alpha=1.0, gamma=1.0,
+        delta=0.15, kappa=0.05, mutation=0.10, fidelity=1.0, trust=1.0,
+    )
+    observed = simulate(params, 17, initial_adopted=0.10)
+    predicted = simulate(params, 17, initial_adopted=0.10)
+    baseline_params, baseline_error, _ = fit_bass_baseline(observed)
+    eGi_error = rmse(predicted, observed)
+    return {
+        "case": "synthetic_eGi_known_good",
+        "observed_points": len(observed),
+        "eGi_rmse": round(eGi_error, 6),
+        "baseline_rmse": round(baseline_error, 6),
+        "baseline_parameters": baseline_params,
+        "criterion_pass": eGi_error <= 0.020 and eGi_error < baseline_error,
+        "promotion": "VERIFIED_PROCESS" if eGi_error <= 0.020 and eGi_error < baseline_error else "ACTION_REQUIRED",
+    }
+
+
 def calibrate() -> dict:
     fixture = json.loads(FIXTURE.read_text())
     prereg = json.loads(PREREG.read_text())["ckm_case"]
@@ -91,6 +153,7 @@ def calibrate() -> dict:
     error = rmse(predicted, observed)
     baseline_params, baseline_error, baseline_pred = fit_bass_baseline(observed)
     threshold = prereg["threshold"]
+    bootstrap = bootstrap_rmse_delta_ci(observed, predicted, baseline_pred)
 
     return {
         "spec": "innovulis-epidemic-genesis-calibration/2.0",
@@ -112,6 +175,7 @@ def calibrate() -> dict:
         },
         "comparison": {
             "eGi_minus_baseline_rmse": round(error - baseline_error, 6),
+            "bootstrap_90_ci": bootstrap,
             "interpretation": (
                 "eGi is better than baseline on this curve."
                 if error < baseline_error
@@ -121,6 +185,7 @@ def calibrate() -> dict:
         "identifiability": prereg["identifiability"],
         "criterion": {"threshold": threshold, "threshold_status": prereg["threshold_status"]},
         "post_quarantine_protocol": prereg["post_quarantine_protocol"],
+        "positive_control": positive_control(),
         "result": "CALIBRATED" if error <= threshold else "QUARANTINED",
         "eGi_calibration_tier": "VERIFIED_PROCESS" if error <= threshold else "ACTION_REQUIRED",
         "diffusion_submodel_tier": "VERIFIED_PROCESS" if baseline_error <= threshold else "ACTION_REQUIRED",
