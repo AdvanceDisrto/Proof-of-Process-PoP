@@ -91,6 +91,8 @@ PY
 
 python3 -m pytest tests/test_envelop.py tests/test_ilogic.py -q --no-header
 
+python3 tools/mmr_pipeline.py 5000 "$OUT/mmr_5000.json"
+
 python3 - <<'PY'
 import json
 import os
@@ -132,7 +134,6 @@ print("[Envelop] contents=", len(contents), "manifest_root=", v["manifest_mmr_ro
 print("[Envelop] gate=", v["physical_gate"], "self_verify=OK")
 PY
 
-python3 tools/mmr_pipeline.py 5000 "$OUT/mmr_5000.json"
 python3 tools/master_run_receipt.py "$OUT"
 
 echo
