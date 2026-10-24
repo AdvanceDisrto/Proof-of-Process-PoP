@@ -34,7 +34,7 @@ class SAPU:
         self._derived={"truth_axis":truth,"attestation_axis":axis,"tier":tier};return self._derived
     def sign(self):
         if self._derived is None:raise SAPUError("DERIVE required before SIGN")
-        body={"spec":"innovulis-sapu-receipt/1.0","issued_utc":time.time(),"sapu":{"measurement":self.measurement,"profile":self.profile_id,"isa":_ISA_VERSION},"inputs":self._canonical_inputs(),"derived":self._derived,"epoch_root_in":self._epoch_root,"issuer_pubkey":self.pub}
+        body={"spec":"innovulis-sapu-receipt/1.0","issued_utc":time.time(),"sapu":{"measurement":self.measurement,"profile":self.profile_id,"isa":_ISA_VERSION},"inputs":self._canonical_inputs(),"attestation":self._slots["attestation"],"derived":self._derived,"epoch_root_in":self._epoch_root,"issuer_pubkey":self.pub}
         return {**body,"signature":self._priv.sign(_jcs(body)).hex(),"receipt_sha256":_sha(_jcs(body))}
     def accumulate(self,receipt):
         from .mmr import MMR
