@@ -33,6 +33,7 @@ log_step polyglot make test-polyglot
 log_step iska make test-iska
 log_step imcp make test-imcp
 log_step ledger make test-ledger
+log_step truth_engine make test-truth
 log_step tee_scrape make test-tee-scrape
 log_step antimatter make test-antimatter
 log_step antimatter_tiered make test-am-tiered
