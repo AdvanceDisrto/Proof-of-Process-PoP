@@ -10,11 +10,11 @@ def level_rhae(h,a,s):
     return min((h/a)**2,CAP),"ok"
 def build(raw,game,baseline):
     if hasattr(raw,"__dict__") and not isinstance(raw,dict): raw=raw.__dict__
-    ls=raw.get("levels") or raw.get("level_results") or raw.get("results") or []
+    ls=raw.get("levels") or raw.get("level_results") or raw.get("results") or []\n    if not ls and raw.get("environments"):\n        env=raw["environments"][0]\n        runs=env.get("runs",[]) if isinstance(env,dict) else []\n        run=runs[-1] if runs else {}\n        acts=run.get("level_actions",[]) if isinstance(run,dict) else []\n        bases=run.get("level_baseline_actions",[]) if isinstance(run,dict) else []\n        completed=int(run.get("levels_completed",0) or 0) if isinstance(run,dict) else 0\n        ls=[{"level":i+1,"state":"WIN" if i<completed else run.get("state","UNKNOWN"),"actions":int(a or 0),"human_baseline":bases[i] if i<len(bases) else None} for i,a in enumerate(acts)]
     rows=[]
     for i,x in enumerate(ls,1):
         if hasattr(x,"__dict__") and not isinstance(x,dict): x=x.__dict__
-        a=int(x.get("actions",x.get("action_count",0)) or 0); s=state(x.get("state","UNKNOWN")); h=baseline.get(str(x.get("level",i)))
+        a=int(x.get("actions",x.get("action_count",0)) or 0); s=state(x.get("state","UNKNOWN")); h=x.get("human_baseline",baseline.get(str(x.get("level",i))) or None)
         r,w=level_rhae(h,a,s)
         rows.append({"game":game,"level":int(x.get("level",i)),"state":s,"agent_actions":a,"human_baseline":h,"rhae":round(r,6),"rhae_reason":w,"tier":"VERIFIED_PROCESS" if w=="ok" else "ACTION_REQUIRED","gate":"ACTION_REQUIRED"})
     n=sum(x["level"]*x["rhae"] for x in rows); d=sum(x["level"] for x in rows) or 1
