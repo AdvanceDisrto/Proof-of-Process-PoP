@@ -32,7 +32,7 @@ test-polyglot:
 	python -m polyglot.adapter --root . --output POLYGLOT_PROCESS_RECEIPT.json
 
 test-iska:
-	python -m pytest -q test_iska.py
+	python -m pytest -q tests/test_iska.py
 
 test-ledger:
 	python -m pytest -q test_ledger_persistence.py
