@@ -1,4 +1,4 @@
-.PHONY: install test test-ibare test-polyglot test-e2e test-daemon test-hardened build-ibare build-rtl build-daemon build-hardened build-all
+.PHONY: install test test-ibare test-polyglot test-e2e test-daemon test-hardened test-spu test-spu-reference test-spu-rtl test-spu-custody test-spu-materialization test-spu-ml-dsa test-spu-orfs test-spu-source-policy build-ibare build-rtl build-daemon build-hardened build-spu-reference build-all
 
 CC ?= cc
 CFLAGS ?= -O2 -std=c11 -Wall -Wextra -Werror -pedantic
@@ -81,3 +81,9 @@ test-spu-ml-dsa:
 
 test-spu: test-spu-reference test-spu-rtl test-spu-custody test-spu-materialization test-spu-ml-dsa
 	@echo "SPU software/RTL verification complete; physical gate remains ACTION_REQUIRED"
+
+test-spu-orfs:
+	bash physical/native-orfs/preflight.sh
+
+test-spu-source-policy:
+	python tools/validate_spu_source_policy.py
