@@ -48,9 +48,14 @@ log_step epidemic_genesis make test-epidemic-genesis
 log_step epidemic_calibration bash -lc 'python3 -m tools.epidemic_calibration | tee "$RUN_ALL_OUT/epidemic_calibration.json"'
 
 python3 - <<'PY' > "$OUT/tester_observability.json"
-import json
+import json, os
 manifest = {
-    "spec": "innovulis-tester-observability/1.0",
+    "spec": "innovulis-tester-observability/1.1",
+    "run_id": os.environ.get("GITHUB_RUN_ID", "local"),
+    "commit_sha": os.environ.get("GITHUB_SHA", "unknown"),
+    "workflow": os.environ.get("GITHUB_WORKFLOW", "local"),
+    "event": os.environ.get("GITHUB_EVENT_NAME", "local"),
+    "machine_readable_run_observation": bool(os.environ.get("GITHUB_RUN_ID")),
     "testers": [
         {"claim": "epidemic_genesis_generator_behavior", "tester": "tests/test_epidemic_genesis.py", "kind": "unit_behavior", "machine_readable": True},
         {"claim": "epidemic_genesis_population_behavior", "tester": "tests/test_epidemic_genesis.py", "kind": "simulation_behavior", "machine_readable": True},
