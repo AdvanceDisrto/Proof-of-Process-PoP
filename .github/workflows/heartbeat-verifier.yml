@@ -3,7 +3,7 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: "0 * * * *"
+    - cron: "*/10 * * * *"
   workflow_dispatch:
 permissions:
   contents: read
@@ -17,6 +17,11 @@ jobs:
           python-version: "3.12"
       - name: Install project dependencies
         run: pip install -r requirements.txt pytest
+      - name: Warm Render origin and verify health
+        run: |
+          set -e
+          curl --fail --silent --show-error --retry 3 --retry-delay 2 https://proofofprocess.onrender.com/health
+          echo
       - name: Run heartbeat checks
         run: python tools/heartbeat_receipt.py "evidence/heartbeats/$GITHUB_RUN_ID.json"
       - name: Upload heartbeat receipt

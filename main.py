@@ -155,6 +155,28 @@ def verify_attestation_submission(submission: AttestationSubmission):
 
 
 
+@app.post("/api/voice/capture")
+async def capture_voice(request: Request):
+    body = await request.body()
+    if not body:
+        raise HTTPException(status_code=400, detail="Empty audio capture.")
+    max_bytes = 10 * 1024 * 1024
+    if len(body) > max_bytes:
+        raise HTTPException(status_code=413, detail="Audio capture exceeds the 10 MiB safety limit.")
+    content_type = request.headers.get("content-type", "application/octet-stream")
+    if not (content_type.startswith("audio/") or content_type == "application/octet-stream"):
+        raise HTTPException(status_code=415, detail="Expected an audio payload.")
+    return {
+        "status": "CAPTURE_RECEIVED",
+        "bytes": len(body),
+        "content_type": content_type,
+        "sha256": hashlib.sha256(body).hexdigest(),
+        "transcription": "NOT_CONFIGURED",
+        "physical_gate": "ACTION_REQUIRED",
+        "disclosure": "Audio capture is connected to the PoP API; no speech-to-text or physical attestation is claimed by this endpoint.",
+    }
+
+
 @app.get("/api/identity/manifest")
 def identity_manifest():
     root_id = os.getenv("ISKA_ROOT_ID")

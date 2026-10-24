@@ -16,5 +16,40 @@ body.mode-bare-metal:before{background:linear-gradient(180deg,rgba(0,0,0,.10),rg
 const c=document.getElementById("matrix"),x=c.getContext("2d"),chars="01ABCDEFGHIJKLMNOPQRSTUVWXYZ@#$%";let drops=[];function size(){c.width=innerWidth;c.height=innerHeight;drops=Array(Math.ceil(c.width/14)).fill(0).map(()=>Math.random()*-40)}addEventListener("resize",size);size();setInterval(()=>{x.fillStyle="rgba(2,8,2,.08)";x.fillRect(0,0,c.width,c.height);x.fillStyle="#00ff66";x.font="14px monospace";drops.forEach((y,i)=>{x.fillText(chars[(Math.random()*chars.length)|0],i*14,y*14);if(y*14>c.height&&Math.random()>.975)drops[i]=0;drops[i]++})},55);
 function setMode(m){document.body.className="mode-"+m;localStorage.setItem("pop-mode",m)}document.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>setMode(b.dataset.mode));const saved=localStorage.getItem("pop-mode");if(saved)setMode(saved);
 async function load(){try{const r=await fetch("/reality/manifest");if(!r.ok)throw 0;const d=await r.json();document.getElementById("rid").textContent=d.master_manifest_hash?d.master_manifest_hash.slice(0,24)+"…":"UNCLAIMED / NOT SEALED";document.getElementById("state").textContent=d.state||"UNKNOWN";document.getElementById("gate").textContent=d.physical_gate||"ACTION_REQUIRED";document.getElementById("time").textContent=new Date().toISOString().replace("T"," ").replace("Z"," UTC");document.getElementById("truth").textContent=d.physical_gate==="MEASURED_PASS"?"TRUTH LOCK: VERIFIED":"TRUTH LOCK: PROCESS VERIFIED";if(!localStorage.getItem("pop-mode"))setMode(d.physical_gate==="MEASURED_PASS"?"verified":"action-required")}catch(e){document.getElementById("rid").textContent="OFFLINE";document.getElementById("state").textContent="ACTION_REQUIRED";document.getElementById("gate").textContent="ACTION_REQUIRED";document.getElementById("time").textContent=new Date().toISOString().replace("T"," ").replace("Z"," UTC");document.getElementById("truth").textContent="TRUTH LOCK: OFFLINE";document.getElementById("copy").textContent="Evidence API unavailable. The interface fails closed."}}load();
-document.getElementById("mic").onclick=()=>alert("Microphone capture is not connected in this build.");document.getElementById("type").onclick=()=>{const q=prompt("Ask Buddy:");if(q)alert("Text channel staged: "+q)};document.getElementById("sound").onclick=e=>e.currentTarget.textContent=e.currentTarget.textContent.includes("On")?"♫ Off":"♫ On";
+let mediaRecorder=null,micStream=null,micChunks=[];
+async function toggleMic(){
+  const button=document.getElementById("mic"), status=document.querySelector(".listening"), copy=document.getElementById("copy");
+  if(mediaRecorder&&mediaRecorder.state==="recording"){mediaRecorder.stop();return}
+  if(!navigator.mediaDevices?.getUserMedia){status.textContent="◫ MICROPHONE UNAVAILABLE · ACTION_REQUIRED";copy.textContent="This browser does not expose microphone capture.";return}
+  try{
+    micStream=await navigator.mediaDevices.getUserMedia({audio:true});
+    micChunks=[];
+    mediaRecorder=new MediaRecorder(micStream);
+    mediaRecorder.ondataavailable=e=>{if(e.data.size)micChunks.push(e.data)};
+    mediaRecorder.onstart=()=>{status.textContent="◉ MICROPHONE LIVE · CAPTURING";copy.textContent="Audio capture is connected to the PoP API. Stop to submit the bounded capture.";button.textContent="■"};
+    mediaRecorder.onstop=async()=>{
+      micStream?.getTracks().forEach(t=>t.stop());
+      const type=mediaRecorder.mimeType||"audio/webm";
+      const blob=new Blob(micChunks,{type});
+      button.textContent="◉";
+      status.textContent="◫ SUBMITTING CAPTURE…";
+      try{
+        const r=await fetch("/api/voice/capture",{method:"POST",headers:{"Content-Type":type},body:blob});
+        const d=await r.json();
+        if(!r.ok)throw new Error(d.detail||"capture rejected");
+        status.textContent="◫ CAPTURE RECEIVED · PROCESS VERIFIED";
+        copy.textContent="Audio bytes were received and hashed by the PoP API. TRANSCRIPTION: NOT_CONFIGURED.";
+      }catch(err){
+        status.textContent="◫ CAPTURE REJECTED · ACTION_REQUIRED";
+        copy.textContent="Audio capture failed closed: "+err.message;
+      }finally{mediaRecorder=null;micStream=null;micChunks=[]}
+    };
+    mediaRecorder.start();
+  }catch(err){
+    status.textContent="◫ MICROPHONE BLOCKED · ACTION_REQUIRED";
+    copy.textContent="Microphone permission was not granted or the device blocked capture.";
+    button.textContent="◉";
+  }
+}
+document.getElementById("mic").onclick=toggleMic;document.getElementById("type").onclick=()=>{const q=prompt("Ask Buddy:");if(q)alert("Text channel staged: "+q)};document.getElementById("sound").onclick=e=>e.currentTarget.textContent=e.currentTarget.textContent.includes("On")?"♫ Off":"♫ On";
 </script></body></html>
