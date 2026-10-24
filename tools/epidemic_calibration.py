@@ -206,7 +206,7 @@ def calibrate() -> dict:
     bootstrap = bootstrap_rmse_delta_ci(observed, predicted, baseline_pred)
 
     return {
-        "spec": "innovulis-epidemic-genesis-calibration/2.0",
+        "spec": "innovulis-epidemic-genesis-calibration/2.1",
         "fixture": str(FIXTURE),
         "preregistration": str(PREREG),
         "observed_points": len(observed),
