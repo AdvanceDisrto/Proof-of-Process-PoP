@@ -406,7 +406,16 @@ def calibrate() -> dict:
     error = rmse(predicted, observed)
     baseline_params, baseline_error, baseline_pred = fit_bass_baseline(observed)
     threshold = prereg["threshold"]
-    bootstrap = bootstrap_rmse_delta_ci(observed, predicted, baseline_pred)
+    bootstrap_bass_minus_eGi = bootstrap_rmse_delta_ci(observed, predicted, baseline_pred)
+    # CKM reporting convention is eGi-minus-Bass; the mechanism-active control
+    # uses the canonical Bass-minus-eGi convention independently.
+    bootstrap = {
+        **bootstrap_bass_minus_eGi,
+        "lower": -bootstrap_bass_minus_eGi["upper"],
+        "median": -bootstrap_bass_minus_eGi["median"],
+        "upper": -bootstrap_bass_minus_eGi["lower"],
+        "delta_definition": "eGi_minus_Bass; negative favors eGi",
+    }
 
     return {
         "spec": "innovulis-epidemic-genesis-calibration/2.1",
