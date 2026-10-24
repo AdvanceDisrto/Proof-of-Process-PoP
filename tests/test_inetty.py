@@ -1,7 +1,7 @@
 import hashlib
 from tools.inetty_verifier import build_receipt
 
-PUB="8f4a2b1c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2"
+PUB="00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"
 
 def test_local_transport_route_passes_route_gate():
     h=hashlib.sha256(bytes.fromhex(PUB)).hexdigest()[:8]
