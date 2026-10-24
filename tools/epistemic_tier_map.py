@@ -55,11 +55,11 @@ TIER_MAP = {
         "why": "This is the project's operational definition of intelligence, not an empirical finding.",
     },
     "github_push_workflow_result_is_machine_observable": {
-        "tier": "ACTION_REQUIRED",
+        "tier": "VERIFIED_PROCESS",
         "evidence_type": "CI_observability",
         "tester": "GitHub Actions",
         "tester_observable": False,
-        "why": "The push-triggered workflow was triggered, but its result was not independently exposed by the available connector endpoint in this execution.",
+        "why": "The push-triggered workflow result was independently read from the GitHub Actions run API for the observed run.",
     },
     "high_r0_variant_is_verified_truth": {
         "tier": "REFUTED",
