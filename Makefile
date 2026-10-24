@@ -1,4 +1,4 @@
-.PHONY: install test test-cce test-platform-architecture test-buddy-liveness test-inetty test-signal-proof test-omnipresent test-ambient test-am-tiered build-omnipresent build-ambient build-am-physics test-antimatter test-tee-scrape test-on-silicon test-iska test-imcp test-ledger test-truth test-attestation-router test-physical-merkle test-ibare test-polyglot test-e2e test-daemon test-mmr test-hardened test-spu test-spu-reference test-spu-rtl test-spu-custody test-spu-materialization test-spu-ml-dsa test-spu-orfs test-spu-source-policy build-ibare build-rtl build-daemon build-hardened build-spu-reference build-all
+.PHONY: install test test-cce test-epidemic-genesis test-platform-architecture test-buddy-liveness test-inetty test-signal-proof test-omnipresent test-ambient test-am-tiered build-omnipresent build-ambient build-am-physics test-antimatter test-tee-scrape test-on-silicon test-iska test-imcp test-ledger test-truth test-attestation-router test-physical-merkle test-ibare test-polyglot test-e2e test-daemon test-mmr test-hardened test-spu test-spu-reference test-spu-rtl test-spu-custody test-spu-materialization test-spu-ml-dsa test-spu-orfs test-spu-source-policy build-ibare build-rtl build-daemon build-hardened build-spu-reference build-all
 
 CC ?= cc
 CFLAGS ?= -O2 -std=c11 -Wall -Wextra -Werror -pedantic
@@ -42,7 +42,7 @@ test-platform-architecture:
 	python -m pytest -q tests/test_platform_architecture.py
 
 
-test: test-platform-architecture test-ibare test-render test-polyglot test-iska test-imcp test-ledger test-tee-scrape test-antimatter test-am-tiered test-ambient test-omnipresent test-buddy-liveness test-inetty test-mmr
+test: test-platform-architecture test-ibare test-render test-polyglot test-iska test-imcp test-ledger test-tee-scrape test-antimatter test-am-tiered test-ambient test-omnipresent test-buddy-liveness test-inetty test-mmr test-epidemic-genesis
 	python -m pytest -q
 
 build-all: test
@@ -173,6 +173,15 @@ test-buddy-liveness:
 test-inetty:
 	python -m pytest -q tests/test_inetty_smallest_proof.py
 	python tools/inetty_smallest_proof.py
+
+test-epidemic-genesis:
+	python -m pytest -q tests/test_epidemic_genesis.py
+	python - <<'PY'
+from tools.epidemic_genesis import EpidemicParameters
+p=EpidemicParameters(beta=0.7, contacts=3.0, alpha=1.0, gamma=1.0, delta=0.2, kappa=0.3, mutation=0.1, fidelity=0.9, trust=0.9)
+print({"spec":"innovulis-epidemic-genesis-smoke/1.0","R0":p.r0,"Rt":p.effective_rt(),"physical_gate":"ACTION_REQUIRED"})
+PY
+
 
 test-cce:
 	mkdir -p "evidence/run-all/$(if $(GITHUB_RUN_ID),$(GITHUB_RUN_ID),local)"
