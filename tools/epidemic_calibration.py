@@ -145,6 +145,59 @@ def positive_control() -> dict:
 
 
 
+
+def simulate_mechanism_active(params: EpidemicParameters, steps: int, *, initial_adopted: float = 0.10, contradiction_rate: float = 0.18, receipt_strength: float = 0.85) -> list[float]:
+    """Mechanism-active eGi control with mutation, quarantine, and receipt weighting."""
+    susceptible = max(0.0, 1.0 - initial_adopted)
+    exposed = 0.0
+    adopted = max(0.0, min(1.0, initial_adopted))
+    retained = 0.0
+    mutant = 0.0
+    quarantine = 0.0
+    out: list[float] = []
+    for _ in range(steps):
+        out.append(adopted + retained + mutant)
+        contradiction = min(1.0, max(0.0, contradiction_rate * mutant))
+        quarantine = min(1.0, max(0.0, quarantine + params.kappa * contradiction))
+        receipt_weight = max(0.0, min(1.0, receipt_strength))
+        force = (
+            params.beta * params.contacts * susceptible * (adopted + 0.5 * mutant)
+            * params.fidelity * params.trust * receipt_weight * (1.0 - quarantine)
+        )
+        new_exposed = min(susceptible, max(0.0, force))
+        susceptible -= new_exposed
+        exposed += new_exposed
+        trial = min(exposed, max(0.0, params.alpha * exposed))
+        exposed -= trial
+        accepted = min(trial, max(0.0, params.gamma * trial * (1.0 - contradiction)))
+        mutated = max(0.0, min(accepted, params.mutation * accepted))
+        ordinary = accepted - mutated
+        retained_now = min(max(0.0, adopted), max(0.0, params.delta * max(0.0, adopted)))
+        mutant_retained = min(max(0.0, mutant), max(0.0, params.delta * 0.5 * max(0.0, mutant)))
+        adopted += ordinary - retained_now
+        mutant += mutated - mutant_retained
+        retained += retained_now + mutant_retained
+    return out
+
+
+def fit_egi_mechanism_active(observed: list[float]) -> tuple[dict, float, list[float]]:
+    """Fit active transmission, retention, quarantine, and mutation."""
+    best_error = float("inf")
+    best_params: dict = {}
+    best_pred: list[float] = []
+    for transmission in [round(0.28 + i * 0.01, 3) for i in range(9)]:
+        for delta in [round(0.10 + i * 0.01, 3) for i in range(11)]:
+            for kappa in [round(0.04 + i * 0.01, 3) for i in range(7)]:
+                for mutation in [round(0.10 + i * 0.01, 3) for i in range(9)]:
+                    params = EpidemicParameters(beta=transmission, contacts=1.0, alpha=1.0, gamma=1.0, delta=delta, kappa=kappa, mutation=mutation, fidelity=1.0, trust=1.0)
+                    pred = simulate_mechanism_active(params, len(observed))
+                    error = rmse(pred, observed)
+                    if error < best_error:
+                        best_error = error
+                        best_params = {"effective_transmission": transmission, "delta": delta, "kappa": kappa, "mutation": mutation}
+                        best_pred = pred
+    return best_params, best_error, best_pred
+
 def fit_egi_effective(observed: list[float]) -> tuple[dict, float, list[float]]:
     """Fit the parameters that the current eGi simulator actually uses."""
     best_error = float("inf")
@@ -187,6 +240,11 @@ def symmetric_external_ground_truth_control() -> dict:
     bass_on_egi_params, bass_on_egi_error, _ = fit_bass_baseline(observed_egi)
     egi_fit_params, egi_fit_error, _ = fit_egi_effective(observed_egi)
 
+    mechanism_clean = simulate_mechanism_active(egi_gt, steps, initial_adopted=initial)
+    mechanism_observed = [min(1.0, max(0.0, v + rng.gauss(0.0, sigma))) for v in mechanism_clean]
+    bass_on_mechanism_params, bass_on_mechanism_error, _ = fit_bass_baseline(mechanism_observed)
+    mechanism_fit_params, mechanism_fit_error, _ = fit_egi_mechanism_active(mechanism_observed)
+
     bass_pass = bass_fit_error < egi_on_bass_error
     egi_pass = egi_fit_error < bass_on_egi_error
     egi_fit_method = "deterministic_grid_search_over_effective_transmission_and_delta"
@@ -210,7 +268,30 @@ def symmetric_external_ground_truth_control() -> dict:
             "implementation": "actual simulate() eGi recurrence",
             "active_structure": ["exposure", "trial", "adoption", "retention"],
             "inactive_in_current_simulator": ["kappa", "mutation", "fidelity", "trust"],
-            "note": "The current generator does not implement quarantine feedback, mutation, or receipt-weighted adoption; the control therefore discriminates only the structure actually emitted by simulate().",
+            "note": "The baseline symmetric control discriminates only the structure actually emitted by simulate().",
+        },
+        "off_grid_truth_control": {
+            "status": "ACTIVE",
+            "truth_alignment": control.get("truth_alignment", "OFF_GRID"),
+            "Bass_truth": bass_gt,
+            "Bass_fit": bass_fit_params,
+            "Bass_absolute_errors": {"p": round(abs(bass_fit_params["p"] - bass_gt["p"]), 6), "q": round(abs(bass_fit_params["q"] - bass_gt["q"]), 6)},
+            "eGi_truth_effective_transmission": round(egi_gt.beta * egi_gt.contacts, 6),
+            "eGi_fit_effective_transmission": egi_fit_params["effective_transmission"],
+            "eGi_absolute_errors": {"effective_transmission": round(abs(egi_fit_params["effective_transmission"] - egi_gt.beta * egi_gt.contacts), 6), "delta": round(abs(egi_fit_params["delta"] - egi_gt.delta), 6)},
+            "recovery_tolerance": control.get("recovery_tolerance", 0.005),
+            "purpose": control.get("off_grid_purpose"),
+        },
+        "mechanism_active_control": {
+            "generator": "simulate_mechanism_active",
+            "active_mechanisms": ["receipt_weighting", "quarantine_feedback", "mutation"],
+            "ground_truth_parameters": asdict(egi_gt),
+            "Bass_fit": {"parameters": bass_on_mechanism_params, "rmse": round(bass_on_mechanism_error, 6)},
+            "eGi_mechanism_fit": {"parameters": mechanism_fit_params, "rmse": round(mechanism_fit_error, 6)},
+            "winner": "eGi" if mechanism_fit_error < bass_on_mechanism_error else "Bass",
+            "pass": mechanism_fit_error < bass_on_mechanism_error,
+            "claim_scope": "MECHANISM_ACTIVE_SYNTHETIC_DISCRIMINATION",
+            "note": "New synthetic mechanism-active control; it does not retroactively upgrade the current CKM candidate or baseline simulator claim.",
         },
         "bass_truth_direction": {
             "ground_truth_parameters": bass_gt,
