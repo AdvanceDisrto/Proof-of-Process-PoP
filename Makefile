@@ -158,3 +158,11 @@ build-am-physics:
 test-am-tiered: build-am-physics
 	python -m pytest -q tests/test_antimatter_tiered.py
 	python tools/antimatter_tiered_receipt.py
+
+.PHONY: test-ci-receipts status
+
+test-ci-receipts:
+	python -m pytest tests/test_ci_receipts.py -v
+
+status:
+	python tools/status_monitor.py
