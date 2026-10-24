@@ -285,6 +285,12 @@ def symmetric_external_ground_truth_control() -> dict:
             "eGi_absolute_errors": {"effective_transmission": round(abs(egi_fit_params["effective_transmission"] - egi_gt.beta * egi_gt.contacts), 6), "delta": round(abs(egi_fit_params["delta"] - egi_gt.delta), 6)},
             "recovery_tolerance": control.get("recovery_tolerance", 0.002),
             "recovery_criterion": control.get("recovery_criterion"),
+            "nearest_registered_nodes": {
+                "Bass": {"p": 0.084, "q": 0.18},
+                "eGi": {"effective_transmission": 0.32, "delta": 0.15},
+            },
+            "delta_fit_not_nearest_node": True,
+            "delta_fit_note": "Truth delta=0.153 has nearest registered node 0.15, but noisy-data RMSE selects 0.16; the one-node displacement is fitting behavior, not rounding to nearest truth node.",
             "purpose": control.get("off_grid_purpose"),
         },
         "mechanism_active_control": {
@@ -319,7 +325,18 @@ def symmetric_external_ground_truth_control() -> dict:
             "pass": egi_pass,
         },
         "bidirectional": bass_pass and egi_pass,
-        "tier_claim": "FIT_DISCRIMINATION_BIDIRECTIONAL" if bass_pass and egi_pass else "FIT_DISCRIMINATION_ONE_DIRECTIONAL",
+        "off_grid_recovery_pass": all([
+            abs(bass_fit_params["p"] - bass_gt["p"]) <= control["recovery_criterion"]["max_errors"]["Bass"]["p"],
+            abs(bass_fit_params["q"] - bass_gt["q"]) <= control["recovery_criterion"]["max_errors"]["Bass"]["q"],
+            abs(egi_fit_params["effective_transmission"] - egi_gt.beta * egi_gt.contacts) <= control["recovery_criterion"]["max_errors"]["eGi"]["effective_transmission"],
+            abs(egi_fit_params["delta"] - egi_gt.delta) <= control["recovery_criterion"]["max_errors"]["eGi"]["delta"],
+        ]),
+        "tier_claim": "FIT_DISCRIMINATION_BIDIRECTIONAL" if bass_pass and egi_pass and all([
+            abs(bass_fit_params["p"] - bass_gt["p"]) <= control["recovery_criterion"]["max_errors"]["Bass"]["p"],
+            abs(bass_fit_params["q"] - bass_gt["q"]) <= control["recovery_criterion"]["max_errors"]["Bass"]["q"],
+            abs(egi_fit_params["effective_transmission"] - egi_gt.beta * egi_gt.contacts) <= control["recovery_criterion"]["max_errors"]["eGi"]["effective_transmission"],
+            abs(egi_fit_params["delta"] - egi_gt.delta) <= control["recovery_criterion"]["max_errors"]["eGi"]["delta"],
+        ]) else "FIT_DISCRIMINATION_ONE_DIRECTIONAL",
     }
 
 def external_ground_truth_positive_control() -> dict:
