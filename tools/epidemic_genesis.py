@@ -118,16 +118,32 @@ class EpidemicGenesis:
         return out
 
     def supersede(self, variant_id: str) -> int:
-        """Mark adopted/retained instances as displaced by a successor variant.
-
-        Supersession is distinct from contradiction-driven quarantine: the older
-        variant may remain historically valid while no longer being selected.
-        """
+        """Apply the explicit supersession transition to an older variant."""
         changed = 0
         for agent in self.agents.values():
             state = agent.states.get(variant_id)
             if state and state.state in {ADOPTED, RETAINED}:
                 state.state = SUPERSEDED
+                changed += 1
+        return changed
+
+    def supersede_on_successor_adoption(self, old_variant_id: str, successor_variant_id: str) -> int:
+        """Supersede an older variant only when the successor is adopted.
+
+        This is a mechanism test, not merely a reachable label: the transition
+        is conditional on observed successor adoption at an agent.
+        """
+        changed = 0
+        for agent in self.agents.values():
+            old = agent.states.get(old_variant_id)
+            successor = agent.states.get(successor_variant_id)
+            if (
+                old
+                and successor
+                and successor.state == ADOPTED
+                and old.state in {ADOPTED, RETAINED}
+            ):
+                old.state = SUPERSEDED
                 changed += 1
         return changed
 
