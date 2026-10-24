@@ -64,6 +64,29 @@ print(json.dumps({
 }, indent=2))
 PY
 
+python3 - <<'PY' > "$OUT/gate_verification.json"
+import json
+from tools.gate import physical_gate
+cases = {
+    "bare_presence": physical_gate("q", 1.0),
+    "untrusted_structure": physical_gate(
+        {"vendor_chain": ["SELF_SIGNED"], "measurement": "x"},
+        {"joules": 1.0, "source": "signed:lab"},
+    ),
+    "attested_shape": physical_gate(
+        {"vendor_chain": ["AMD_SEV_SNP_ROOT_CA"], "measurement": "x"},
+        {"joules": 1.0, "source": "signed:lab"},
+    ),
+}
+print(json.dumps({
+    "spec": "innovulis-physical-gate-verification/1.0",
+    "cases": cases,
+    "physical_gate": "ACTION_REQUIRED",
+    "host_tee_present": False,
+    "the_central_rule": "Presence is not proof.",
+}, indent=2))
+PY
+
 python3 tools/mmr_pipeline.py 5000 "$OUT/mmr_5000.json"
 python3 tools/master_run_receipt.py "$OUT"
 
@@ -76,6 +99,8 @@ import json
 from pathlib import Path
 r=json.loads(Path("$OUT/MASTER_RUN_RECEIPT.json").read_text())
 print("artifacts:       ", r["artifact_count"])
+print("receipts:        ", r["receipt_count"])
+print("logs:            ", r["log_count"])
 print("master_mmr_root: ", r["master_mmr_root"])
 print("state:            ", r["state"])
 print("physical_gate:   ", r["physical_gate"])
