@@ -1,0 +1,6 @@
+{
+  "spec":"innovulis-spu-materialization/1.0",
+  "state":"BLOCKED",
+  "required_evidence":["physical_runner_receipt","sha_bound_inventory","independent_storage_copy","accelerator_network_evidence","explicit_authorization"],
+  "promotion":{"active":false,"training_authorized":false}
+}
