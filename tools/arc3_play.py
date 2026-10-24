@@ -17,12 +17,8 @@ def main(game,max_actions,out):
    if resets>25: break
    continue
   a=ag.choose_action([],cur)
-  if getattr(a,"is_complex",lambda:False)():
-   if hasattr(a,"set_data"): a.set_data({"x":32,"y":32})
-   else:
-    try:a.action_data={"x":32,"y":32}
-    except Exception:pass
-  nxt=env.step(a,data=getattr(a,"action_data",None) or {},reasoning=getattr(a,"reasoning",None))
+  step_data={"x":32,"y":32} if getattr(a,"is_complex",lambda:False)() else {}
+  nxt=env.step(a,data=step_data,reasoning=getattr(a,"reasoning",None))
   if nxt is None: raise RuntimeError("env.step returned None")
   if prev is not None: ag.observe(prev,a,nxt)
   prev,cur=cur,nxt;steps+=1
