@@ -82,7 +82,22 @@ def test_symmetric_control_records_fit_provenance_and_generator_scope():
     result = symmetric_external_ground_truth_control()
     assert result["fit_provenance"]["Bass"]["method"] == "deterministic_grid_search_over_preregistered_p_q_grid"
     assert result["fit_provenance"]["eGi"]["method"] == "deterministic_grid_search_over_effective_transmission_and_delta"
-    assert result["eGi_truth_direction"]["eGi_fit"]["parameters"] != result["eGi_truth_direction"]["ground_truth_parameters"] or result["eGi_truth_direction"]["eGi_fit"]["rmse"] >= 0.0
+    assert set(result["eGi_truth_direction"]["eGi_fit"]["parameters"]) == {"effective_transmission", "delta"}
+    assert result["off_grid_truth_control"]["truth_alignment"] == "OFF_GRID"
+    assert result["off_grid_truth_control"]["Bass_absolute_errors"]["p"] <= 0.005
+    assert result["off_grid_truth_control"]["Bass_absolute_errors"]["q"] <= 0.005
+    assert result["off_grid_truth_control"]["eGi_absolute_errors"]["effective_transmission"] <= 0.005
+    assert result["off_grid_truth_control"]["eGi_absolute_errors"]["delta"] <= 0.005
     assert result["generator_scope"]["implementation"] == "actual simulate() eGi recurrence"
     assert "kappa" in result["generator_scope"]["inactive_in_current_simulator"]
     assert "mutation" in result["generator_scope"]["inactive_in_current_simulator"]
+
+
+def test_mechanism_active_control_activates_distinctive_dynamics():
+    from tools.epidemic_calibration import symmetric_external_ground_truth_control
+    result = symmetric_external_ground_truth_control()
+    control = result["mechanism_active_control"]
+    assert control["generator"] == "simulate_mechanism_active"
+    assert set(control["active_mechanisms"]) == {"receipt_weighting", "quarantine_feedback", "mutation"}
+    assert control["pass"] is True
+    assert control["eGi_mechanism_fit"]["rmse"] < control["Bass_fit"]["rmse"]
