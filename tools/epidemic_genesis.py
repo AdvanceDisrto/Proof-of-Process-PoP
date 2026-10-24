@@ -17,6 +17,7 @@ TRIAL = "T"
 ADOPTED = "A"
 RETAINED = "R"
 QUARANTINED = "Q"
+SUPERSEDED = "S"
 FAILED = "F"
 
 
@@ -116,9 +117,23 @@ class EpidemicGenesis:
             out[agent_id] = pressure
         return out
 
+    def supersede(self, variant_id: str) -> int:
+        """Mark adopted/retained instances as displaced by a successor variant.
+
+        Supersession is distinct from contradiction-driven quarantine: the older
+        variant may remain historically valid while no longer being selected.
+        """
+        changed = 0
+        for agent in self.agents.values():
+            state = agent.states.get(variant_id)
+            if state and state.state in {ADOPTED, RETAINED}:
+                state.state = SUPERSEDED
+                changed += 1
+        return changed
+
     def step(self, variant_id: str, evidence: Evidence) -> dict[str, int | float]:
         pressure = self.exposure_pressure(variant_id)
-        counts = {s: 0 for s in (UNEXPOSED, EXPOSED, TRIAL, ADOPTED, RETAINED, QUARANTINED, FAILED)}
+        counts = {s: 0 for s in (UNEXPOSED, EXPOSED, TRIAL, ADOPTED, RETAINED, QUARANTINED, SUPERSEDED, FAILED)}
 
         for agent_id, agent in self.agents.items():
             av = agent.states.setdefault(variant_id, AgentVariantState())
