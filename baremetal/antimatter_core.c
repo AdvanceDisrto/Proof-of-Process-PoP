@@ -18,33 +18,6 @@ static double am_atanh_series(double x) {
     return sum;
 }
 
-static double am_log(double y) {
-    if (y <= 0.0) {
-        return 0.0;
-    }
-
-    /*
-     * Reduce y into [1,2) by powers of two:
-     * ln(y) = ln(m) + k*ln(2).
-     */
-    const double ln2 = 0.693147180559945309417232121458176568;
-    int k = 0;
-    double m = y;
-
-    while (m >= 2.0) {
-        m *= 0.5;
-        ++k;
-    }
-    while (m < 1.0) {
-        m *= 2.0;
-        --k;
-    }
-
-    /* ln(m) = 2*atanh((m-1)/(m+1)); |x| < 1/3. */
-    double x = (m - 1.0) / (m + 1.0);
-    return 2.0 * am_atanh_series(x) + (double)k * ln2;
-}
-
 static double am_exp(double y) {
     /* The model domain keeps y comfortably below 1 for supplied scenarios. */
     double sum = 1.0;
