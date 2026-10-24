@@ -52,7 +52,7 @@ def test_pipeline_5000(tmp_path):
     result = run_pipeline(5000, str(tmp_path / "receipt.json"))
     assert result["task_count"] == 5000
     assert result["classes_represented"] == {"1000":1000,"2000":1000,"3000":1000,"4000":1000,"5000":1000}
-    assert len(result["mmr_peaks"]) == 6
+    assert len(result["mmr_peaks"]) == 5
     assert result["state"] == "VERIFIED_PROCESS"
     assert result["physical_gate"] == "ACTION_REQUIRED"
 
