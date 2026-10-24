@@ -1,0 +1,47 @@
+name: "CI Observability"
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  receipts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pytest
+      - id: start
+        run: echo "ts=$(python3 -c 'import time; print(time.time())')" >> "$GITHUB_OUTPUT"
+      - id: tests
+        run: python -m pytest tests/test_ci_receipts.py -q
+      - id: end
+        if: always()
+        run: echo "ts=$(python3 -c 'import time; print(time.time())')" >> "$GITHUB_OUTPUT"
+      - name: Emit receipt
+        if: always()
+        env:
+          TEST_OUTCOME: ${{ steps.tests.outcome }}
+        run: |
+          RESULT=FAIL; [ "$TEST_OUTCOME" = success ] && RESULT=PASS
+          python tools/ci_receipt_emitter.py --stage ci-receipt-tests --result "$RESULT" --started-at "${{ steps.start.outputs.ts }}" --ended-at "${{ steps.end.outputs.ts }}" --commit "$GITHUB_SHA" --run-id "$GITHUB_RUN_ID"
+      - name: Roll up receipt
+        if: always()
+        run: |
+          python - <<'PY'
+          import glob,json,os
+          from tools.ci_receipt_emitter import emit_run_summary
+          stages=[json.load(open(f)) for f in glob.glob("evidence/ci_receipts/ci-receipt-tests__*.json")]
+          emit_run_summary(stages,os.environ["GITHUB_SHA"],os.environ["GITHUB_RUN_ID"],"CI Observability")
+          PY
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-receipts-${{ github.run_id }}
+          path: evidence/ci_receipts/*.json
