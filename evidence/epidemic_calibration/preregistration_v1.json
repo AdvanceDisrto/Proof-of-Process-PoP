@@ -132,5 +132,30 @@
     "noise_seed": 20261024,
     "recovery_tolerance": 0.01,
     "promotion_rule": "Bass must recover the preregistered p and q within tolerance and have lower RMSE than the fixed eGi candidate."
+  },
+  "symmetric_control": {
+    "required": true,
+    "purpose": "Test whether the same harness discriminates both known Bass and known eGi-generating processes using noisy observations.",
+    "observed_points": 17,
+    "initial_adoption": 0.1,
+    "noise_distribution": "Gaussian",
+    "noise_sigma": 0.002,
+    "noise_seed": 20261024,
+    "bass_ground_truth": {
+      "p": 0.084,
+      "q": 0.18
+    },
+    "eGi_ground_truth_parameters": {
+      "beta": 0.08,
+      "contacts": 4,
+      "alpha": 1,
+      "gamma": 1,
+      "delta": 0.15,
+      "kappa": 0.05,
+      "mutation": 0.1,
+      "fidelity": 1,
+      "trust": 1
+    },
+    "promotion_rule": "Bass must beat fitted eGi on Bass-generated data and fitted eGi must beat fitted Bass on eGi-generated data. Both directions are required for a bidirectional discrimination claim."
   }
 }
