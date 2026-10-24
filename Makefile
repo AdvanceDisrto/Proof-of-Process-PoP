@@ -1,4 +1,4 @@
-.PHONY: install test test-truth test-ibare test-polyglot test-e2e test-daemon test-hardened test-spu test-spu-reference test-spu-rtl test-spu-custody test-spu-materialization test-spu-ml-dsa test-spu-orfs test-spu-source-policy build-ibare build-rtl build-daemon build-hardened build-spu-reference build-all
+.PHONY: install test test-truth test-attestation-router test-ibare test-polyglot test-e2e test-daemon test-hardened test-spu test-spu-reference test-spu-rtl test-spu-custody test-spu-materialization test-spu-ml-dsa test-spu-orfs test-spu-source-policy build-ibare build-rtl build-daemon build-hardened build-spu-reference build-all
 
 CC ?= cc
 CFLAGS ?= -O2 -std=c11 -Wall -Wextra -Werror -pedantic
@@ -95,3 +95,8 @@ build-truth:
 test-truth: build-truth
 	./build/truth_engine
 	python -m pytest -q tests/test_truth_engine.py
+
+
+test-attestation-router:
+	python physical/attestation_router.py
+	python -m pytest -q tests/test_attestation_router.py
