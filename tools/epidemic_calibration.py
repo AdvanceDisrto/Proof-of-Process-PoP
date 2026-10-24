@@ -83,7 +83,7 @@ def fit_bass_baseline(observed: list[float]) -> tuple[dict, float, list[float]]:
 
 def calibrate() -> dict:
     fixture = json.loads(FIXTURE.read_text())
-    prereg = json.loads(PREREG)["ckm_case"]
+    prereg = json.loads(PREREG.read_text())["ckm_case"]
     observed = [row["fraction"] for row in fixture["curve"]]
 
     params = EpidemicParameters(**prereg["eGi_parameters_fixed"])
