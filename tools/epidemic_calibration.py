@@ -189,9 +189,29 @@ def symmetric_external_ground_truth_control() -> dict:
 
     bass_pass = bass_fit_error < egi_on_bass_error
     egi_pass = egi_fit_error < bass_on_egi_error
+    egi_fit_method = "deterministic_grid_search_over_effective_transmission_and_delta"
+    egi_fit_resolution = {"effective_transmission": 0.01, "delta": 0.01}
     return {
         "case": "symmetric_external_ground_truth",
         "noise": {"distribution": "Gaussian", "sigma": sigma, "seed": control["noise_seed"]},
+        "fit_provenance": {
+            "Bass": {
+                "method": "deterministic_grid_search_over_preregistered_p_q_grid",
+                "resolution": {"p": 0.001, "q": 0.01},
+            },
+            "eGi": {
+                "method": egi_fit_method,
+                "resolution": egi_fit_resolution,
+                "active_fitted_parameters": ["effective_transmission", "delta"],
+                "effective_transmission_definition": "beta * contacts",
+            },
+        },
+        "generator_scope": {
+            "implementation": "actual simulate() eGi recurrence",
+            "active_structure": ["exposure", "trial", "adoption", "retention"],
+            "inactive_in_current_simulator": ["kappa", "mutation", "fidelity", "trust"],
+            "note": "The current generator does not implement quarantine feedback, mutation, or receipt-weighted adoption; the control therefore discriminates only the structure actually emitted by simulate().",
+        },
         "bass_truth_direction": {
             "ground_truth_parameters": bass_gt,
             "Bass_fit": {"parameters": bass_fit_params, "rmse": round(bass_fit_error, 6)},
