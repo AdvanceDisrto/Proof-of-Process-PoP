@@ -243,7 +243,11 @@ def symmetric_external_ground_truth_control() -> dict:
     mechanism_clean = simulate_mechanism_active(egi_gt, steps, initial_adopted=initial)
     mechanism_observed = [min(1.0, max(0.0, v + rng.gauss(0.0, sigma))) for v in mechanism_clean]
     bass_on_mechanism_params, bass_on_mechanism_error, _ = fit_bass_baseline(mechanism_observed)
-    mechanism_fit_params, mechanism_fit_error, _ = fit_egi_mechanism_active(mechanism_observed)
+    mechanism_fit_params, mechanism_fit_error, mechanism_fit_pred = fit_egi_mechanism_active(mechanism_observed)
+    _, _, mechanism_bass_pred = fit_bass_baseline(mechanism_observed)
+    mechanism_bootstrap = bootstrap_rmse_delta_ci(
+        mechanism_observed, mechanism_fit_pred, mechanism_bass_pred
+    )
 
     bass_pass = bass_fit_error < egi_on_bass_error
     egi_pass = egi_fit_error < bass_on_egi_error
@@ -279,7 +283,8 @@ def symmetric_external_ground_truth_control() -> dict:
             "eGi_truth_effective_transmission": round(egi_gt.beta * egi_gt.contacts, 6),
             "eGi_fit_effective_transmission": egi_fit_params["effective_transmission"],
             "eGi_absolute_errors": {"effective_transmission": round(abs(egi_fit_params["effective_transmission"] - egi_gt.beta * egi_gt.contacts), 6), "delta": round(abs(egi_fit_params["delta"] - egi_gt.delta), 6)},
-            "recovery_tolerance": control.get("recovery_tolerance", 0.005),
+            "recovery_tolerance": control.get("recovery_tolerance", 0.002),
+            "recovery_criterion": control.get("recovery_criterion"),
             "purpose": control.get("off_grid_purpose"),
         },
         "mechanism_active_control": {
@@ -288,10 +293,15 @@ def symmetric_external_ground_truth_control() -> dict:
             "ground_truth_parameters": asdict(egi_gt),
             "Bass_fit": {"parameters": bass_on_mechanism_params, "rmse": round(bass_on_mechanism_error, 6)},
             "eGi_mechanism_fit": {"parameters": mechanism_fit_params, "rmse": round(mechanism_fit_error, 6)},
+            "rmse_gap_Bass_minus_eGi": round(bass_on_mechanism_error - mechanism_fit_error, 6),
+            "bass_residual_character": "Bass remains a reasonably close fit; this is a point-estimate win, not evidence of order-of-magnitude misspecification.",
+            "paired_bootstrap_90_ci": mechanism_bootstrap,
+            "bootstrap_seed_count": 1,
             "winner": "eGi" if mechanism_fit_error < bass_on_mechanism_error else "Bass",
-            "pass": mechanism_fit_error < bass_on_mechanism_error,
-            "claim_scope": "MECHANISM_ACTIVE_SYNTHETIC_DISCRIMINATION",
-            "note": "New synthetic mechanism-active control; it does not retroactively upgrade the current CKM candidate or baseline simulator claim.",
+            "point_estimate_pass": mechanism_fit_error < bass_on_mechanism_error,
+            "comparative_pass": mechanism_fit_error < bass_on_mechanism_error and mechanism_bootstrap["excludes_zero"],
+            "claim_scope": "MECHANISM_ACTIVE_SYNTHETIC_DISCRIMINATION_WITH_PAIRED_BOOTSTRAP" if mechanism_bootstrap["excludes_zero"] else "MECHANISM_ACTIVE_POINT_ESTIMATE_ONLY",
+            "note": "New synthetic mechanism-active control; receipt weighting, quarantine feedback, and mutation are active. The noisy generator uses one preregistered seed; the paired bootstrap quantifies point-estimate uncertainty but is not an independent-seed replication. This does not retroactively upgrade the CKM candidate or baseline simulator claim.",
         },
         "bass_truth_direction": {
             "ground_truth_parameters": bass_gt,
