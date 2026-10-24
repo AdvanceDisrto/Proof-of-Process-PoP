@@ -39,7 +39,11 @@ struct EnergySample { bool available=false; uint64_t microjoules=0; };
 class HardwareTelemetry {
  static EnergySample read_path(const char* path){
   int fd=open(path,O_RDONLY); if(fd<0)return {}; char buf[64]{}; ssize_t n=read(fd,buf,sizeof(buf)-1); close(fd);
-  if(n<=0) return {};\n  uint64_t v=0;\n  auto result=std::from_chars(buf,buf+n,v);\n  if(result.ec!=std::errc()) return {};\n  return {true,v};
+  if(n<=0) return {};
+  uint64_t v=0;
+  auto result=std::from_chars(buf,buf+n,v);
+  if(result.ec!=std::errc()) return {};
+  return {true,v};
  }
 public:
  static EnergySample read_rapl(){ return read_path("/sys/class/powercap/intel-rapl/intel-rapl:0/energy_uj"); }
@@ -83,17 +87,27 @@ static void send_all(int fd,const std::string& s){size_t off=0;while(off<s.size(
 static void handle_client(int fd){
  std::array<char,2048> b{}; ssize_t n=read(fd,b.data(),b.size()-1); if(n<=0){close(fd);return;}
  std::string req(b.data(),static_cast<size_t>(n)); uint64_t nonce=static_cast<uint64_t>(std::chrono::steady_clock::now().time_since_epoch().count());
- if(!sessions.validate_and_update("CLIENT_ALPHA",nonce)){send_all(fd,"HTTP/1.1 409 Conflict\r\nContent-Length: 6\r\n\r\nreplay");close(fd);return;}
+ if(!sessions.validate_and_update("CLIENT_ALPHA",nonce)){send_all(fd,"HTTP/1.1 409 Conflict\r
+Content-Length: 6\r
+\r
+replay");close(fd);return;}
  auto start=HardwareTelemetry::read_rapl(); bool tpm=HardwareTelemetry::tpm_node_present();
  std::vector<uint8_t> in(1<<20,0x55),out(in.size()); SIMDProcessor::process(in.data(),out.data(),in.size());
  auto end=HardwareTelemetry::read_rapl(); bool measured=start.available&&end.available&&end.microjoules>=start.microjoules;
  uint64_t delta=measured?end.microjoules-start.microjoules:0;
  std::string body="{\"state\":\"VERIFIED_PROCESS\",\"physical_gate\":\"ACTION_REQUIRED\",\"simd_backend\":\""+std::string(SIMDProcessor::backend())+"\",\"rapl_observed\":"+(measured?"true":"false")+",\"energy_delta_uj\":"+(measured?std::to_string(delta):"null")+",\"tpm_device_present\":"+(tpm?"true":"false")+",\"does_not_prove\":[\"TPM quote or hardware-rooted attestation\",\"RAPL calibration or workload-exclusive energy attribution\",\"fabricated custom silicon or foundry signoff\"]}";
- std::string h="HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: "+std::to_string(body.size())+"\r\nConnection: close\r\n\r\n"; send_all(fd,h+body); close(fd);
+ std::string h="HTTP/1.1 200 OK\r
+Content-Type: application/json\r
+Content-Length: "+std::to_string(body.size())+"\r
+Connection: close\r
+\r
+"; send_all(fd,h+body); close(fd);
 }
 int main(int argc,char** argv){
- if(argc>1&&std::string(argv[1])=="--self-test"){std::vector<uint8_t> a(97,0x55),b(a.size());SIMDProcessor::process(a.data(),b.data(),a.size());if(!std::all_of(b.begin(),b.end(),[](uint8_t x){return x==0xff;}))return 2;SessionManager s;if(!s.validate_and_update("x",1)||s.validate_and_update("x",1)||!s.validate_and_update("x",2))return 3;std::cout<<"daemon self-test: PASS backend="<<SIMDProcessor::backend()<<"\n";return 0;}
+ if(argc>1&&std::string(argv[1])=="--self-test"){std::vector<uint8_t> a(97,0x55),b(a.size());SIMDProcessor::process(a.data(),b.data(),a.size());if(!std::all_of(b.begin(),b.end(),[](uint8_t x){return x==0xff;}))return 2;SessionManager s;if(!s.validate_and_update("x",1)||s.validate_and_update("x",1)||!s.validate_and_update("x",2))return 3;std::cout<<"daemon self-test: PASS backend="<<SIMDProcessor::backend()<<"
+";return 0;}
  int server=socket(AF_INET,SOCK_STREAM,0); if(server<0)return 1; int opt=1;setsockopt(server,SOL_SOCKET,SO_REUSEADDR,&opt,sizeof(opt));sockaddr_in a{};a.sin_family=AF_INET;a.sin_addr.s_addr=INADDR_ANY;a.sin_port=htons(8080);
- if(bind(server,reinterpret_cast<sockaddr*>(&a),sizeof(a))<0){perror("bind");return 1;}if(listen(server,SOMAXCONN)<0)return 1;ThreadPool pool(std::thread::hardware_concurrency());std::cout<<"iBare daemon listening 8080 SIMD="<<SIMDProcessor::backend()<<"\n";
+ if(bind(server,reinterpret_cast<sockaddr*>(&a),sizeof(a))<0){perror("bind");return 1;}if(listen(server,SOMAXCONN)<0)return 1;ThreadPool pool(std::thread::hardware_concurrency());std::cout<<"iBare daemon listening 8080 SIMD="<<SIMDProcessor::backend()<<"
+";
  for(;;){int fd=accept(server,nullptr,nullptr);if(fd>=0)pool.enqueue([fd]{handle_client(fd);});}
 }
