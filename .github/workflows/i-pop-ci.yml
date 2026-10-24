@@ -19,6 +19,14 @@ jobs:
         run: make test-ibare
       - name: CPU renderer verification
         run: make test-render
+      - name: SPU C++ reference, ECC, MMIO and materialization gates
+        run: make test-spu-reference
+      - name: SPU ML-DSA-87 verification
+        run: make test-spu-ml-dsa
+      - name: SPU RTL route and locked hierarchy simulation
+        run: make test-spu-rtl
+      - name: SPU source custody and fail-closed materialization
+        run: make test-spu-custody test-spu-materialization
       - name: RTL + software E2E truth-boundary verification
         run: make test-e2e
       - name: Portable SIMD daemon build and self-test
@@ -55,3 +63,5 @@ jobs:
             MASTER_REALITY_LEDGER.json
             POLYGLOT_PROCESS_RECEIPT.json
             E2E_REALITY_MANIFEST.json
+            evidence/spu_evidence_receipt.json
+            rtl/ispu10240/SHA256SUMS.v1.5
