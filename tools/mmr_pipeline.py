@@ -38,7 +38,7 @@ class ProcessTaskReceipt:
 
 def synthesize_receipt(task_id: int) -> ProcessTaskReceipt:
     """Create a deterministic synthetic receipt; no hardware execution occurs."""
-    classification = min(5000, max(1000, (task_id // 1000) * 1000))
+    classification = min(5000, ((task_id - 1) // 1000 + 1) * 1000)
     seed = f"task::{task_id}"
     digest = sha_hex(seed.encode())
     runtime_sig = "synthetic-ed25519:" + sha_hex((seed + ":runtime-signature").encode())
