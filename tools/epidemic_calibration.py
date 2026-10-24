@@ -90,7 +90,7 @@ def bootstrap_rmse_delta_ci(
     seed: int = 20261024,
     alpha: float = 0.10,
 ) -> dict:
-    """Deterministic paired bootstrap CI for eGi-minus-Bass RMSE delta."""
+    """Deterministic paired bootstrap CI for Δ = RMSE_Bass - RMSE_eGi; Δ > 0 favors eGi."""
     import random
 
     if not (len(observed) == len(eGi_predicted) == len(baseline_predicted)):
@@ -106,7 +106,7 @@ def bootstrap_rmse_delta_ci(
         sample_obs = [observed[i] for i in idx]
         sample_eGi = [eGi_predicted[i] for i in idx]
         sample_baseline = [baseline_predicted[i] for i in idx]
-        deltas.append(rmse(sample_eGi, sample_obs) - rmse(sample_baseline, sample_obs))
+        deltas.append(rmse(sample_baseline, sample_obs) - rmse(sample_eGi, sample_obs))
 
     deltas.sort()
     lo = deltas[int((alpha / 2) * iterations)]
@@ -299,9 +299,11 @@ def symmetric_external_ground_truth_control() -> dict:
             "ground_truth_parameters": asdict(egi_gt),
             "Bass_fit": {"parameters": bass_on_mechanism_params, "rmse": round(bass_on_mechanism_error, 6)},
             "eGi_mechanism_fit": {"parameters": mechanism_fit_params, "rmse": round(mechanism_fit_error, 6)},
+            "rmse_delta_definition": "Delta = RMSE_Bass - RMSE_eGi; Delta > 0 favors eGi.",
             "rmse_gap_Bass_minus_eGi": round(bass_on_mechanism_error - mechanism_fit_error, 6),
             "bass_residual_character": "Bass remains a reasonably close fit; this is a point-estimate win, not evidence of order-of-magnitude misspecification.",
             "paired_bootstrap_90_ci": mechanism_bootstrap,
+            "bootstrap_margin_note": "The 90% interval excludes zero narrowly: its lower bound is near zero, so this supports a narrow paired-bootstrap win on this noise realization, not a robust separation from Bass.",
             "bootstrap_seed_count": 1,
             "winner": "eGi" if mechanism_fit_error < bass_on_mechanism_error else "Bass",
             "point_estimate_pass": mechanism_fit_error < bass_on_mechanism_error,
