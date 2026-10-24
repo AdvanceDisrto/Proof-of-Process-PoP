@@ -13,7 +13,9 @@ def test_subclass_forgery_detected():
  e=Evil("/tmp/_sapu_evil.hex");admit(e);e.lock();d=e.derive()
  # Evil's return alone is never sufficient: emulate a compromised emitter by signing it.
  e._derived=d;r=e.sign();assert not verify_sapu_receipt(r)["ok"];assert any("attestation_implies_tier" in x for x in verify_sapu_receipt(r)["errors"])
-def test_lock():s=mk();admit(s);s.lock();with pytest.raises(SAPUError):s.admit("request",{})
+def test_lock():
+ s=mk();admit(s);s.lock()
+ with pytest.raises(SAPUError): s.admit("request",{})
 def test_derive_requires_lock():
  with pytest.raises(SAPUError):mk().derive()
 def test_measurements_differ():assert measurement("scaffold/1")!=measurement("scaffold/1-strict")
