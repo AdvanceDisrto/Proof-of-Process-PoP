@@ -49,3 +49,17 @@ intelligence = quality of generation + discrimination of testing is the project'
 ### Current recursive result
 
 The eGi layer currently demonstrates executable behavioral tests and an external calibration attempt, but it does not claim that the model is calibrated. If the calibration tester fails, that failure is itself the correct eGi output: quarantine the model claim, retain the evidence, and revise the model or its parameters.
+
+## Calibration discipline
+
+The CKM calibration is interpreted as a diffusion-submodel test, not a full eGi validation. A Bass-style baseline is run on the identical 17-point observed curve. The pre-registered 0.020 RMSE threshold is not renegotiated after seeing results. If both baseline and eGi fail the threshold, the threshold is treated as a diagnostic boundary rather than evidence that eGi is uniquely wrong.
+
+CKM does not observe eGi-specific mechanisms such as local testing, receipt strength, contradiction, quarantine, or mutation lineage. Therefore kappa, mutation, receipt-strength weighting, and contradiction detection are not identifiable from CKM. The calibration receipt must report that limitation explicitly.
+
+## Supersession vocabulary
+
+A population can stop using a variant because a successor displaces it without contradiction. That is not the same transition as quarantine. The model therefore includes SUPERSEDED (S) separately from QUARANTINED (Q). A superseded variant may remain historically valid; a quarantined variant is rejected due to contradiction or failed testing.
+
+## Post-quarantine protocol
+
+A failed calibration does not disappear. The protocol is: retain the receipt; compare to the preregistered baseline; record identifiability limits; do not tune against the same curve; choose a new case or held-out partition before revising parameters; and treat structural extensions as new variants requiring fresh preregistration.
