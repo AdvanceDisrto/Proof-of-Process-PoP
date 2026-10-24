@@ -121,6 +121,15 @@ TIER_MAP = {
         "claim_scope": "FIT_DISCRIMINATION_BIDIRECTIONAL_ON_CURRENT_EGI_SIMULATOR_STRUCTURE",
         "does_not_prove": "This row proves the harness can distinguish the current simulator's emitted eGi recurrence from the Bass comparator on the preregistered synthetic controls. It does not prove global mathematical non-equivalence of the model families, does not validate inactive eGi mechanisms such as kappa, mutation, fidelity, or trust weighting, and does not prove the current eGi candidate is validated. The CKM calibration row records that the current candidate does not beat Bass on the CKM adoption curve, and that quarantine remains in force regardless of this row's tier."
     },
+    "mechanism_active_generator_discrimination": {
+        "tier": "VERIFIED_PROCESS",
+        "evidence_type": "mechanism_active_synthetic_control",
+        "tester": "tools/epidemic_calibration.py",
+        "tester_observable": True,
+        "claim_scope": "MECHANISM_ACTIVE_SYNTHETIC_DISCRIMINATION",
+        "why": "A separate synthetic control activates receipt weighting, quarantine feedback, and mutation in simulate_mechanism_active and requires fitted eGi to beat fitted Bass on the generated observations.",
+        "does_not_prove": "This control does not validate the current CKM candidate, does not retroactively widen the baseline simulator claim, and does not establish performance on external real-world mechanism-observing data.",
+    },
     "candidate_validity_never_inherited_from_harness_validity": {
         "tier": "DEFINITIONAL",
         "evidence_type": "tier_map_invariant",
@@ -129,12 +138,12 @@ TIER_MAP = {
         "why": "Candidate validity is never inherited from harness validity; each candidate's tier is set only by the test that ran against that candidate.",
         "dependency": "Harness validation is necessary for interpreting future candidate tests, not for retroactively reinterpreting past candidate tests.",
     },
-    "custom_domain_edge_smoke_tester_blind": {
+    "custom_domain_not_registered_on_render": {
         "tier": "ACTION_REQUIRED",
-        "evidence_type": "edge_smoke_observability_boundary",
+        "evidence_type": "edge_origin_configuration",
         "tester": "custom-domain edge smoke",
-        "tester_observable": False,
-        "why": "A 403 at the custom domain leaves the tester unable to distinguish Cloudflare policy blocking from origin health or proxy-path behavior. This is tester blindness at the edge, not a validated origin failure.",
+        "tester_observable": True,
+        "why": "The smoke test observed HTTP 403 without a cf-ray header while the grey-cloud path reached Render directly; the evidence is consistent with Render rejecting an unregistered Host header. Next action is to register the custom domain in Render, then rerun the smoke test.",
     },
     "ckm_eGi_minus_bass_delta_90_percent_ci": {
         "tier": "VERIFIED_PROCESS",
