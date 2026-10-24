@@ -59,6 +59,8 @@ receipt = {
     "artifact_count": len(artifacts),
     "receipt_count": sum(a["kind"] == "receipt" for a in artifacts),
     "log_count": sum(a["kind"] == "log" for a in artifacts),
+    "derivation_count": sum(a["kind"] == "derivation" for a in artifacts),
+    "envelope_count": sum(a["kind"] == "envelope" for a in artifacts),
     "artifacts": artifacts,
     "master_mmr_root": mmr.root(),
     "state": "VERIFIED_PROCESS",
