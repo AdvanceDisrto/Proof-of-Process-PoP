@@ -12,6 +12,12 @@ jobs:
       - run: pip install -r requirements.txt
       - name: Run tests
         run: python -m pytest -q
+      - name: SPU ML-DSA-87 verification
+        run: python -m pytest -q tests/test_ml_dsa.py
+      - name: SPU custody validation
+        run: python tools/validate_spu_custody.py
+      - name: SPU materialization fail-closed validation
+        run: python tools/validate_materialization_topology.py materialization/topology.pending.json --expect-blocked
       - run: python -m proof.parallel_pop
       - run: python -m proof.universe_manifest
       - uses: actions/upload-artifact@v4
