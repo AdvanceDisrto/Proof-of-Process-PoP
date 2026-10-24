@@ -1,5 +1,5 @@
 from tools.epidemic_genesis import (
-    ADOPTED, FAILED, QUARANTINED, RETAINED, SUPERSEDED, UNEXPOSED, Agent, Evidence,
+    ADOPTED, FAILED, QUARANTINED, RETAINED, SUPERSEDED, TRIAL, UNEXPOSED, Agent, Evidence,
     EpidemicGenesis, EpidemicParameters, EpistemicGenerator,
 )
 
