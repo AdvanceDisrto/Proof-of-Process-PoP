@@ -176,7 +176,7 @@ test-inetty:
 
 test-cce:
 	python -m pytest -q tests/test_cce.py
-	python tools/cce_prototype.py > evidence/cce_prototype_receipt.json
+	python -m tools.cce_prototype > evidence/cce_prototype_receipt.json
 	python tools/epistemic_tier_map.py > evidence/epistemic_tier_map.json
 
 test-signal-proof: test-buddy-liveness test-inetty
