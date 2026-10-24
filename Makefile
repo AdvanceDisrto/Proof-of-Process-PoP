@@ -1,4 +1,4 @@
-.PHONY: install test test-on-silicon test-iska test-imcp test-ledger test-truth test-attestation-router test-physical-merkle test-ibare test-polyglot test-e2e test-daemon test-hardened test-spu test-spu-reference test-spu-rtl test-spu-custody test-spu-materialization test-spu-ml-dsa test-spu-orfs test-spu-source-policy build-ibare build-rtl build-daemon build-hardened build-spu-reference build-all
+.PHONY: install test test-tee-scrape test-on-silicon test-iska test-imcp test-ledger test-truth test-attestation-router test-physical-merkle test-ibare test-polyglot test-e2e test-daemon test-hardened test-spu test-spu-reference test-spu-rtl test-spu-custody test-spu-materialization test-spu-ml-dsa test-spu-orfs test-spu-source-policy build-ibare build-rtl build-daemon build-hardened build-spu-reference build-all
 
 CC ?= cc
 CFLAGS ?= -O2 -std=c11 -Wall -Wextra -Werror -pedantic
@@ -37,7 +37,7 @@ test-iska:
 test-ledger:
 	python -m pytest -q test_ledger_persistence.py
 
-test: test-ibare test-render test-polyglot test-iska test-imcp test-ledger
+test: test-ibare test-render test-polyglot test-iska test-imcp test-ledger test-tee-scrape
 	python -m pytest -q
 
 build-all: test
@@ -119,3 +119,7 @@ test-on-silicon:
 	$(CC) $(CFLAGS) -Ibaremetal -o build/on_silicon_safety tests/test_on_silicon.c baremetal/core_kernel.c baremetal/sha256.c
 	./build/on_silicon_safety
 	@echo "On-Silicon Agency reference verification complete; physical TEE gate remains ACTION_REQUIRED"
+
+
+test-tee-scrape:
+	python -m pytest tests/test_tee_scrape.py -v
