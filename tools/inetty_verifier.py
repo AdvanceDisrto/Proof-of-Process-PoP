@@ -46,7 +46,7 @@ def emit(out_path, **kwargs):
     return receipt
 
 if __name__=="__main__":
-    pub="8f4a2b1c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1"
+    pub="00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"
     h=hashlib.sha256(bytes.fromhex(pub)).hexdigest()[:8]
     address=f"200:{h[:4]}:{h[4:]}::1"
     emit("evidence/inetty_sovereign_node.json",
