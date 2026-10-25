@@ -1,0 +1,60 @@
+name: Confirmed Anchor Source Update
+
+on:
+  repository_dispatch:
+    types: [anchor-confirmed]
+
+permissions:
+  contents: write
+
+jobs:
+  update-source:
+    if: ${{ github.event.client_payload.state == 'CONFIRMED' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate confirmation envelope
+        env:
+          SUBJECT_HASH: ${{ github.event.client_payload.subject_hash }}
+          CHAIN: ${{ github.event.client_payload.chain }}
+          TX_HASH: ${{ github.event.client_payload.tx_hash }}
+          CONFIRMATIONS: ${{ github.event.client_payload.confirmations }}
+        run: |
+          test "${#SUBJECT_HASH}" -eq 64
+          printf '%s' "$SUBJECT_HASH" | grep -Eq '^[0-9a-fA-F]{64}$'
+          test -n "$CHAIN"
+          test -n "$TX_HASH"
+          test "$CONFIRMATIONS" -ge 1
+      - name: Update confirmed source status
+        env:
+          SUBJECT_HASH: ${{ github.event.client_payload.subject_hash }}
+          CHAIN: ${{ github.event.client_payload.chain }}
+          TX_HASH: ${{ github.event.client_payload.tx_hash }}
+          CONFIRMED_AT: ${{ github.event.client_payload.confirmed_at }}
+          CONFIRMATIONS: ${{ github.event.client_payload.confirmations }}
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const path = 'docs/ANCHOR_STATUS.json';
+          const next = {
+            state: 'CONFIRMED',
+            subjectHash: process.env.SUBJECT_HASH.toLowerCase(),
+            chain: process.env.CHAIN,
+            txHash: process.env.TX_HASH,
+            confirmedAt: Number(process.env.CONFIRMED_AT),
+            confirmations: Number(process.env.CONFIRMATIONS)
+          };
+          if (!Number.isSafeInteger(next.confirmedAt) || next.confirmedAt <= 0) throw new Error('Invalid confirmedAt');
+          if (!Number.isSafeInteger(next.confirmations) || next.confirmations < 1) throw new Error('Invalid confirmations');
+          fs.writeFileSync(path, JSON.stringify(next, null, 2) + '\n');
+          NODE
+      - name: Commit confirmed source update
+        run: |
+          git config user.name "i™ Anchor Bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/ANCHOR_STATUS.json
+          git diff --cached --quiet || git commit -m "chore(anchor): record confirmed chain anchor"
+          git push
