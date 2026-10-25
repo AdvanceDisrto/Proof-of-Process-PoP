@@ -219,3 +219,6 @@ test-novel-frontiers:
 
 test-omniscope-v2:
 	tsx tests/test_omniscope_v2.ts
+
+test-aerial-actuation:
+	tsx tests/test_aerial_actuation.ts
