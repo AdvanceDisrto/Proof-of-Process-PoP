@@ -95,7 +95,7 @@ jobs:
       - checkout
       - run:
           name: Install TypeScript test toolchain
-          command: npm install --global typescript@5.9.3 tsx@4.20.6
+          command: npm install --global typescript@5.9.3 tsx@4.20.6 @types/node@24
       - run:
           name: Build PoT integration TypeScript
           command: tsc --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext src/anchor/multi_chain_attestation.ts src/edge/vonage_pot_registry.ts src/edge/imobile_cellular_orchestra.ts
