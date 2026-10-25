@@ -10,7 +10,11 @@ import httpx
 from pydantic import BaseModel, Field
 
 
-LANGUAGES: dict[str, list[str]] = {\n    # Backward-compatible public group used by the request contract/tests.\n    # Keep this derived from the canonical systems_embedded/core_general groups below.\n    "systems": ["Rust", "C", "C++", "Zig", "Go"],\n
+LANGUAGES: dict[str, list[str]] = {
+    # Backward-compatible public group used by the request contract/tests.
+    # Keep this derived from the canonical systems_embedded/core_general groups below.
+    "systems": ["Rust", "C", "C++", "Zig", "Go"],
+
     "core_general": [
         "Python","C","C++","C#","Java","JavaScript","TypeScript","Go","Rust","Swift","Kotlin",
         "Objective-C","Objective-C++","Dart","Ruby","PHP","Perl","Lua","Julia","Nim","Crystal",
@@ -153,17 +157,23 @@ async def ask_buddy(request: BuddyRequest) -> BuddyResponse:
         "actions remain ACTION_REQUIRED and are never authorized by model output."
     )
     if request.mode == "explain" and request.code:
-        system += "\nExplain the supplied code and identify concrete failure modes before proposing changes."
+        system += "
+Explain the supplied code and identify concrete failure modes before proposing changes."
     if request.mode == "generate":
-        system += "\nGenerate production-oriented code with explicit types and tests. Do not fabricate external API responses."
+        system += "
+Generate production-oriented code with explicit types and tests. Do not fabricate external API responses."
     if request.language:
-        system += f"\nTarget language: {request.language}."
+        system += f"
+Target language: {request.language}."
 
     payload = {
         "model": config.model,
         "messages": [
             {"role": "system", "content": system},
-            {"role": "user", "content": request.message + (f"\n\nCODE:\n{request.code}" if request.code else "")},
+            {"role": "user", "content": request.message + (f"
+
+CODE:
+{request.code}" if request.code else "")},
         ],
         "temperature": 0.1,
     }
