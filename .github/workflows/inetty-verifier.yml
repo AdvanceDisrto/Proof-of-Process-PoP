@@ -21,6 +21,13 @@ on:
       - "tests/test_physical_evidence_gate.ts"
       - "E2E_PIPELINE.md"
       - "PHYSICAL_EVIDENCE_GATE.md"
+      - "src/crypto/attestation_evidence.ts"
+      - "src/crypto/ots_evidence.ts"
+      - "src/physical/actuator_evidence.ts"
+      - "src/translation/physical_dispatch_bundle.ts"
+      - "src/quarantine/quarantine_ledger.ts"
+      - "tests/test_physical_integrations.ts"
+      - "PHYSICAL_INTEGRATIONS.md"
       - ".github/workflows/inetty-verifier.yml"
   pull_request:
     paths:
@@ -38,6 +45,13 @@ on:
       - "src/e2e_pipeline.ts"
       - "tests/test_e2e_pipeline.ts"
       - "tests/test_physical_evidence_gate.ts"
+      - "src/crypto/attestation_evidence.ts"
+      - "src/crypto/ots_evidence.ts"
+      - "src/physical/actuator_evidence.ts"
+      - "src/translation/physical_dispatch_bundle.ts"
+      - "src/quarantine/quarantine_ledger.ts"
+      - "tests/test_physical_integrations.ts"
+      - "PHYSICAL_INTEGRATIONS.md"
       - ".github/workflows/inetty-verifier.yml"
   schedule:
     - cron: "0 */6 * * *"
@@ -77,6 +91,7 @@ jobs:
         run: |
           npx --yes tsx tests/test_e2e_pipeline.ts
           npx --yes tsx tests/test_physical_evidence_gate.ts
+          npx --yes tsx tests/test_physical_integrations.ts
       - name: Emit sovereign mesh receipt
         run: python tools/sovereign_mesh_node.py
       - name: Emit routing receipt
