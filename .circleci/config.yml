@@ -26,6 +26,9 @@ jobs:
       - run:
           name: Test root project
           command: python -m pytest -q
+      - run:
+          name: Validate Omniscope AI node
+          command: python -m py_compile omni_node.py
 
   intelligence-server:
     docker:
