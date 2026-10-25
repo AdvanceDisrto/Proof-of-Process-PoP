@@ -35,9 +35,6 @@ jobs:
       - run:
           name: Test novel PoT frontiers
           command: make test-novel-frontiers
-      - run:
-          name: Test Omniscope Protocol v2
-          command: make test-omniscope-v2
 
   intelligence-server:
     docker:
@@ -128,7 +125,7 @@ jobs:
             src/omniscope_protocol_v2.ts
       - run:
           name: Test PoT integrations
-          command: tsx tests/test_pot_integrations.ts && tsx tests/test_chain_oracle.ts
+          command: tsx tests/test_pot_integrations.ts && tsx tests/test_chain_oracle.ts && make test-omniscope-v2
 
 workflows:
   verify-projects:
