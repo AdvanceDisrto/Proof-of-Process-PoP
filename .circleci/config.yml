@@ -27,7 +27,7 @@ jobs:
           name: Test root project
           command: python -m pytest -q
 
-  root-oracle-truth:
+  root-truth-selftest:
     docker:
       - image: cimg/python:3.12
     steps:
@@ -36,10 +36,20 @@ jobs:
           name: Install root Python dependencies
           command: python -m pip install --prefer-binary -r requirements.txt
       - run:
-          name: Test truth process
-          command: |
-            python truth_process.py --tests
-            python -m pytest -q tests/test_truth_process.py
+          name: Run truth process self-test
+          command: python truth_process.py --tests
+
+  root-truth-pytest:
+    docker:
+      - image: cimg/python:3.12
+    steps:
+      - checkout
+      - run:
+          name: Install root Python dependencies
+          command: python -m pip install --prefer-binary -r requirements.txt
+      - run:
+          name: Run truth process pytest
+          command: python -m pytest -q tests/test_truth_process.py
 
   root-oracle-node:
     docker:
@@ -280,7 +290,8 @@ workflows:
     jobs:
       - root-native
       - root-pytest
-      - root-oracle-truth
+      - root-truth-selftest
+      - root-truth-pytest
       - root-oracle-node
       - root-frontiers
       - intelligence-server
