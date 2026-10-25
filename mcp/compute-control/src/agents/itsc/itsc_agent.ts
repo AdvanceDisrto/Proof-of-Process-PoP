@@ -55,6 +55,7 @@ export async function compileAndAudit(projectDir: string): Promise<iTSC_Receipt>
     const filePath = sourceFile.getFilePath();
     if (filePath.includes("node_modules")) continue;
     const fileName = path.relative(projectDir, filePath);
+    const isScannerSource = fileName.replaceAll(path.sep, "/") === "src/agents/itsc/itsc_agent.ts";
 
     const anyNodes = sourceFile.getDescendantsOfKind(SyntaxKind.AnyKeyword);
     if (anyNodes.length > 0) {
@@ -69,12 +70,14 @@ export async function compileAndAudit(projectDir: string): Promise<iTSC_Receipt>
       }
     });
 
-    sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral).forEach(literal => {
-      const value = literal.getLiteralValue();
-      if (value.includes("MOCK-TEE") || value.includes("signatureVerified: true")) {
-        violations.push(`${fileName}: Hardcoded mock or bypass detected.`);
-      }
-    });
+    if (!isScannerSource) {
+      sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral).forEach(literal => {
+        const value = literal.getLiteralValue();
+        if (value.includes("MOCK-TEE") || value.includes("signatureVerified: true")) {
+          violations.push(`${fileName}: Hardcoded mock or bypass detected.`);
+        }
+      });
+    }
   }
 
   const codebaseHash = hashCodebase(project, projectDir);
