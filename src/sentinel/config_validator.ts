@@ -25,5 +25,5 @@ export function enforceProductionConfig(config: Record<string, unknown>): Produc
   if (typeof config.HEARTBEAT_INTERVAL_MS !== "number" || !Number.isInteger(config.HEARTBEAT_INTERVAL_MS) || config.HEARTBEAT_INTERVAL_MS < 1000) {
     throw new Error("QUARANTINED: heartbeat interval must be an integer >= 1000ms");
   }
-  return config as ProductionConfig;
+  return config as unknown as ProductionConfig;
 }
