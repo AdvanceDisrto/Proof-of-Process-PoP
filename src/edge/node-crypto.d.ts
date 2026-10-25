@@ -3,8 +3,8 @@ declare module "node:crypto" {
     update(data: string): Hash;
     digest(encoding: "hex"): string;
   }
+
   export function createHash(algorithm: string): Hash;
-}
 
   export function verify(
     algorithm: string | null,
@@ -12,3 +12,4 @@ declare module "node:crypto" {
     key: object,
     signature: Uint8Array,
   ): boolean;
+}
