@@ -117,7 +117,7 @@ class S3LogExporter implements StorageExporter {
     });
   }
   async export(jobName: string, stepName: string, outcome: StepOutcome): Promise<void> {
-    const key = `logs/${this.config.pipelineName ?? "icl"}/${jobName}/${stepName.replace(/[^a-zA-Z0-9._-]/g, "-").toLowerCase()}-${outcome.timestamp}.json`;
+    const key = `logs/icl/${jobName}/${stepName.replace(/[^a-zA-Z0-9._-]/g, "-").toLowerCase()}-${outcome.timestamp}.json`;
     const payload = JSON.stringify(outcome);
     await this.client.send(new PutObjectCommand({
       Bucket: this.config.bucketName,
@@ -147,7 +147,7 @@ export class iCLEngine {
   private executeStep(jobName: string, step: PipelineStep): Promise<StepOutcome> {
     const started = Date.now();
     const timestamp = new Date().toISOString();
-    const cwd = path.resolve(path.dirname(this.configPath), "..", step.workingDirectory ?? ".");
+    const cwd = path.resolve(path.dirname(this.configPath), step.workingDirectory ?? ".");
     return new Promise((resolve) => {
       const child = spawn(step.run, { cwd, shell: true, env: { ...process.env, CI: "true" }, detached: true });
       let log = "";
