@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
+import { RootCauseAgent } from "../src/agentic_core/root_cause_agent.js";
 import { ChainOracle } from "../src/oracle/chain_oracle.js";
+import { PhysicalEvidenceGate } from "../src/translation/physical_evidence_gate.js";
 
 const HASH = "a".repeat(64);
 
@@ -69,4 +71,36 @@ const receipt = ChainOracle.buildRegulatoryReceipt(HASH, "0xtx", "ethereum", 100
 assert.equal(receipt.provider, "KALEIDO");
 assert.equal(receipt.regulatoryStandard, "FDA-21-CFR-PART-11-DIGITAL-PROOFS");
 
-console.log("Chain Infrastructure Oracle integration tests PASS");
+const inference = new RootCauseAgent().analyze("chain-bound-payload");
+const physicalEvidence = {
+  teeQuoteVerified: true,
+  otsAnchorVerified: true,
+  physicalActuatorInterlockHealthy: true,
+  commandHash: inference.hypothesisHash,
+};
+assert.equal(
+  new PhysicalEvidenceGate().evaluateWithChainOracle(inference, physicalEvidence, {
+    subjectHash: inference.hypothesisHash,
+    provenance: { isSafe: true, riskScore: 0, flaggedWallets: [] },
+    attestations: [
+      { chain: "BITCOIN_OTS", subjectHash: inference.hypothesisHash, confirmed: true, evidenceRef: "btc-proof" },
+      { chain: "ETHEREUM_EAS", subjectHash: inference.hypothesisHash, confirmed: true, evidenceRef: "eas-proof" },
+    ],
+    time: { anchorTimestamp: 1000, executionTimestamp: 1001 },
+  }),
+  "LAB_DISPATCH_VERIFIED",
+);
+
+assert.equal(
+  new PhysicalEvidenceGate().evaluateWithChainOracle(inference, physicalEvidence, {
+    subjectHash: inference.hypothesisHash,
+    provenance: { isSafe: true, riskScore: 0, flaggedWallets: [] },
+    attestations: [
+      { chain: "BITCOIN_OTS", subjectHash: inference.hypothesisHash, confirmed: true, evidenceRef: "btc-proof" },
+    ],
+    time: { anchorTimestamp: 1000, executionTimestamp: 1001 },
+  }),
+  "ACTION_REQUIRED",
+);
+
+console.log("Chain Infrastructure Oracle + PhysicalEvidenceGate integration tests PASS");
