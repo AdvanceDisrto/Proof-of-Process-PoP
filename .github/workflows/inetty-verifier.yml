@@ -31,12 +31,16 @@ on:
       - "src/crypto/ots_anchoring.ts"
       - "tests/test_ots_anchoring.ts"
       - "OTS_INTEGRATION.md"
+      - "src/anchor/multi_chain_attestation.ts"
+      - "src/edge/vonage_pot_registry.ts"
+      - "src/edge/imobile_cellular_orchestra.ts"
+      - "tests/test_pot_integrations.ts"
+      - "POT_VONAGE_MULTICHAIN_CELLULAR.md"
       - ".github/workflows/inetty-verifier.yml"
   pull_request:
     paths:
       - "iNetty/**"
       - "tools/inetty_verifier.py"
-      - "tools/sovereign_mesh_node.py"
       - "tests/test_inetty.py"
       - "fabric_topology_validator.py"
       - "tests/test_fabric_topology_validator.py"
@@ -54,7 +58,13 @@ on:
       - "src/translation/physical_dispatch_bundle.ts"
       - "src/quarantine/quarantine_ledger.ts"
       - "tests/test_physical_integrations.ts"
-      - "PHYSICAL_INTEGRATIONS.md"
+      - "src/crypto/ots_anchoring.ts"
+      - "tests/test_ots_anchoring.ts"
+      - "src/anchor/multi_chain_attestation.ts"
+      - "src/edge/vonage_pot_registry.ts"
+      - "src/edge/imobile_cellular_orchestra.ts"
+      - "tests/test_pot_integrations.ts"
+      - "POT_VONAGE_MULTICHAIN_CELLULAR.md"
       - ".github/workflows/inetty-verifier.yml"
   schedule:
     - cron: "0 */6 * * *"
@@ -96,6 +106,8 @@ jobs:
           npx --yes tsx tests/test_physical_evidence_gate.ts
           npx --yes tsx tests/test_physical_integrations.ts
           npx --yes tsx tests/test_ots_anchoring.ts
+      - name: Run Vonage + multi-chain + iMobile integration tests
+        run: npx --yes tsx tests/test_pot_integrations.ts
       - name: Emit sovereign mesh receipt
         run: python tools/sovereign_mesh_node.py
       - name: Emit routing receipt
