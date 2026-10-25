@@ -55,7 +55,7 @@ export function merkleRoot(leaves: string[]): string {
   if (!leaves.length) throw new Error("empty receipt set");
   let level = leaves.map(h => Buffer.from(h.replace(/^sha256:/, ""), "hex"));
   while (level.length > 1) {
-    const next: Buffer[] = [];
+    const next: Uint8Array[] = [];
     for (let i = 0; i < level.length; i += 2) {
       const a = level[i], b = level[i + 1] ?? a;
       next.push(createHash("sha256").update(Buffer.concat([a, b])).digest());
