@@ -15,7 +15,8 @@ jobs:
             - v1-root-pip-
       - run:
           name: Install root Python dependencies
-          command: python -m pip install -r requirements.txt
+          command: python -m pip install --upgrade pip
+            python -m pip install --prefer-binary -r requirements.txt
       - save_cache:
           key: v1-root-pip-{{ checksum "requirements.txt" }}
           paths:
@@ -129,6 +130,30 @@ jobs:
             src/sentinel/heartbeat_monitor.ts
             src/sentinel/sentinel_orchestrator.ts
       - run:
+          name: TypeScript integration compile
+          command: >
+            tsc --noEmit --skipLibCheck --target ES2022 --module NodeNext
+            --moduleResolution NodeNext
+            src/ip_one_to_one_engine.ts
+            src/agentic_core/root_cause_agent.ts
+            src/anchor/multi_chain_attestation.ts
+            src/oracle/chain_oracle.ts
+            src/translation/physical_evidence_gate.ts
+            src/edge/vonage_pot_registry.ts
+            src/edge/imobile_cellular_orchestra.ts
+            src/economy/slashing_engine.ts
+            src/crypto/zk_tee_engine.ts
+            src/actuation/swarm_verifier.ts
+            src/archive/bio_archiver.ts
+            src/edge/genesis_seed.ts
+            src/omniscope_protocol_v2.ts
+            src/actuation/a2a_aerial_gate.ts
+            src/actuation/aerial_gate.ts
+            src/actuation/sovereign_gate.ts
+            src/sentinel/config_validator.ts
+            src/sentinel/heartbeat_monitor.ts
+            src/sentinel/sentinel_orchestrator.ts
+      - run:
           name: Test PoT integration smoke
           command: tsx tests/test_pot_integrations.ts && tsx tests/test_chain_oracle.ts
       - run:
@@ -140,6 +165,9 @@ jobs:
       - run:
           name: Test Omniscope E2E reference smoke
           command: make test-omniscope-e2e
+      - run:
+          name: Test iP 1&1 exact-match smoke
+          command: tsx tests/test_ip_one_to_one.ts
       - run:
           name: Test Sentinel Swarm production gate
           command: make test-sentinel-swarm
