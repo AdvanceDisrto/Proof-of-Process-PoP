@@ -1,0 +1,37 @@
+name: iClu — Sovereign Cluster Teardown Verification
+on:
+  push:
+    branches: [main]
+    paths:
+      - "mcp/compute-control/src/iclu_teardown.ts"
+      - "mcp/compute-control/tests/iclu_teardown.ts"
+      - "mcp/compute-control/package.json"
+      - ".github/workflows/iclu-verify.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  iclu-teardown:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install
+        working-directory: mcp/compute-control
+        run: npm install
+      - name: iTSC strict compiler gate
+        working-directory: mcp/compute-control
+        run: npm run compile:itsc
+      - name: iClu teardown smoke
+        working-directory: mcp/compute-control
+        run: npm run test:iclu-teardown
+      - name: Upload teardown receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: iclu-teardown-verification
+          path: mcp/compute-control/itsc-receipt.json
+          if-no-files-found: ignore
