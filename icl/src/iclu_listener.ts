@@ -3,7 +3,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { spawn } from "node:child_process";
 
 const port = Number.parseInt(process.env.ICL_WEBHOOK_PORT ?? "9000", 10);
-const secret = process.env.ICL_WEBHOOK_SECRET;
+const secret = process.env.ICL_WEBHOOK_SECRET;\nconst configPath = process.env.ICL_CONFIG_PATH ?? "../icl.yaml";
 
 function verifySignature(body: Buffer, header: string | undefined): boolean {
   if (!secret || !header?.startsWith("sha256=")) return false;
@@ -17,7 +17,7 @@ function verifySignature(body: Buffer, header: string | undefined): boolean {
 function triggerPipeline(): void {
   const child = spawn("npm", ["run", "start"], {
     cwd: process.cwd(),
-    env: { ...process.env, CI: "true" },
+    env: { ...process.env, CI: "true", ICL_CONFIG_PATH: configPath },
     detached: true,
     stdio: "ignore",
   });
@@ -58,7 +58,7 @@ const server = http.createServer((req, res) => {
   res.writeHead(404); res.end("Not Found");
 });
 
-if (!secret) {
+const memoryGuard = setInterval(() => {\n  if (process.memoryUsage().rss > 1024 * 1024 * 1024) {\n    console.error("[iCL] Memory threshold exceeded; exiting for restart policy.");\n    process.exit(78);\n  }\n}, 30_000);\nmemoryGuard.unref();\n\nif (!secret) {
   console.error("[iCL] ICL_WEBHOOK_SECRET is required; refusing to start.");
   process.exitCode = 1;
 } else {
