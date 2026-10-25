@@ -3,9 +3,7 @@ on:
   push:
     branches: [main]
     paths:
-      - "mcp/compute-control/src/iclu_teardown.ts"
-      - "mcp/compute-control/tests/iclu_teardown.ts"
-      - "mcp/compute-control/package.json"
+      - "mcp/compute-control/**"
       - ".github/workflows/iclu-verify.yml"
   workflow_dispatch:
 permissions:
