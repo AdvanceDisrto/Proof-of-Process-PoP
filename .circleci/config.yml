@@ -291,6 +291,21 @@ jobs:
           name: Test Sentinel Swarm production gate
           command: make test-sentinel-swarm
 
+  control-plane-iproof:
+    docker:
+      - image: cimg/node:22.14
+    steps:
+      - checkout
+      - run:
+          name: Install iProof control-plane toolchain
+          command: cd control-plane && npm install
+      - run:
+          name: Compile iKerNeL and iProof engine
+          command: cd control-plane && npm run build
+      - run:
+          name: Test iKerNeL routing and iProof evidence invariants
+          command: cd control-plane && npm test
+
   compute-control-mcp:
     docker:
       - image: cimg/node:22.14
@@ -332,3 +347,4 @@ workflows:
       - pot-ip-one-to-one
       - pot-sentinel
       - compute-control-mcp
+      - control-plane-iproof
