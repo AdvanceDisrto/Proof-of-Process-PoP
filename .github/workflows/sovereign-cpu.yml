@@ -22,7 +22,7 @@ jobs:
       - name: Install project dependencies
         run: pip install -r requirements.txt
       - name: Run sovereign CPU unit proof
-        run: python -m pytest -q tests/test_sovereign_cpu.py
+        run: python -m pytest -q tests/test_sovereign_cpu.py tests/test_sovereign_tokenizer.py
       - name: Verify package imports
         run: python -c "import sovereign_cpu.gateway, sovereign_cpu.receipt, sovereign_cpu.toy_ssm"
       - name: Run dependency-free SSM smoke
