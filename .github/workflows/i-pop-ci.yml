@@ -61,6 +61,8 @@ jobs:
         run: |
           node --check cloudflare-worker/index.js
           node --test cloudflare-worker/test/index.test.mjs
+          grep -q 'observability' cloudflare-worker/wrangler.toml
+          grep -q '2026-10-25' cloudflare-worker/wrangler.toml
       - name: Generate parallel evidence
         run: python -m proof.parallel_pop
       - name: Generate reality manifest
