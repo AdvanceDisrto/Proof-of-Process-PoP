@@ -42,7 +42,7 @@ test-platform-architecture:
 	python -m pytest -q tests/test_platform_architecture.py
 
 
-test: test-platform-architecture test-ibare test-render test-polyglot test-iska test-imcp test-ledger test-tee-scrape test-antimatter test-am-tiered test-ambient test-omnipresent test-buddy-liveness test-inetty test-mmr test-epidemic-genesis
+test: test-platform-architecture test-oracle-node test-ibare test-render test-polyglot test-iska test-imcp test-ledger test-tee-scrape test-antimatter test-am-tiered test-ambient test-omnipresent test-buddy-liveness test-inetty test-mmr test-epidemic-genesis
 	python -m pytest -q
 
 build-all: test
@@ -203,3 +203,10 @@ test-mmr:
 	python -m pytest -q tests/test_mmr_pipeline.py
 	python tools/mmr_pipeline.py 5000 evidence/mmr_5000.json
 	python tools/mmr_artifact_seal.py evidence/mmr_5000.json local-run evidence/mmr_artifact_seal.json
+
+
+test-oracle-node:
+	python truth_process.py --tests
+	python -m pytest -q tests/test_truth_process.py
+	python oracle_node.py
+	python -m py_compile omni_node.py oracle_node.py truth_process.py
