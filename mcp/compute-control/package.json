@@ -1,12 +1,12 @@
 {
   "name": "@pot/compute-control-mcp",
   "private": true,
-  "version": "0.2.1",
+  "version": "0.3.0",
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit",
     "start": "tsx src/server.ts",
-    "test": "tsx tests/smoke.ts && tsx tests/orchestra.ts"
+    "test": "tsx tests/smoke.ts && tsx tests/orchestra.ts && tsx tests/universal.ts"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
