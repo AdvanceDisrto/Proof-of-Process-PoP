@@ -35,7 +35,6 @@ def prepare_wafer_run(request: FabPrepareRequest) -> dict[str, object]:
         "target": request.target,
         "die_count": request.die_count,
         "priority": request.priority,
-        "created_at_ms": int(time.time() * 1000),
         "evidence_policy": {
             "simulated_execution": False,
             "mock_receipts": False,
@@ -49,6 +48,7 @@ def prepare_wafer_run(request: FabPrepareRequest) -> dict[str, object]:
     return {
         "status": "READY_FOR_EXECUTOR",
         "provenance_hash": provenance_hash,
+        "created_at_ms": int(time.time() * 1000),
         "manifest": manifest,
         "next_required_evidence": [
             "configured executor execution receipt",
