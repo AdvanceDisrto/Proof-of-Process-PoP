@@ -313,3 +313,4 @@ workflows:
       - pot-e2e
       - pot-ip-one-to-one
       - pot-sentinel
+      - compute-control-mcp
