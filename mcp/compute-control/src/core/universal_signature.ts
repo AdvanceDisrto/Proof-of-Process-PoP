@@ -1,7 +1,7 @@
 import {
   createHash,
   createPublicKey,
-  createVerify,
+  verify,
   type KeyObject,
 } from "node:crypto";
 
@@ -124,10 +124,7 @@ export class Ed25519SignatureVerifier implements SignatureVerifier {
 
     try {
       const publicKey: KeyObject = createPublicKey(signature.publicKey);
-      const verifier = createVerify(null);
-      verifier.update(signature.signedPayload, "utf8");
-      verifier.end();
-      const valid = verifier.verify(publicKey, Buffer.from(signature.signature, "base64"));
+      const valid = verify(null, Buffer.from(signature.signedPayload, "utf8"), publicKey, Buffer.from(signature.signature, "base64"));
 
       return {
         status: valid ? "VERIFIED" : "QUARANTINED",
