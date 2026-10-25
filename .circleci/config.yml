@@ -1,0 +1,94 @@
+version: 2.1
+
+jobs:
+  root-python:
+    docker:
+      - image: cimg/python:3.12
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-root-pip-{{ checksum "requirements.txt" }}
+            - v1-root-pip-
+      - run:
+          name: Install root Python dependencies
+          command: python -m pip install -r requirements.txt
+      - save_cache:
+          key: v1-root-pip-{{ checksum "requirements.txt" }}
+          paths:
+            - ~/.cache/pip
+      - run:
+          name: Build root native component
+          command: make build-ibare
+      - run:
+          name: Test root project
+          command: python -m pytest -q
+
+  intelligence-server:
+    docker:
+      - image: cimg/node:22.14
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-intelligence-server-npm-{{ checksum "intelligence/server/package.json" }}
+            - v1-intelligence-server-npm-
+      - run:
+          name: Install intelligence server dependencies
+          command: cd intelligence/server && npm install
+      - save_cache:
+          key: v1-intelligence-server-npm-{{ checksum "intelligence/server/package.json" }}
+          paths:
+            - ~/.npm
+      - run:
+          name: Build intelligence server
+          command: cd intelligence/server && npm run build
+      - run:
+          name: Test intelligence server
+          command: cd intelligence/server && npm test
+
+  tai-compiler:
+    docker:
+      - image: cimg/rust:1.99
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-tai-compiler-cargo-{{ checksum "intelligence/tai_compiler/Cargo.toml" }}
+            - v1-tai-compiler-cargo-
+      - run:
+          name: Fetch Rust dependencies
+          command: cd intelligence/tai_compiler && cargo fetch
+      - save_cache:
+          key: v1-tai-compiler-cargo-{{ checksum "intelligence/tai_compiler/Cargo.toml" }}
+          paths:
+            - ~/.cargo/registry
+            - ~/.cargo/git
+      - run:
+          name: Build TAI compiler
+          command: cd intelligence/tai_compiler && cargo build
+      - run:
+          name: Test TAI compiler
+          command: cd intelligence/tai_compiler && cargo test
+
+  cloudflare-worker:
+    docker:
+      - image: cimg/node:20.19
+    steps:
+      - checkout
+      - run:
+          name: Build check
+          command: |
+            echo "No package build script exists for cloudflare-worker; repository CI uses syntax validation as its build check."
+            node --check cloudflare-worker/index.js
+      - run:
+          name: Test Cloudflare Worker
+          command: node --test cloudflare-worker/test/index.test.mjs
+
+workflows:
+  verify-projects:
+    jobs:
+      - root-python
+      - intelligence-server
+      - tai-compiler
+      - cloudflare-worker
