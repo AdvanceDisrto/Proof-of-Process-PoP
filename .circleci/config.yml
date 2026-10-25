@@ -135,7 +135,7 @@ jobs:
       - checkout
       - run:
           name: Install TypeScript test toolchain
-          command: npm install --global typescript@5.9.3 tsx@4.20.6 @types/node@24
+          command: npm install --global typescript@5.9.3 tsx@4.20.6 && npm install --no-save --no-package-lock @types/node@24
       - run:
           name: Compile PoT core
           command: >
@@ -155,7 +155,7 @@ jobs:
       - checkout
       - run:
           name: Install TypeScript test toolchain
-          command: npm install --global typescript@5.9.3 tsx@4.20.6 @types/node@24
+          command: npm install --global typescript@5.9.3 tsx@4.20.6 && npm install --no-save --no-package-lock @types/node@24
       - run:
           name: Compile Omniscope v2
           command: >
@@ -175,7 +175,7 @@ jobs:
       - checkout
       - run:
           name: Install TypeScript test toolchain
-          command: npm install --global typescript@5.9.3 tsx@4.20.6 @types/node@24
+          command: npm install --global typescript@5.9.3 tsx@4.20.6 && npm install --no-save --no-package-lock @types/node@24
       - run:
           name: Compile aerial and sovereign gates
           command: >
@@ -192,7 +192,7 @@ jobs:
       - checkout
       - run:
           name: Install TypeScript test toolchain
-          command: npm install --global typescript@5.9.3 tsx@4.20.6 @types/node@24
+          command: npm install --global typescript@5.9.3 tsx@4.20.6 && npm install --no-save --no-package-lock @types/node@24
       - run:
           name: Compile Sentinel and iP 1&1
           command: >
@@ -210,7 +210,7 @@ jobs:
       - checkout
       - run:
           name: Install TypeScript test toolchain
-          command: npm install --global typescript@5.9.3 tsx@4.20.6 @types/node@24
+          command: npm install --global typescript@5.9.3 tsx@4.20.6 && npm install --no-save --no-package-lock @types/node@24
       - run:
           name: Test PoT core integrations
           command: tsx tests/test_pot_integrations.ts && tsx tests/test_chain_oracle.ts
@@ -222,7 +222,7 @@ jobs:
       - checkout
       - run:
           name: Install TypeScript test toolchain
-          command: npm install --global typescript@5.9.3 tsx@4.20.6 @types/node@24
+          command: npm install --global typescript@5.9.3 tsx@4.20.6 && npm install --no-save --no-package-lock @types/node@24
       - run:
           name: Test Omniscope v2
           command: make test-omniscope-v2
@@ -234,7 +234,7 @@ jobs:
       - checkout
       - run:
           name: Install TypeScript test toolchain
-          command: npm install --global typescript@5.9.3 tsx@4.20.6 @types/node@24
+          command: npm install --global typescript@5.9.3 tsx@4.20.6 && npm install --no-save --no-package-lock @types/node@24
       - run:
           name: Test Aerial A2A and sovereign gate
           command: make test-aerial-actuation
@@ -246,7 +246,7 @@ jobs:
       - checkout
       - run:
           name: Install TypeScript test toolchain
-          command: npm install --global typescript@5.9.3 tsx@4.20.6 @types/node@24
+          command: npm install --global typescript@5.9.3 tsx@4.20.6 && npm install --no-save --no-package-lock @types/node@24
       - run:
           name: Test Omniscope E2E reference
           command: make test-omniscope-e2e
@@ -258,7 +258,7 @@ jobs:
       - checkout
       - run:
           name: Install TypeScript test toolchain
-          command: npm install --global typescript@5.9.3 tsx@4.20.6 @types/node@24
+          command: npm install --global typescript@5.9.3 tsx@4.20.6 && npm install --no-save --no-package-lock @types/node@24
       - run:
           name: Test iP 1&1 exact match
           command: make test-ip-one-to-one
@@ -270,7 +270,7 @@ jobs:
       - checkout
       - run:
           name: Install TypeScript test toolchain
-          command: npm install --global typescript@5.9.3 tsx@4.20.6 @types/node@24
+          command: npm install --global typescript@5.9.3 tsx@4.20.6 && npm install --no-save --no-package-lock @types/node@24
       - run:
           name: Test Sentinel Swarm production gate
           command: make test-sentinel-swarm
