@@ -58,3 +58,39 @@ jobs:
           git add docs/ANCHOR_STATUS.json
           git diff --cached --quiet || git commit -m "chore(anchor): record confirmed chain anchor"
           git push
+
+      - name: Send confirmed notification
+        if: ${{ success() && secrets.CONFIRMED_ANCHOR_NOTIFICATION_WEBHOOK != '' }}
+        env:
+          WEBHOOK_URL: ${{ secrets.CONFIRMED_ANCHOR_NOTIFICATION_WEBHOOK }}
+          SUBJECT_HASH: ${{ github.event.client_payload.subject_hash }}
+          CHAIN: ${{ github.event.client_payload.chain }}
+          TX_HASH: ${{ github.event.client_payload.tx_hash }}
+          CONFIRMED_AT: ${{ github.event.client_payload.confirmed_at }}
+          CONFIRMATIONS: ${{ github.event.client_payload.confirmations }}
+        run: |
+          node - <<'NODE'
+          const https = require('node:https');
+          const url = new URL(process.env.WEBHOOK_URL);
+          const body = JSON.stringify({
+            event: 'ANCHOR_CONFIRMED',
+            state: 'CONFIRMED',
+            subjectHash: process.env.SUBJECT_HASH,
+            chain: process.env.CHAIN,
+            txHash: process.env.TX_HASH,
+            confirmedAt: Number(process.env.CONFIRMED_AT),
+            confirmations: Number(process.env.CONFIRMATIONS)
+          });
+          const req = https.request(url, { method: 'POST', headers: {
+            'content-type': 'application/json',
+            'content-length': Buffer.byteLength(body)
+          }}, res => {
+            if (res.statusCode < 200 || res.statusCode >= 300) {
+              process.stderr.write('Notification webhook returned HTTP ' + res.statusCode + '\n');
+              process.exitCode = 1;
+            }
+          });
+          req.on('error', err => { console.error(err); process.exitCode = 1; });
+          req.write(body);
+          req.end();
+          NODE
