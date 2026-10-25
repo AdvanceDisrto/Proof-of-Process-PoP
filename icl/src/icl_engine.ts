@@ -209,7 +209,7 @@ export class iCLEngine {
 
 const entry = process.argv[1] ? path.resolve(process.argv[1]) : "";
 if (entry === path.resolve(process.cwd(), "dist/icl_engine.js")) {
-  const configPath = path.resolve(process.cwd(), "icl.yaml");
+  const configPath = path.resolve(process.env.ICL_CONFIG_PATH ?? path.resolve(process.cwd(), "icl.yaml"));
   const code = await new iCLEngine(configPath).orchestrate();
   process.exitCode = code;
 }
