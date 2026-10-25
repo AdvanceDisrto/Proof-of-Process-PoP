@@ -23,7 +23,7 @@ export class GenesisSeedAgent {
     payload: unknown,
     meshId = "offline-mesh-0",
   ): Promise<GenesisSeedReceipt> {
-    const payloadHash = hash(JSON.stringify(payload));
+    const payloadHash = hash(JSON.stringify(payload) ?? "undefined");
     const body = JSON.stringify({ payloadHash, meshId, connectivity: "OFFLINE" });
     return {
       payloadHash,
