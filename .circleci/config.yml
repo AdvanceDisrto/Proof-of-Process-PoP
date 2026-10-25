@@ -291,6 +291,21 @@ jobs:
           name: Test Sentinel Swarm production gate
           command: make test-sentinel-swarm
 
+  compute-control-mcp:
+    docker:
+      - image: cimg/node:22.14
+    steps:
+      - checkout
+      - run:
+          name: Install Compute Control MCP dependencies
+          command: cd mcp/compute-control && npm install
+      - run:
+          name: Typecheck Compute Control MCP
+          command: cd mcp/compute-control && npm run typecheck
+      - run:
+          name: Test Compute Control MCP fail-closed receipts
+          command: cd mcp/compute-control && npm test
+
 workflows:
   verify-projects:
     jobs:
