@@ -55,6 +55,12 @@ jobs:
         run: cd intelligence/tai_compiler && cargo test
       - name: TypeScript engine compile and tests
         run: cd intelligence/server && npm install && npm run build && npm test
+      - name: iTensor Fabrication Plant React + TypeScript build
+        run: cd itensor-fab && npm install && npm run typecheck && npm run build
+      - name: Tailwind CLI pipeline
+        run: cd itensor-fab && npm run tailwind:cli
+      - name: Tailwind PostCSS pipeline
+        run: cd itensor-fab && npm run tailwind:postcss
       - name: Docker build
         run: docker build -t i-pop-core:ci .
       - name: Cloudflare Worker syntax and edge policy tests
