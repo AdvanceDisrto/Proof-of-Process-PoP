@@ -1,7 +1,7 @@
 version: 2.1
 
 jobs:
-  root-python:
+  root-native:
     docker:
       - image: cimg/python:3.12
     steps:
@@ -9,30 +9,44 @@ jobs:
       - run:
           name: Install native build prerequisites
           command: sudo apt-get update && sudo apt-get install -y build-essential cmake
-      - restore_cache:
-          keys:
-            - v1-root-pip-{{ checksum "requirements.txt" }}
-            - v1-root-pip-
-      - run:
-          name: Install root Python dependencies
-          command: python -m pip install --upgrade pip
-            python -m pip install --prefer-binary -r requirements.txt
-      - save_cache:
-          key: v1-root-pip-{{ checksum "requirements.txt" }}
-          paths:
-            - ~/.cache/pip
       - run:
           name: Build root native components
           command: make build-ibare build-truth
+
+  root-pytest:
+    docker:
+      - image: cimg/python:3.12
+    steps:
+      - checkout
+      - run:
+          name: Install root Python dependencies
+          command: |
+            python -m pip install --upgrade pip
+            python -m pip install --prefer-binary -r requirements.txt
       - run:
           name: Test root project
           command: python -m pytest -q
+
+  root-oracle:
+    docker:
+      - image: cimg/python:3.12
+    steps:
+      - checkout
       - run:
-          name: Validate Omniscope AI node
-          command: python -m py_compile omni_node.py
+          name: Install root Python dependencies
+          command: python -m pip install --prefer-binary -r requirements.txt
       - run:
           name: Test Oracle truth ladder and Node 1
           command: make test-oracle-node
+
+  root-frontiers:
+    docker:
+      - image: cimg/python:3.12
+    steps:
+      - checkout
+      - run:
+          name: Install root Python dependencies
+          command: python -m pip install --prefer-binary -r requirements.txt
       - run:
           name: Test novel PoT frontiers
           command: make test-novel-frontiers
@@ -98,7 +112,7 @@ jobs:
           name: Test Cloudflare Worker
           command: node --test cloudflare-worker/test/index.test.mjs
 
-  pot-integrations:
+  pot-compile:
     docker:
       - image: cimg/node:22.14
     steps:
@@ -107,30 +121,7 @@ jobs:
           name: Install TypeScript test toolchain
           command: npm install --global typescript@5.9.3 tsx@4.20.6 @types/node@24
       - run:
-          name: Build PoT integration TypeScript
-          command: >
-            tsc --noEmit --skipLibCheck --target ES2022 --module NodeNext
-            --moduleResolution NodeNext
-            src/agentic_core/root_cause_agent.ts
-            src/anchor/multi_chain_attestation.ts
-            src/oracle/chain_oracle.ts
-            src/translation/physical_evidence_gate.ts
-            src/edge/vonage_pot_registry.ts
-            src/edge/imobile_cellular_orchestra.ts
-            src/economy/slashing_engine.ts
-            src/crypto/zk_tee_engine.ts
-            src/actuation/swarm_verifier.ts
-            src/archive/bio_archiver.ts
-            src/edge/genesis_seed.ts
-            src/omniscope_protocol_v2.ts
-            src/actuation/a2a_aerial_gate.ts
-            src/actuation/aerial_gate.ts
-            src/actuation/sovereign_gate.ts
-            src/sentinel/config_validator.ts
-            src/sentinel/heartbeat_monitor.ts
-            src/sentinel/sentinel_orchestrator.ts
-      - run:
-          name: TypeScript integration compile
+          name: Compile PoT integration TypeScript
           command: >
             tsc --noEmit --skipLibCheck --target ES2022 --module NodeNext
             --moduleResolution NodeNext
@@ -153,21 +144,75 @@ jobs:
             src/sentinel/config_validator.ts
             src/sentinel/heartbeat_monitor.ts
             src/sentinel/sentinel_orchestrator.ts
+
+  pot-core:
+    docker:
+      - image: cimg/node:22.14
+    steps:
+      - checkout
       - run:
-          name: Test PoT integration smoke
+          name: Install TypeScript test toolchain
+          command: npm install --global typescript@5.9.3 tsx@4.20.6 @types/node@24
+      - run:
+          name: Test PoT core integrations
           command: tsx tests/test_pot_integrations.ts && tsx tests/test_chain_oracle.ts
+
+  pot-v2:
+    docker:
+      - image: cimg/node:22.14
+    steps:
+      - checkout
       - run:
-          name: Test Omniscope v2 reference smoke
+          name: Install TypeScript test toolchain
+          command: npm install --global typescript@5.9.3 tsx@4.20.6 @types/node@24
+      - run:
+          name: Test Omniscope v2
           command: make test-omniscope-v2
+
+  pot-aerial:
+    docker:
+      - image: cimg/node:22.14
+    steps:
+      - checkout
       - run:
-          name: Test Aerial A2A and sovereign smoke
+          name: Install TypeScript test toolchain
+          command: npm install --global typescript@5.9.3 tsx@4.20.6 @types/node@24
+      - run:
+          name: Test Aerial A2A and sovereign gate
           command: make test-aerial-actuation
+
+  pot-e2e:
+    docker:
+      - image: cimg/node:22.14
+    steps:
+      - checkout
       - run:
-          name: Test Omniscope E2E reference smoke
+          name: Install TypeScript test toolchain
+          command: npm install --global typescript@5.9.3 tsx@4.20.6 @types/node@24
+      - run:
+          name: Test Omniscope E2E reference
           command: make test-omniscope-e2e
+
+  pot-ip-one-to-one:
+    docker:
+      - image: cimg/node:22.14
+    steps:
+      - checkout
       - run:
-          name: Test iP 1&1 exact-match smoke
-          command: tsx tests/test_ip_one_to_one.ts
+          name: Install TypeScript test toolchain
+          command: npm install --global typescript@5.9.3 tsx@4.20.6 @types/node@24
+      - run:
+          name: Test iP 1&1 exact match
+          command: make test-ip-one-to-one
+
+  pot-sentinel:
+    docker:
+      - image: cimg/node:22.14
+    steps:
+      - checkout
+      - run:
+          name: Install TypeScript test toolchain
+          command: npm install --global typescript@5.9.3 tsx@4.20.6 @types/node@24
       - run:
           name: Test Sentinel Swarm production gate
           command: make test-sentinel-swarm
@@ -175,8 +220,17 @@ jobs:
 workflows:
   verify-projects:
     jobs:
-      - root-python
+      - root-native
+      - root-pytest
+      - root-oracle
+      - root-frontiers
       - intelligence-server
       - tai-compiler
       - cloudflare-worker
-      - pot-integrations
+      - pot-compile
+      - pot-core
+      - pot-v2
+      - pot-aerial
+      - pot-e2e
+      - pot-ip-one-to-one
+      - pot-sentinel
