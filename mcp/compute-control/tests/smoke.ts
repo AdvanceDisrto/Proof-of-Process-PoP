@@ -18,17 +18,19 @@ const submitted = createExecutionReceipt("execute_workload", resource, workload,
 });
 assert.equal(submitted.state, "ACTION_REQUIRED");
 assert.equal(submitted.anchor.status, "submitted");
+assert.equal(submitted.prevReceiptHash, null);
 
 const confirmed = createExecutionReceipt("execute_workload", resource, workload, execution, {
   status: "confirmed", chain: "test", txHash: "tx-confirmed", confirmations: 6,
-});
+}, submitted.receiptHash);
 assert.equal(confirmed.state, "VERIFIED_PROCESS");
 assert.equal(confirmed.anchor.status, "confirmed");
+assert.equal(confirmed.prevReceiptHash, submitted.receiptHash);
 assert.match(confirmed.receiptHash, /^sha256:[0-9a-f]{64}$/);
 
 const reorged = createExecutionReceipt("execute_workload", resource, workload, execution, {
   status: "reorged", chain: "test", txHash: "tx-reorged",
-});
+}, confirmed.receiptHash);
 assert.equal(reorged.state, "ACTION_REQUIRED");
 assert.equal(reorged.anchor.status, "reorged");
 
