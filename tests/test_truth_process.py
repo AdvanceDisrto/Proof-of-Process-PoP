@@ -76,7 +76,7 @@ def test_external_decline_stays_certified():
 
 
 def test_human_health_is_warranted_but_not_certified():
-    r = oracle().process("human_health", {"question": "diagnosis?", "kind": "diagnose"})
+    r = oracle().process("human_health", {"question": "diagnosis?", "evidence_hash": _fake_sha("human-review-evidence"), "kind": "diagnose"})
     assert r.truth_level == TruthLevel.WARRANTED
     assert r.verdict == "REFUSED_CHECK_FAILED"
 
