@@ -1,0 +1,37 @@
+name: Compute Control MCP — Direct Verification
+on:
+  push:
+    branches: [main]
+    paths:
+      - "mcp/compute-control/**"
+      - ".github/workflows/compute-control-mcp-verify.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: mcp/compute-control
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install
+      - name: Strict TypeScript
+        run: npm run typecheck
+      - name: iTSC
+        run: npm run compile:itsc
+      - name: MCP tests
+        run: npm test
+      - name: Upload iTSC receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compute-control-itsc-receipt
+          path: mcp/compute-control/itsc-receipt.json
+          if-no-files-found: ignore
