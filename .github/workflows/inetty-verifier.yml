@@ -15,9 +15,12 @@ on:
       - "FABRIC_ROUTE_ATTESTATION.md"
       - "src/agentic_core/root_cause_agent.ts"
       - "src/translation/lab_automation_api.ts"
+      - "src/translation/physical_evidence_gate.ts"
       - "src/e2e_pipeline.ts"
       - "tests/test_e2e_pipeline.ts"
+      - "tests/test_physical_evidence_gate.ts"
       - "E2E_PIPELINE.md"
+      - "PHYSICAL_EVIDENCE_GATE.md"
       - ".github/workflows/inetty-verifier.yml"
   pull_request:
     paths:
@@ -25,6 +28,16 @@ on:
       - "tools/inetty_verifier.py"
       - "tools/sovereign_mesh_node.py"
       - "tests/test_inetty.py"
+      - "fabric_topology_validator.py"
+      - "tests/test_fabric_topology_validator.py"
+      - "fabric_route_attestation.py"
+      - "tests/test_fabric_route_attestation.py"
+      - "src/agentic_core/root_cause_agent.ts"
+      - "src/translation/lab_automation_api.ts"
+      - "src/translation/physical_evidence_gate.ts"
+      - "src/e2e_pipeline.ts"
+      - "tests/test_e2e_pipeline.ts"
+      - "tests/test_physical_evidence_gate.ts"
       - ".github/workflows/inetty-verifier.yml"
   schedule:
     - cron: "0 */6 * * *"
@@ -60,8 +73,10 @@ jobs:
         run: python -m pytest tests/test_fabric_topology_validator.py -q
       - name: Run Fabric route attestation tests
         run: python -m pytest tests/test_fabric_route_attestation.py -q
-      - name: Run E2E agentic core + lab translation tests
-        run: npx --yes tsx tests/test_e2e_pipeline.ts
+      - name: Run E2E agentic core + physical evidence tests
+        run: |
+          npx --yes tsx tests/test_e2e_pipeline.ts
+          npx --yes tsx tests/test_physical_evidence_gate.ts
       - name: Emit sovereign mesh receipt
         run: python tools/sovereign_mesh_node.py
       - name: Emit routing receipt
