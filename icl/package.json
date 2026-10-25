@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc --noEmit && tsc",
-    "test": "tsc --noEmit && node --test dist/icl_engine.test.js",
+    "test": "npm run build && node --test dist/icl_engine.test.js",
     "start": "node dist/icl_engine.js",
     "listener": "node dist/iclu_listener.js"
   },
