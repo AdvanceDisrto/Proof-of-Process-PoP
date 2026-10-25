@@ -23,11 +23,11 @@ jobs:
 
       - name: Cargo test — iComp engine
         working-directory: icomp
-        run: cargo test --locked
+        run: cargo test
 
       - name: Build iComp
         working-directory: icomp
-        run: cargo build --release --locked
+        run: cargo build --release
 
       - name: Compile canonical Rust fixture through iComp
         working-directory: icomp
