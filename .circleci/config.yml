@@ -300,8 +300,11 @@ jobs:
           name: Install Compute Control MCP dependencies
           command: cd mcp/compute-control && npm install
       - run:
-          name: Typecheck Compute Control MCP
-          command: cd mcp/compute-control && npm run typecheck
+          name: Execute iTSC Sovereign Compiler
+          command: cd mcp/compute-control && npm run compile:itsc
+      - store_artifacts:
+          path: mcp/compute-control/itsc-receipt.json
+          destination: itsc-compilation-receipt.json
       - run:
           name: Test Compute Control MCP fail-closed receipts
           command: cd mcp/compute-control && npm test
