@@ -7,6 +7,9 @@ on:
       - "tools/inetty_verifier.py"
       - "tools/sovereign_mesh_node.py"
       - "tests/test_inetty.py"
+      - "fabric_topology_validator.py"
+      - "tests/test_fabric_topology_validator.py"
+      - "FABRIC.md"
       - ".github/workflows/inetty-verifier.yml"
   pull_request:
     paths:
@@ -42,6 +45,8 @@ jobs:
           PY
       - name: Run iNetty tests
         run: python -m pytest tests/test_inetty.py -q
+      - name: Run Fabric topology tests
+        run: python -m pytest tests/test_fabric_topology_validator.py -q
       - name: Emit sovereign mesh receipt
         run: python tools/sovereign_mesh_node.py
       - name: Emit routing receipt
