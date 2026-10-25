@@ -49,7 +49,7 @@ jobs:
 
   tai-compiler:
     docker:
-      - image: cimg/rust:1.99
+      - image: cimg/rust:1.91
     steps:
       - checkout
       - restore_cache:
