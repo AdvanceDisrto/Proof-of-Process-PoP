@@ -110,7 +110,6 @@ jobs:
           command: >
             tsc --noEmit --skipLibCheck --target ES2022 --module NodeNext
             --moduleResolution NodeNext
-            src/edge/node-crypto.d.ts
             src/agentic_core/root_cause_agent.ts
             src/anchor/multi_chain_attestation.ts
             src/oracle/chain_oracle.ts
