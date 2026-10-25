@@ -8,6 +8,8 @@ on:
       - "test_buddy.py"
       - "demo.py"
       - ".github/workflows/buddy-proof.yml"
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
