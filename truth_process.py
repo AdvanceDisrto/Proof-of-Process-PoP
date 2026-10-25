@@ -323,7 +323,9 @@ class HumanReviewOracle(TruthProcessOracle):
         return False, "life-affecting queries require a human decision", []
 
     def scope_claims(self):
-        return ["decide", "diagnose", "prescribe", "triage"]
+        # Scope rejects autonomous decisions; diagnosis itself reaches CHECK,
+        # where this oracle explicitly refuses to certify a life-affecting claim.
+        return ["autonomous decision", "prescribe", "triage"]
 
 
 def _fake_ur1(seed: str) -> str:
@@ -387,7 +389,58 @@ def run_tests() -> int:
     }, accepting_external_verifier)
     assert "correspond" in " ".join(anchored.cannot_claim).lower()
     assert not hasattr(TruthLevel, "CORRESPONDENCE")
-    print(f"truth ladder self-tests: {passed + 2} passed, 0 failed")
+    passed += 2
+
+    # Additional ladder invariants: refusals are fail-closed and levels never jump.
+    checks = [
+        ("warranted_not_certified_on_scope", lambda: make_tp().process("ai_creation", {
+            "model_hash": _fake_sha("m"), "policy_ur1": _fake_ur1("p"),
+            "created_at": "t", "kind": "benchmark",
+        })),
+        ("external_decline_stays_certified", lambda: make_tp().process("ai_creation", {
+            "model_hash": _fake_sha("m"), "policy_ur1": _fake_ur1("p"),
+            "created_at": "t",
+        }, strict_external_verifier)),
+        ("human_review_reaches_check", lambda: make_tp().process("human_health", {
+            "question": "diagnosis?", "kind": "diagnose",
+        })),
+        ("unknown_never_warrants", lambda: make_tp().process("missing", {
+            "model_hash": _fake_sha("m"), "policy_ur1": _fake_ur1("p"), "created_at": "t",
+        })),
+        ("malformed_never_warrants", lambda: make_tp().process("ai_creation", {
+            "model_hash": _fake_sha("m"), "policy_ur1": _fake_ur1("p"),
+        })),
+        ("certified_has_receipt", lambda: make_tp().process("ai_creation", {
+            "model_hash": _fake_sha("m"), "policy_ur1": _fake_ur1("p"), "created_at": "t",
+        })),
+        ("anchored_has_external_identity", lambda: make_tp().process("ai_creation", {
+            "model_hash": _fake_sha("m"), "policy_ur1": _fake_ur1("p"), "created_at": "t",
+        }, accepting_external_verifier, "self-test/v1")),
+    ]
+    for label, factory in checks:
+        receipt = factory()
+        assert receipt.receipt_hash.startswith("sha256:"), label
+        assert receipt.cannot_claim, label
+        if label == "warranted_not_certified_on_scope":
+            assert receipt.truth_level == TruthLevel.WARRANTED
+        elif label == "external_decline_stays_certified":
+            assert receipt.truth_level == TruthLevel.CERTIFIED
+        elif label == "human_review_reaches_check":
+            assert receipt.truth_level == TruthLevel.WARRANTED
+            assert receipt.verdict == "REFUSED_CHECK_FAILED"
+            assert receipt.stage_reached == Stage.CHECK
+        elif label in {"unknown_never_warrants", "malformed_never_warrants"}:
+            assert receipt.truth_level == TruthLevel.NONE
+        elif label == "certified_has_receipt":
+            assert receipt.truth_level == TruthLevel.CERTIFIED
+        elif label == "anchored_has_external_identity":
+            assert receipt.truth_level == TruthLevel.ANCHORED
+            assert receipt.external_verifier_id == "accepting_external_verifier"
+        passed += 1
+
+    assert [TruthLevel.NONE, TruthLevel.WARRANTED, TruthLevel.CERTIFIED, TruthLevel.ANCHORED] == [0, 1, 2, 3]
+    passed += 1
+    print(f"truth ladder self-tests: {passed} passed, 0 failed")
     return 0
 
 
