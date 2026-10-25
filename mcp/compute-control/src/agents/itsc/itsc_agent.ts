@@ -93,7 +93,8 @@ const entrypoint = process.argv[1]
   : false;
 
 if (entrypoint) {
-  compileAndAudit(process.cwd()).then(receipt => {
+  const projectDir = process.cwd();
+  compileAndAudit(projectDir).then(receipt => {
     fs.writeFileSync(
       path.join(projectDir, "itsc-receipt.json"),
       JSON.stringify(receipt, null, 2) + "\n",
