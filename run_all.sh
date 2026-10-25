@@ -45,6 +45,20 @@ log_step inetty make test-inetty
 log_step mmr make test-mmr
 log_step cce make test-cce
 log_step epidemic_genesis make test-epidemic-genesis
+log_step sovereign_cpu_unit python3 -m pytest tests/test_sovereign_cpu.py tests/test_sovereign_tokenizer.py -q
+log_step genesis_iproof bash -lc 'python3 sovereign_cpu/model_iproof.py && cp ifm_genesis_receipt.json "$RUN_ALL_OUT/ifm_genesis_receipt.json"'
+log_step genesis_iproof_verify bash -lc 'python3 - <<'PY'
+import json
+from cryptography.hazmat.primitives.asymmetric import ed25519
+r=json.load(open("ifm_genesis_receipt.json", encoding="utf-8")); p=r["payload"]
+assert p["device"]=="CPU" and p["state"]=="TRAINING_VERIFIED_PROCESS"
+assert p["initial_state_hash"]!=p["final_state_hash"] and p["parameters"]==7312
+msg=json.dumps(p, sort_keys=True, separators=(",", ":")).encode()
+ed25519.Ed25519PublicKey.from_public_bytes(bytes.fromhex(r["public_key"])).verify(bytes.fromhex(r["signature"]), msg)
+print("GENESIS_IPROOF_SIGNATURE_VERIFIED")
+PY'
+log_step sovereign_scale_probe bash -lc 'python3 -m sovereign_cpu.scale_probe --max-probe-mb 256 --safety-fraction 0.50 --output "$RUN_ALL_OUT/scale_probe_receipt.json"'
+
 log_step epidemic_calibration bash -lc 'python3 -m tools.epidemic_calibration | tee "$RUN_ALL_OUT/epidemic_calibration.json"'
 
 python3 - <<'PY' > "$OUT/tester_observability.json"
@@ -176,3 +190,4 @@ print("state:            ", r["state"])
 print("physical_gate:   ", r["physical_gate"])
 print("run_id:           ", r["run_id"])
 PY
+# Trigger integrated run-all after workflow installation.

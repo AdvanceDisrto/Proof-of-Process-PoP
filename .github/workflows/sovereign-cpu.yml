@@ -27,10 +27,50 @@ jobs:
         run: python -c "import sovereign_cpu.gateway, sovereign_cpu.receipt, sovereign_cpu.toy_ssm"
       - name: Run dependency-free SSM smoke
         run: python -m sovereign_cpu.toy_ssm
+      - name: Run iFM Genesis iProof CPU training
+        run: python sovereign_cpu/model_iproof.py
+      - name: Verify Genesis iProof receipt
+        run: |
+          python - <<'PY'
+          import json
+          from cryptography.hazmat.primitives.asymmetric import ed25519
+
+          with open("ifm_genesis_receipt.json", encoding="utf-8") as f:
+              receipt = json.load(f)
+
+          payload = receipt["payload"]
+          assert payload["device"] == "CPU"
+          assert payload["state"] == "TRAINING_VERIFIED_PROCESS"
+          assert payload["initial_state_hash"].startswith("sha256:")
+          assert payload["final_state_hash"].startswith("sha256:")
+          assert payload["initial_state_hash"] != payload["final_state_hash"]
+          assert len(payload["execution_trace"]) == 6
+          assert payload["execution_trace"][0]["step"] == 1
+          assert payload["execution_trace"][-1]["step"] == 50
+          assert payload["parameters"] == 7312
+
+          signed_payload = json.dumps(
+              payload, sort_keys=True, separators=(",", ":")
+          ).encode()
+          public_key = ed25519.Ed25519PublicKey.from_public_bytes(
+              bytes.fromhex(receipt["public_key"])
+          )
+          public_key.verify(
+              bytes.fromhex(receipt["signature"]),
+              signed_payload,
+          )
+          print("GENESIS_IPROOF_SIGNATURE_VERIFIED")
+          print(f"PARAMETERS={payload['parameters']}")
+          print(f"INITIAL_STATE_HASH={payload['initial_state_hash']}")
+          print(f"FINAL_STATE_HASH={payload['final_state_hash']}")
+          print(f"TRACE_ENTRIES={len(payload['execution_trace'])}")
+          PY
       - name: Bounded Gaia CPU scale probe
         run: python -m sovereign_cpu.scale_probe --max-probe-mb 256 --safety-fraction 0.50 --output scale_probe_receipt.json
-      - name: Upload scale probe evidence
+      - name: Upload sovereign CPU evidence
         uses: actions/upload-artifact@v4
         with:
-          name: sovereign-cpu-scale-probe
-          path: scale_probe_receipt.json
+          name: sovereign-cpu-evidence
+          path: |
+            ifm_genesis_receipt.json
+            scale_probe_receipt.json
