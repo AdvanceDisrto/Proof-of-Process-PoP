@@ -94,11 +94,14 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Install TypeScript test toolchain
+          command: npm install --global typescript@5.9.3 tsx@4.20.6
+      - run:
           name: Build PoT integration TypeScript
-          command: npx --yes tsc --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext src/anchor/multi_chain_attestation.ts src/edge/vonage_pot_registry.ts src/edge/imobile_cellular_orchestra.ts
+          command: tsc --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext src/anchor/multi_chain_attestation.ts src/edge/vonage_pot_registry.ts src/edge/imobile_cellular_orchestra.ts
       - run:
           name: Test PoT integrations
-          command: npx --yes tsx tests/test_pot_integrations.ts
+          command: tsx tests/test_pot_integrations.ts
 
 workflows:
   verify-projects:
