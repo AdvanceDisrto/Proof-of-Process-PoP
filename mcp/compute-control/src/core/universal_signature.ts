@@ -124,7 +124,7 @@ export class Ed25519SignatureVerifier implements SignatureVerifier {
 
     try {
       const publicKey: KeyObject = createPublicKey(signature.publicKey);
-      const verifier = createVerify(null);
+      const verifier = createVerify("Ed25519");
       verifier.update(signature.signedPayload, "utf8");
       verifier.end();
       const valid = verifier.verify(publicKey, Buffer.from(signature.signature, "base64"));
