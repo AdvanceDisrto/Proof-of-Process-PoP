@@ -17,7 +17,9 @@ export interface VonageInvention {
   failClosedState: IntegrationState;
 }
 
-export const VONAGE_POT_INVENTIONS: readonly VonageInvention[] = [
+type InventionSpec = readonly [string, VonageSurface, string[]];
+
+const INVENTION_SPECS: readonly InventionSpec[] = [
   ["Autonomous KYC/AML Corridor","IDENTITY_SECURITY",["Subscriber Match","Age Verification"]],
   ["Sovereign Device Reissuance","IDENTITY_SECURITY",["SIM Swap Insight","Silent Authentication"]],
   ["Ephemeral Location-Bound Identities","IDENTITY_SECURITY",["Location Verification"]],
@@ -48,14 +50,17 @@ export const VONAGE_POT_INVENTIONS: readonly VonageInvention[] = [
   ["Redact API for Privacy-Preserving Anchors","PLATFORM_AI",["Redact API"]],
   ["Fraud Defender for Outbreak Scenarios","PLATFORM_AI",["Fraud Defender"]],
   ["Audit API for Automated Compliance","PLATFORM_AI",["Audit API"]],
-].map(([name,surface,requiredCapabilities], i) => ({
-  id: `VONAGE-POT-${String(i + 1).padStart(2, "0")}`,
-  name,
-  surface: surface as VonageSurface,
-  requiredCapabilities,
-  evidence: ["provider response", "cryptographic binding", "receipt"],
-  failClosedState: "ACTION_REQUIRED" as IntegrationState,
-}));
+];
+
+export const VONAGE_POT_INVENTIONS: readonly VonageInvention[] =
+  INVENTION_SPECS.map(([name, surface, requiredCapabilities], i) => ({
+    id: `VONAGE-POT-${String(i + 1).padStart(2, "0")}`,
+    name,
+    surface,
+    requiredCapabilities,
+    evidence: ["provider response", "cryptographic binding", "receipt"],
+    failClosedState: "ACTION_REQUIRED",
+  }));
 
 export function evaluateVonageEvidence(
   invention: VonageInvention,
@@ -64,5 +69,7 @@ export function evaluateVonageEvidence(
 ): IntegrationState {
   if (!providerAvailable) return "ACTION_REQUIRED";
   if (!cryptographicallyBound) return "QUARANTINED";
-  return "VERIFIED_PROCESS";
+  return invention.failClosedState === "ACTION_REQUIRED"
+    ? "VERIFIED_PROCESS"
+    : invention.failClosedState;
 }
