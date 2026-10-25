@@ -21,11 +21,13 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: icl/package-lock.json
+          cache-dependency-path: icl/package.json
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - uses: dtolnay/rust-toolchain@stable
+      - name: Install repository Python dependencies
+        run: python -m pip install -r requirements.txt
       - name: Install iCL dependencies
         working-directory: icl
         run: npm install
@@ -34,3 +36,5 @@ jobs:
         run: npm test
       - name: Run iCL against repository
         run: node icl/dist/icl_engine.js
+      - name: Build iCL production image
+        run: docker build -f icl/Dockerfile .
