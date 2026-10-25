@@ -210,3 +210,8 @@ test-oracle-node:
 	python -m pytest -q tests/test_truth_process.py
 	python oracle_node.py
 	python -m py_compile omni_node.py oracle_node.py truth_process.py
+
+
+test-novel-frontiers:
+	python -m py_compile novelty_frontiers.py
+	python -m pytest -q tests/test_novelty_frontiers.py
