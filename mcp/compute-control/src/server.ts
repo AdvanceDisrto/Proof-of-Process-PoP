@@ -64,6 +64,8 @@ server.registerTool(
       stdoutHash: z.string().min(1),
       stderrHash: z.string().min(1),
       artifactHashes: z.array(z.string()),
+      anchorStatus: z.enum(["absent", "submitted", "confirmed", "reorged"]).optional(),
+      anchorChain: z.string().optional(),
       externalAnchor: z.string().optional(),
     }),
   },
@@ -80,7 +82,11 @@ server.registerTool(
         stderrHash: input.stderrHash,
         artifactHashes: input.artifactHashes,
       },
-      input.externalAnchor,
+      {
+        status: input.anchorStatus ?? "absent",
+        chain: input.anchorChain,
+        txHash: input.externalAnchor,
+      },
     );
     return { content: [{ type: "text", text: JSON.stringify(receipt, null, 2) }] };
   }
