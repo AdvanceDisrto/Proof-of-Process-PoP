@@ -3,7 +3,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { spawn } from "node:child_process";
 
 const port = Number.parseInt(process.env.ICL_WEBHOOK_PORT ?? "9000", 10);
-const secret = process.env.ICL_WEBHOOK_SECRET;\nconst configPath = process.env.ICL_CONFIG_PATH ?? "../icl.yaml";
+const secret = process.env.ICL_WEBHOOK_SECRET;\nconst configPath = process.env.ICL_CONFIG_PATH ?? "icl.yaml";
 
 function verifySignature(body: Buffer, header: string | undefined): boolean {
   if (!secret || !header?.startsWith("sha256=")) return false;
