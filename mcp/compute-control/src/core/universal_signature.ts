@@ -83,7 +83,7 @@ function structuralValidation(sig: UniversalSignature): VerificationResult | nul
     return {
       status: "QUARANTINED",
       verified: false,
-      reason: \`Signature format \${sig.signatureFormat} is not valid for author \${sig.author}.\`,
+      reason: `Signature format ${sig.signatureFormat} is not valid for author ${sig.author}.`,
     };
   }
 
@@ -91,7 +91,7 @@ function structuralValidation(sig: UniversalSignature): VerificationResult | nul
     return {
       status: "QUARANTINED",
       verified: false,
-      reason: \`Ledger \${sig.ledger} is not valid for signature format \${sig.signatureFormat}.\`,
+      reason: `Ledger ${sig.ledger} is not valid for signature format ${sig.signatureFormat}.`,
     };
   }
 
@@ -141,7 +141,7 @@ export class Ed25519SignatureVerifier implements SignatureVerifier {
       return {
         status: "QUARANTINED",
         verified: false,
-        reason: \`Cryptographic verification failed: \${error instanceof Error ? error.message : String(error)}\`,
+        reason: `Cryptographic verification failed: ${error instanceof Error ? error.message : String(error)}`,
         evidenceHash: structural?.evidenceHash,
       };
     }
@@ -177,7 +177,7 @@ export class UniversalSignatureEngine {
         return {
           status: "PENDING",
           verified: false,
-          reason: \`Domain evidence adapter required for \${signature.signatureFormat}; the engine will not fabricate verification.\`,
+          reason: `Domain evidence adapter required for ${signature.signatureFormat}; the engine will not fabricate verification.`,
           evidenceHash: structural?.evidenceHash,
         };
     }
