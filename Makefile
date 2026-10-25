@@ -218,4 +218,4 @@ test-novel-frontiers:
 
 
 test-omniscope-v2:
-	npx --yes tsx tests/test_omniscope_v2.ts
+	tsx tests/test_omniscope_v2.ts
