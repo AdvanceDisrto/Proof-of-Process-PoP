@@ -6,10 +6,9 @@ declare module "node:crypto" {
   export function createHash(algorithm: string): Hash;
 }
 
-  export type KeyObject = object;
   export function verify(
     algorithm: string | null,
     data: Uint8Array,
-    key: KeyObject,
+    key: object,
     signature: Uint8Array,
   ): boolean;
