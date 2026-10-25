@@ -317,7 +317,7 @@ class HumanReviewOracle(TruthProcessOracle):
     version = "1.0.0"
 
     def schema(self):
-        return {"question": "str"}
+        return {"question": "str", "evidence_hash": "sha256"}
 
     def check(self, query):
         return False, "life-affecting queries require a human decision", []
@@ -365,7 +365,7 @@ def run_tests() -> int:
         "model_hash": _fake_sha("m"), "policy_ur1": _fake_ur1("p"), "created_at": "t",
     }, accepting_external_verifier, "test/v1")))
     cases.append(("human_refusal", lambda: make_tp().process("human_health", {
-        "question": "discharge?", "kind": "diagnose",
+        "question": "discharge?", "evidence_hash": _fake_sha("human-review-evidence"), "kind": "diagnose",
     })))
 
     expected = {
@@ -402,7 +402,7 @@ def run_tests() -> int:
             "created_at": "t",
         }, strict_external_verifier)),
         ("human_review_reaches_check", lambda: make_tp().process("human_health", {
-            "question": "diagnosis?", "kind": "diagnose",
+            "question": "diagnosis?", "evidence_hash": _fake_sha("human-review-evidence"), "kind": "diagnose",
         })),
         ("unknown_never_warrants", lambda: make_tp().process("missing", {
             "model_hash": _fake_sha("m"), "policy_ur1": _fake_ur1("p"), "created_at": "t",
