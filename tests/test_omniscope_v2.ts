@@ -1,8 +1,9 @@
+import { createHash } from "node:crypto";
 import { executeOmniscopeProtocol } from "../src/omniscope_protocol_v2.js";
 import { ZkTeeEngine } from "../src/crypto/zk_tee_engine.js";
 import { GenesisSeedAgent } from "../src/edge/genesis_seed.js";
 
-const sha = (seed: string) => `sha256:${seed.padEnd(64, "0").slice(0, 64)}`;
+const sha = (seed: string) => `sha256:${createHash("sha256").update(seed).digest("hex")}`;
 
 async function main(): Promise<void> {
   const observations = [
