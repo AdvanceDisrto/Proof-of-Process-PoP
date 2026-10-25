@@ -11,15 +11,66 @@ from pydantic import BaseModel, Field
 
 
 LANGUAGES: dict[str, list[str]] = {
-    "systems": ["C", "C++", "Rust", "Zig", "Assembly", "CUDA", "OpenCL", "Verilog", "VHDL", "SystemVerilog"],
-    "application": ["TypeScript", "JavaScript", "Python", "Java", "C#", "Go", "PHP", "Ruby", "Kotlin", "Swift", "Dart", "Scala", "F#", "Clojure", "Elixir", "Erlang", "Haskell", "OCaml"],
-    "data": ["SQL", "R", "Julia", "MATLAB", "Octave", "SAS", "Fortran"],
-    "web": ["HTML", "CSS", "SCSS", "GraphQL"],
-    "smart_contracts": ["Solidity", "Vyper", "Move", "Cairo", "Clarity", "Circom", "Noir"],
-    "scripting_config": ["Bash", "PowerShell", "YAML", "JSON", "HCL", "Lua", "Perl", "Groovy"],
-    "logic_symbolic": ["Prolog", "Lisp", "Scheme", "Racket"],
-    "graphics_compute": ["GLSL", "HLSL", "WGSL", "Nim", "Crystal"],
-    "legacy_domain": ["COBOL", "Ada", "Pascal", "Delphi", "Brainfuck", "Malbolge", "Whitespace", "LOLCODE", "Befunge"],
+    "core_general": [
+        "Python","C","C++","C#","Java","JavaScript","TypeScript","Go","Rust","Swift","Kotlin",
+        "Objective-C","Objective-C++","Dart","Ruby","PHP","Perl","Lua","Julia","Nim","Crystal",
+        "D","Zig","V","Haxe","Groovy","Scala","Visual Basic","VB.NET","Delphi","Object Pascal",
+        "Pascal","Fortran","Ada","COBOL",
+    ],
+    "systems_embedded": [
+        "x86 Assembly","x86-64 Assembly","ARM Assembly","AArch64 Assembly","RISC-V Assembly",
+        "MIPS Assembly","PowerPC Assembly","AVR Assembly","8051 Assembly","Chisel","Bluespec",
+        "Verilog","SystemVerilog","VHDL","VHDL-AMS","Verilog-AMS","SpinalHDL",
+    ],
+    "web": [
+        "HTML","CSS","SCSS","Sass","Less","JSX","TSX","WebAssembly","WAT","WGSL","GraphQL",
+        "GLSL","SVG",
+    ],
+    "data_query": [
+        "SQL","PL/pgSQL","MySQL SQL","T-SQL","PL/SQL","SQLite SQL","SPARQL","Cypher","Gremlin",
+        "DAX","MDX","HiveQL","Pig Latin","LINQ",
+    ],
+    "scientific_ai_math": [
+        "R","Julia","MATLAB","GNU Octave","Wolfram Language","Mathematica","SAS","Stata",
+        "Maple","Scilab","Mathcad",
+    ],
+    "gpu_parallel": [
+        "CUDA C/C++","CUDA PTX","OpenCL C","HLSL","Metal Shading Language","HIP","SYCL",
+        "OpenMP","OpenACC","Triton",
+    ],
+    "functional_logic": [
+        "Haskell","OCaml","F#","Erlang","Elixir","Clojure","Common Lisp","Scheme","Racket",
+        "Emacs Lisp","Standard ML","Prolog","Mercury","Idris","PureScript","Elm","Reason","ReScript",
+    ],
+    "smart_contracts_zk": [
+        "Solidity","Vyper","Move","Cairo","Clarity","Michelson","Yul","Fe","Cadence","Bitcoin Script",
+        "Circom","Noir","Leo","Halo2",
+    ],
+    "shell_automation": [
+        "Bash","sh","Zsh","Fish","PowerShell","Batch/CMD","AppleScript","VBScript","Tcl","AWK","sed",
+    ],
+    "infra_config": [
+        "YAML","JSON","TOML","XML","HCL","Terraform","Nix","Dhall","Jsonnet","CUE","Dockerfile",
+        "Make","CMake","Meson","Bazel/Starlark","GitHub Actions YAML","GitLab CI YAML",
+        "CircleCI YAML","Kubernetes manifests","Helm templates","Ansible YAML",
+    ],
+    "mobile": [
+        "React Native","Jetpack Compose","SwiftUI",
+    ],
+    "graphics_game": [
+        "GDScript","ShaderLab","OpenGL Shading Language","Vulkan shader code","Metal shaders",
+        "Unreal Engine Blueprint","Godot GDScript",
+    ],
+    "enterprise_legacy": [
+        "RPG","PL/I","ABAP","Apex","ColdFusion/CFML","PowerBuilder","VBA",
+    ],
+    "markup_docs": [
+        "Markdown","LaTeX","TeX","AsciiDoc","reStructuredText","Org-mode","Mermaid","PlantUML",
+    ],
+    "esoteric": [
+        "Brainfuck","Befunge","Whitespace","Malbolge","INTERCAL","LOLCODE","Shakespeare","Piet",
+        "Ook!","ArnoldC","Chef","Rockstar","GolfScript",
+    ],
 }
 
 
@@ -61,7 +112,15 @@ def language_catalog() -> dict[str, object]:
         "count": len(languages),
         "groups": {key: sorted(value) for key, value in LANGUAGES.items()},
         "languages": languages,
-        "capability_boundary": "Language coverage is a capability registry, not proof that generated code compiles or runs.",
+        "capability_boundary": (
+            "Coverage is a capability registry. It does not prove compiler, runtime, security, "
+            "compliance, hardware, or physical-world correctness."
+        ),
+        "custom_language_support": True,
+        "custom_language_boundary": (
+            "A custom DSL, grammar, bytecode, ISA, protocol, or AST can be handled when its "
+            "specification/examples are supplied; execution still requires a deterministic verifier."
+        ),
     }
 
 
@@ -78,16 +137,20 @@ async def ask_buddy(request: BuddyRequest) -> BuddyResponse:
             input_hash=input_hash,
             limitations=[
                 "No model inference was performed.",
-                "Generated code must never be treated as verified until deterministic tests pass.",
-                "Language registry describes intended coverage, not compiler/runtime success.",
+                "Generated code remains unverified until deterministic checks pass.",
+                "Language coverage is a capability registry, not execution evidence.",
             ],
         )
 
     system = (
-        "You are Buddy, the i™ engineering brain. Read, understand, explain, and write software across the "
-        "registered language catalog. Be precise. Never claim that generated code compiles, executes, is secure, "
-        "or is physically verified unless evidence is provided. Prefer concrete code, tests, interfaces, and "
-        "verification steps. For high-consequence physical actions, return ACTION_REQUIRED rather than authorizing execution."
+        "You are Buddy, the i™ engineering brain. Read, understand, explain, and write software "
+        "across the full registered language catalog, including systems, web, data, AI, GPU, "
+        "functional, smart-contract/ZK, shell, infrastructure, mobile, graphics, hardware, legacy, "
+        "markup, esoteric, and custom languages. When a custom language is supplied, infer its rules "
+        "only from the provided specification/examples. Be precise. Never claim compilation, execution, "
+        "security, compliance, hardware attestation, or physical verification without evidence. Prefer "
+        "concrete code, tests, interfaces, and deterministic verification. High-consequence physical "
+        "actions remain ACTION_REQUIRED and are never authorized by model output."
     )
     if request.mode == "explain" and request.code:
         system += "\nExplain the supplied code and identify concrete failure modes before proposing changes."
