@@ -158,7 +158,7 @@ class TruthProcessOracle:
 
 
 def _is_ur1(value) -> bool:
-    return isinstance(value, str) and value.startswith("urn:ur1:sha256:") and len(value) == 80
+    return isinstance(value, str) and value.startswith("urn:ur1:sha256:") and len(value) == 79
 
 
 def _is_sha(value) -> bool:
