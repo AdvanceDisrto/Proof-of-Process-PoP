@@ -17,7 +17,8 @@ LANGUAGES: dict[str, list[str]] = {
         "D","Zig","V","Haxe","Groovy","Scala","Visual Basic","VB.NET","Delphi","Object Pascal",
         "Pascal","Fortran","Ada","COBOL",
     ],
-    "systems": ["C","C++","Rust","Go","Zig","D","Nim","Ada","Fortran"],\n    "systems_embedded": [
+    "systems": ["C","C++","Rust","Go","Zig","D","Nim","Ada","Fortran"],
+    "systems_embedded": [
         "x86 Assembly","x86-64 Assembly","ARM Assembly","AArch64 Assembly","RISC-V Assembly",
         "MIPS Assembly","PowerPC Assembly","AVR Assembly","8051 Assembly","Chisel","Bluespec",
         "Verilog","SystemVerilog","VHDL","VHDL-AMS","Verilog-AMS","SpinalHDL",
