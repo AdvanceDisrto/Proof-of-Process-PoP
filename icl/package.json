@@ -1,0 +1,21 @@
+{
+  "name": "@pot/icl-engine",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit && tsc",
+    "test": "tsc --noEmit && node --test dist/icl_engine.test.js",
+    "start": "node dist/icl_engine.js",
+    "listener": "node dist/iclu_listener.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "3.943.0",
+    "js-yaml": "4.1.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "4.0.9",
+    "@types/node": "24.0.0",
+    "typescript": "5.9.3"
+  }
+}
