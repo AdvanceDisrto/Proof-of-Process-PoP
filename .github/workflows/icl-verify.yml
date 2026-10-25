@@ -1,0 +1,36 @@
+name: iCL Self-Hosted Engine Verification
+on:
+  push:
+    branches: [main]
+    paths:
+      - "icl/**"
+      - "icl.yaml"
+      - ".github/workflows/icl-verify.yml"
+      - "mcp/compute-control/**"
+      - "icomp/**"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: icl/package-lock.json
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install iCL dependencies
+        working-directory: icl
+        run: npm install
+      - name: Build and self-test iCL
+        working-directory: icl
+        run: npm test
+      - name: Run iCL against repository
+        run: node icl/dist/icl_engine.js
