@@ -32,6 +32,9 @@ jobs:
       - run:
           name: Test Oracle truth ladder and Node 1
           command: make test-oracle-node
+      - run:
+          name: Test novel PoT frontiers
+          command: make test-novel-frontiers
 
   intelligence-server:
     docker:
