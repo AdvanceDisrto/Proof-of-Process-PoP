@@ -190,3 +190,4 @@ print("state:            ", r["state"])
 print("physical_gate:   ", r["physical_gate"])
 print("run_id:           ", r["run_id"])
 PY
+# Trigger integrated run-all after workflow installation.
