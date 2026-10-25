@@ -1,7 +1,7 @@
 {
   "name": "@pot/compute-control-mcp",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.3.1",
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -13,13 +13,13 @@
     "test:iclu-teardown": "tsx tests/iclu_teardown.ts"
   },
   "devDependencies": {
-    "@types/node": "^24.0.0",
-    "tsx": "^4.20.6",
-    "typescript": "^6.0.0"
+    "@types/node": "24.0.0",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "2.4.0",
-    "zod": "^4.2.0",
-    "ts-morph": "^27.0.2"
+    "zod": "4.2.0",
+    "ts-morph": "27.0.2"
   }
 }
