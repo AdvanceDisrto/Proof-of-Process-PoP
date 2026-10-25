@@ -132,7 +132,7 @@ def dna_archive_decode(dna: str) -> str:
         raise ValueError("DNA sequence must contain only A/C/G/T")
     bits = "".join(alphabet[x] for x in dna)
     raw = int(bits, 2).to_bytes(len(bits) // 8, "big")
-    return sha256(raw)
+    return "sha256:" + raw.hex()
 
 def genesis_seed(payload: dict, *, mesh_id: str = "offline-mesh-0") -> dict:
     payload_hash = sha256(payload)
