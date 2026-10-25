@@ -49,6 +49,15 @@ jobs:
         run: python -m polyglot.adapter --root . --output POLYGLOT_PROCESS_RECEIPT.json
       - name: Python evidence tests
         run: python -m pytest -q
+      - name: iPAAS 0.3 receipt-control suite
+        run: PYTHONPATH=ipaas03 python -m unittest discover -s ipaas03/tests -p "test_*.py" -v
+      - name: iPAAS 0.3 end-to-end artifact run
+        run: PYTHONPATH=ipaas03 python ipaas03/e2e.py
+      - name: Upload iPAAS 0.3 receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ipaas-0.3-e2e-receipts
+          path: ipaas03/artifacts
       - name: FastAPI truth-boundary contract
         run: python -m pytest -q tests/test_api_contract.py
       - name: Rust deterministic compiler tests
