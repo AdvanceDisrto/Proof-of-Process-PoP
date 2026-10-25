@@ -27,7 +27,7 @@ jobs:
           name: Test root project
           command: python -m pytest -q
 
-  root-oracle:
+  root-oracle-truth:
     docker:
       - image: cimg/python:3.12
     steps:
@@ -36,8 +36,24 @@ jobs:
           name: Install root Python dependencies
           command: python -m pip install --prefer-binary -r requirements.txt
       - run:
-          name: Test Oracle truth ladder and Node 1
-          command: make test-oracle-node
+          name: Test truth process
+          command: |
+            python truth_process.py --tests
+            python -m pytest -q tests/test_truth_process.py
+
+  root-oracle-node:
+    docker:
+      - image: cimg/python:3.12
+    steps:
+      - checkout
+      - run:
+          name: Install root Python dependencies
+          command: python -m pip install --prefer-binary -r requirements.txt
+      - run:
+          name: Test Oracle node
+          command: |
+            python oracle_node.py
+            python -m py_compile omni_node.py oracle_node.py truth_process.py
 
   root-frontiers:
     docker:
@@ -112,7 +128,7 @@ jobs:
           name: Test Cloudflare Worker
           command: node --test cloudflare-worker/test/index.test.mjs
 
-  pot-compile:
+  pot-compile-core:
     docker:
       - image: cimg/node:22.14
     steps:
@@ -121,26 +137,68 @@ jobs:
           name: Install TypeScript test toolchain
           command: npm install --global typescript@5.9.3 tsx@4.20.6 @types/node@24
       - run:
-          name: Compile PoT integration TypeScript
+          name: Compile PoT core
           command: >
             tsc --noEmit --skipLibCheck --target ES2022 --module NodeNext
             --moduleResolution NodeNext
-            src/ip_one_to_one_engine.ts
             src/agentic_core/root_cause_agent.ts
             src/anchor/multi_chain_attestation.ts
             src/oracle/chain_oracle.ts
             src/translation/physical_evidence_gate.ts
             src/edge/vonage_pot_registry.ts
             src/edge/imobile_cellular_orchestra.ts
+
+  pot-compile-v2:
+    docker:
+      - image: cimg/node:22.14
+    steps:
+      - checkout
+      - run:
+          name: Install TypeScript test toolchain
+          command: npm install --global typescript@5.9.3 tsx@4.20.6 @types/node@24
+      - run:
+          name: Compile Omniscope v2
+          command: >
+            tsc --noEmit --skipLibCheck --target ES2022 --module NodeNext
+            --moduleResolution NodeNext
             src/economy/slashing_engine.ts
             src/crypto/zk_tee_engine.ts
             src/actuation/swarm_verifier.ts
             src/archive/bio_archiver.ts
             src/edge/genesis_seed.ts
             src/omniscope_protocol_v2.ts
+
+  pot-compile-aerial:
+    docker:
+      - image: cimg/node:22.14
+    steps:
+      - checkout
+      - run:
+          name: Install TypeScript test toolchain
+          command: npm install --global typescript@5.9.3 tsx@4.20.6 @types/node@24
+      - run:
+          name: Compile aerial and sovereign gates
+          command: >
+            tsc --noEmit --skipLibCheck --target ES2022 --module NodeNext
+            --moduleResolution NodeNext
             src/actuation/a2a_aerial_gate.ts
             src/actuation/aerial_gate.ts
             src/actuation/sovereign_gate.ts
+
+  pot-compile-sentinel-ip:
+    docker:
+      - image: cimg/node:22.14
+    steps:
+      - checkout
+      - run:
+          name: Install TypeScript test toolchain
+          command: npm install --global typescript@5.9.3 tsx@4.20.6 @types/node@24
+      - run:
+          name: Compile Sentinel and iP 1&1
+          command: >
+            tsc --noEmit --skipLibCheck --target ES2022 --module NodeNext
+            --moduleResolution NodeNext
+            src/ip_one_to_one_engine.ts
             src/sentinel/config_validator.ts
             src/sentinel/heartbeat_monitor.ts
             src/sentinel/sentinel_orchestrator.ts
@@ -222,12 +280,16 @@ workflows:
     jobs:
       - root-native
       - root-pytest
-      - root-oracle
+      - root-oracle-truth
+      - root-oracle-node
       - root-frontiers
       - intelligence-server
       - tai-compiler
       - cloudflare-worker
-      - pot-compile
+      - pot-compile-core
+      - pot-compile-v2
+      - pot-compile-aerial
+      - pot-compile-sentinel-ip
       - pot-core
       - pot-v2
       - pot-aerial
