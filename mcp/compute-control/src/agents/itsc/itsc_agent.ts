@@ -12,14 +12,20 @@ export interface iTSC_Receipt {
   timestamp: number;
 }
 
-function hashCodebase(project: Project): string {
-  const astHashes = project.getSourceFiles()
+function hashCodebase(project: Project, projectDir: string): string {
+  const astRecords = project.getSourceFiles()
     .filter(sourceFile => !sourceFile.getFilePath().includes("node_modules"))
-    .map(sourceFile =>
-      createHash("sha256").update(sourceFile.getFullText()).digest("hex")
-    )
+    .map(sourceFile => {
+      const relativePath = path.relative(projectDir, sourceFile.getFilePath()).replaceAll(path.sep, "/");
+      const syntax = sourceFile.getDescendants()
+        .map(node => `${node.getKindName()}:${node.getText()}`)
+        .join("\n");
+      return `${relativePath}\0${syntax}`;
+    })
     .sort();
-  return createHash("sha256").update(astHashes.join(":")).digest("hex");
+  return createHash("sha256")
+    .update("iTSC-AST-v1\0" + astRecords.join("\0"))
+    .digest("hex");
 }
 
 function strictCompile(projectDir: string): string[] {
@@ -71,7 +77,7 @@ export async function compileAndAudit(projectDir: string): Promise<iTSC_Receipt>
     });
   }
 
-  const codebaseHash = hashCodebase(project);
+  const codebaseHash = hashCodebase(project, projectDir);
   const receipt: iTSC_Receipt = {
     status: violations.length === 0 ? "COMPILATION_VERIFIED" : "QUARANTINED",
     codebaseHash,
