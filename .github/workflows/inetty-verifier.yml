@@ -28,6 +28,9 @@ on:
       - "src/quarantine/quarantine_ledger.ts"
       - "tests/test_physical_integrations.ts"
       - "PHYSICAL_INTEGRATIONS.md"
+      - "src/crypto/ots_anchoring.ts"
+      - "tests/test_ots_anchoring.ts"
+      - "OTS_INTEGRATION.md"
       - ".github/workflows/inetty-verifier.yml"
   pull_request:
     paths:
@@ -92,6 +95,7 @@ jobs:
           npx --yes tsx tests/test_e2e_pipeline.ts
           npx --yes tsx tests/test_physical_evidence_gate.ts
           npx --yes tsx tests/test_physical_integrations.ts
+          npx --yes tsx tests/test_ots_anchoring.ts
       - name: Emit sovereign mesh receipt
         run: python tools/sovereign_mesh_node.py
       - name: Emit routing receipt
