@@ -6,7 +6,10 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "start": "tsx src/server.ts",
-    "test": "tsx tests/smoke.ts && tsx tests/orchestra.ts && tsx tests/universal.ts"
+    "test": "tsx tests/smoke.ts && tsx tests/orchestra.ts && tsx tests/universal.ts",
+    "compile:strict": "tsc --noEmit",
+    "compile:itsc": "tsx src/agents/itsc/itsc_agent.ts",
+    "build": "npm run compile:itsc"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
@@ -15,6 +18,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/server": "2.4.0",
-    "zod": "^4.2.0"
+    "zod": "^4.2.0",
+    "ts-morph": "^27.0.2"
   }
 }
