@@ -9,7 +9,7 @@ services:
     restart: unless-stopped
     environment:
       ICL_WEBHOOK_PORT: "9000"
-      ICL_WEBHOOK_SECRET: ${ICL_WEBHOOK_SECRET:?set ICL_WEBHOOK_SECRET}
+      ICL_WEBHOOK_SECRET: ${ICL_WEBHOOK_SECRET:?set ICL_WEBHOOK_SECRET}\n      ICL_CONFIG_PATH: "icl.yaml"
       ICL_STORAGE_KEY_ID: ${ICL_STORAGE_KEY_ID:-}
       ICL_STORAGE_SECRET: ${ICL_STORAGE_SECRET:-}
     healthcheck:
