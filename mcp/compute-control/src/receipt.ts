@@ -62,7 +62,7 @@ export function merkleRoot(leaves: string[]): string {
     Buffer.from(h.replace(/^sha256:/, ""), "hex"),
   ])).digest());
   while (level.length > 1) {
-    const next: Uint8Array[] = [];
+    const next: Buffer[] = [];
     for (let i = 0; i < level.length; i += 2) {
       const a = level[i], b = level[i + 1] ?? a;
       next.push(createHash("sha256").update(Buffer.concat([DOMAIN_MERKLE_NODE, a, b])).digest());

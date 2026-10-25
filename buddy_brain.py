@@ -10,7 +10,10 @@ import httpx
 from pydantic import BaseModel, Field
 
 
-LANGUAGES: dict[str, list[str]] = {\n    # Backward-compatible public group used by the request contract/tests.\n    # Keep this derived from the canonical systems_embedded/core_general groups below.\n    "systems": ["Rust", "C", "C++", "Zig", "Go"],\n
+LANGUAGES: dict[str, list[str]] = {
+    # Backward-compatible public group used by the request contract/tests.
+    # Keep this derived from the canonical systems_embedded/core_general groups below.
+    "systems": ["Rust", "C", "C++", "Zig", "Go"],
     "core_general": [
         "Python","C","C++","C#","Java","JavaScript","TypeScript","Go","Rust","Swift","Kotlin",
         "Objective-C","Objective-C++","Dart","Ruby","PHP","Perl","Lua","Julia","Nim","Crystal",
