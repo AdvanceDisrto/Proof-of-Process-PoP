@@ -57,7 +57,7 @@ export function createExecutionReceipt(
 
 export function merkleRoot(leaves: string[]): string {
   if (!leaves.length) throw new Error("empty receipt set");
-  let level = leaves.map(h => createHash("sha256").update(Buffer.concat([
+  let level: Uint8Array[] = leaves.map(h => createHash("sha256").update(Buffer.concat([
     DOMAIN_MERKLE_LEAF,
     Buffer.from(h.replace(/^sha256:/, ""), "hex"),
   ])).digest());
