@@ -1,0 +1,28 @@
+name: Buddy Portable Intelligence Proof
+
+on:
+  push:
+    branches: [feat/sovereign-cpu-iproof]
+    paths:
+      - "buddy/**"
+      - "test_buddy.py"
+      - "demo.py"
+      - ".github/workflows/buddy-proof.yml"
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  buddy-proof:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install cryptography and pytest
+        run: python -m pip install --upgrade pip cryptography pytest
+      - name: Run Buddy tests
+        run: python -m pytest -q test_buddy.py
+      - name: Run Buddy demo
+        run: python demo.py
