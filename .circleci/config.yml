@@ -35,6 +35,9 @@ jobs:
       - run:
           name: Test novel PoT frontiers
           command: make test-novel-frontiers
+      - run:
+          name: Test Omniscope Protocol v2
+          command: make test-omniscope-v2
 
   intelligence-server:
     docker:
@@ -117,6 +120,12 @@ jobs:
             src/translation/physical_evidence_gate.ts
             src/edge/vonage_pot_registry.ts
             src/edge/imobile_cellular_orchestra.ts
+            src/economy/slashing_engine.ts
+            src/crypto/zk_tee_engine.ts
+            src/actuation/swarm_verifier.ts
+            src/archive/bio_archiver.ts
+            src/edge/genesis_seed.ts
+            src/omniscope_protocol_v2.ts
       - run:
           name: Test PoT integrations
           command: tsx tests/test_pot_integrations.ts && tsx tests/test_chain_oracle.ts
