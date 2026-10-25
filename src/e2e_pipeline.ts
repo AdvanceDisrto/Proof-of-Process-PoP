@@ -6,9 +6,27 @@ export function runE2EPipeline() {
   const inference = new RootCauseAgent().analyze(fabricPayload);
   const lab = new LabAutomationAPI();
 
+  const completeSyntheticEvidence = {
+    teeQuoteVerified: true,
+    otsAnchorVerified: true,
+    physicalActuatorInterlockHealthy: true,
+    commandHash: inference.hypothesisHash,
+  };
+
   return {
     inference,
-    noTee: lab.dispatchSynthesis(inference, null),
-    validTee: lab.dispatchSynthesis(inference, "TEST-TEE-ATTESTATION"),
+    noEvidence: lab.dispatchSynthesis(inference, null),
+    incompleteEvidence: lab.dispatchSynthesis(inference, {
+      ...completeSyntheticEvidence,
+      otsAnchorVerified: false,
+    }),
+    mismatchedCommand: lab.dispatchSynthesis(inference, {
+      ...completeSyntheticEvidence,
+      commandHash: "0".repeat(64),
+    }),
+    completeSyntheticEvidence: lab.dispatchSynthesis(
+      inference,
+      completeSyntheticEvidence,
+    ),
   };
 }
