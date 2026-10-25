@@ -1,4 +1,4 @@
-import { createHash, verify } from "node:crypto";
+import { createHash, verify, type KeyObject } from "node:crypto";
 import type { AerialActuationBundle } from "./a2a_aerial_gate.js";
 import { A2A_AerialGate } from "./a2a_aerial_gate.js";
 
@@ -12,7 +12,7 @@ export interface SovereignActuationBundle {
   a2aWitnessProof: AerialActuationBundle;
   humanAuthorization?: {
     operatorId: string;
-    publicKey: object;
+    publicKey: KeyObject;
     signature: Buffer;
   };
   riskLevel: "LOW" | "HIGH";
