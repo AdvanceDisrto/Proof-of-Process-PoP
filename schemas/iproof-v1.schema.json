@@ -219,6 +219,10 @@
           "$ref": "#/$defs/sha256"
         }
       }
+    },
+    "signature": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{128}$"
     }
   },
   "$defs": {
