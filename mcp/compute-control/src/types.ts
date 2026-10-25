@@ -7,6 +7,7 @@ export interface ExecutionResult { exitCode:number; startedAt:string; endedAt:st
 export interface PoPExecutionReceipt {
   schema:"pop/compute-control-execution/v2";
   operation:string;
+  prevReceiptHash:string|null;
   resource:ResourceRef;
   workload:WorkloadRequest|null;
   execution:ExecutionResult|null;
