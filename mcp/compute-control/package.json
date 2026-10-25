@@ -6,10 +6,11 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "start": "tsx src/server.ts",
-    "test": "tsx tests/smoke.ts && tsx tests/orchestra.ts && tsx tests/universal.ts",
+    "test": "npm run test:iclu-teardown && tsx tests/smoke.ts && tsx tests/orchestra.ts && tsx tests/universal.ts",
     "compile:strict": "tsc --noEmit",
     "compile:itsc": "tsx src/agents/itsc/itsc_agent.ts",
-    "build": "npm run compile:itsc"
+    "build": "npm run compile:itsc",
+    "test:iclu-teardown": "tsx tests/iclu_teardown.ts"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
