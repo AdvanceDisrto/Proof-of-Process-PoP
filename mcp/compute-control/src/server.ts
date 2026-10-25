@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/server";
 import { serveStdio } from "@modelcontextprotocol/server/stdio";
-import * as z from "zod/v4";
+import { z } from "zod";
 import { createExecutionReceipt } from "./receipt.js";
 import { assertLifecycleAllowed, assertPhysicalActuationBlocked } from "./policy.js";
 
@@ -8,7 +8,6 @@ const server = new McpServer({ name: "compute-control", version: "0.3.1" });
 
 server.registerTool("compute_capabilities", {
   description: "Return the provider-neutral Compute Control capability contract.",
-  inputSchema: {},
 }, async () => ({
   content: [{ type: "text", text: JSON.stringify({
     compute: ["cloud", "gpu", "vm", "container", "bare_metal"],
@@ -74,7 +73,6 @@ server.registerTool("create_pop_execution_receipt", {
 
 server.registerTool("physical_actuation_policy", {
   description: "Report the Compute Control MCP physical-actuation boundary.",
-  inputSchema: {},
 }, async () => {
   try {
     assertPhysicalActuationBlocked();
