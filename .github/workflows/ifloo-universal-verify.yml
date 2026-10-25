@@ -1,0 +1,52 @@
+name: iFloo Orchestra — Universal Provider Verify
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "mcp/compute-control/**"
+      - ".github/workflows/ifloo-universal-verify.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-universal-broker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install
+        working-directory: mcp/compute-control
+        run: npm install
+      - name: Typecheck
+        working-directory: mcp/compute-control
+        run: npm run typecheck
+      - name: Test universal provider routing and fail-closed receipts
+        working-directory: mcp/compute-control
+        run: npm test
+      - name: Report live credential boundaries
+        env:
+          HYPERSTACK_API_KEY: ${{ secrets.HYPERSTACK_API_KEY }}
+          RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
+          NEBIUS_API_KEY: ${{ secrets.NEBIUS_API_KEY }}
+          VAST_API_KEY: ${{ secrets.VAST_API_KEY }}
+          IO_NET_API_KEY: ${{ secrets.IO_NET_API_KEY }}
+          THUNDER_API_KEY: ${{ secrets.THUNDER_API_KEY }}
+          TENSORDOCK_API_KEY: ${{ secrets.TENSORDOCK_API_KEY }}
+          NOSANA_API_KEY: ${{ secrets.NOSANA_API_KEY }}
+        run: |
+          node - <<'NODE'
+          const keys = [
+            "HYPERSTACK_API_KEY", "RUNPOD_API_KEY", "NEBIUS_API_KEY", "VAST_API_KEY",
+            "IO_NET_API_KEY", "THUNDER_API_KEY", "TENSORDOCK_API_KEY", "NOSANA_API_KEY"
+          ];
+          for (const key of keys) {
+            console.log(key + ": " + (process.env[key] ? "credential-present" : "ACTION_REQUIRED"));
+          }
+          console.log("Live provisioning/training: ACTION_REQUIRED (verification workflow is non-spending)");
+          NODE
