@@ -1,0 +1,46 @@
+pipeline:
+  name: "iCL-Unified-Engine-Core"
+  environment: "production"
+
+dashboard_storage:
+  enabled: false
+  endpoint: ""
+  bucketName: ""
+  region: "us-east-1"
+
+jobs:
+  - name: "Compute-Control-Gate"
+    parallel: false
+    timeoutSeconds: 900
+    steps:
+      - name: "Install Compute Control Dependencies"
+        workingDirectory: "mcp/compute-control"
+        run: "npm ci"
+      - name: "iTSC Strict Compilation"
+        workingDirectory: "mcp/compute-control"
+        run: "npm run compile:itsc"
+      - name: "Compute Control Test Suite"
+        workingDirectory: "mcp/compute-control"
+        run: "npm test"
+
+  - name: "Parallel-Proof-Verification"
+    parallel: true
+    timeoutSeconds: 900
+    steps:
+      - name: "Python Proof Suite"
+        workingDirectory: "."
+        run: "python -m pytest -q"
+      - name: "iComp Rust Suite"
+        workingDirectory: "icomp"
+        run: "cargo test"
+
+  - name: "iCL-Self-Verification"
+    parallel: false
+    timeoutSeconds: 300
+    steps:
+      - name: "Compile iCL Engine"
+        workingDirectory: "icl"
+        run: "npm ci && npm run build"
+      - name: "Test iCL Engine"
+        workingDirectory: "icl"
+        run: "npm test"
