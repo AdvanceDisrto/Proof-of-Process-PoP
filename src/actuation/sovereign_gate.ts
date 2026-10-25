@@ -28,7 +28,7 @@ function canonicalAgentIntent(bundle: SovereignActuationBundle): Buffer {
       radioToF_Distance: w.radioToF_Distance,
       signature: w.signature,
     })),
-  }));
+  }) ?? "");
 }
 
 export class SovereignPhysicalGate {
