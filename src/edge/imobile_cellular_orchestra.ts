@@ -30,7 +30,7 @@ export interface OrchestraReceipt {
 export class IMobileCellularOrchestra {
   public static receiptHash(cellId: string, payloadHash: string, deviceIds: string[]): string {
     return createHash("sha256")
-      .update(JSON.stringify({ cellId, payloadHash, deviceIds: [...deviceIds].sort() }))
+      .update(JSON.stringify({ cellId, payloadHash, deviceIds: [...deviceIds].sort() }) ?? "")
       .digest("hex");
   }
 
