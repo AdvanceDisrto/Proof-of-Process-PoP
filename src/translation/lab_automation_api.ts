@@ -1,21 +1,20 @@
 import type { InferenceReceipt } from "../agentic_core/root_cause_agent.js";
+import {
+  PhysicalEvidenceGate,
+  type PhysicalDispatchEvidence,
+  type PhysicalGateState,
+} from "./physical_evidence_gate.js";
 
-export type PhysicalGateState =
-  | "LAB_DISPATCH_VERIFIED"
-  | "ACTION_REQUIRED"
-  | "QUARANTINED";
+export { PhysicalEvidenceGate };
+export type { PhysicalDispatchEvidence, PhysicalGateState };
 
 export class LabAutomationAPI {
+  private readonly gate = new PhysicalEvidenceGate();
+
   public dispatchSynthesis(
     inference: InferenceReceipt,
-    labTeeAttestation: string | null,
+    evidence: PhysicalDispatchEvidence | null,
   ): PhysicalGateState {
-    if (inference.status !== "UNVERIFIED_INFERENCE") {
-      return "QUARANTINED";
-    }
-    if (!labTeeAttestation) {
-      return "ACTION_REQUIRED";
-    }
-    return "LAB_DISPATCH_VERIFIED";
+    return this.gate.evaluate(inference, evidence);
   }
 }
