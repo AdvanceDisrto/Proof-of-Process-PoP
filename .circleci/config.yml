@@ -6,6 +6,9 @@ jobs:
       - image: cimg/python:3.12
     steps:
       - checkout
+      - run:
+          name: Install native build prerequisites
+          command: sudo apt-get update && sudo apt-get install -y build-essential cmake
       - restore_cache:
           keys:
             - v1-root-pip-{{ checksum "requirements.txt" }}
@@ -85,6 +88,18 @@ jobs:
           name: Test Cloudflare Worker
           command: node --test cloudflare-worker/test/index.test.mjs
 
+  pot-integrations:
+    docker:
+      - image: cimg/node:22.14
+    steps:
+      - checkout
+      - run:
+          name: Build PoT integration TypeScript
+          command: npx --yes tsc --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext src/anchor/multi_chain_attestation.ts src/edge/vonage_pot_registry.ts src/edge/imobile_cellular_orchestra.ts
+      - run:
+          name: Test PoT integrations
+          command: npx --yes tsx tests/test_pot_integrations.ts
+
 workflows:
   verify-projects:
     jobs:
@@ -92,3 +107,4 @@ workflows:
       - intelligence-server
       - tai-compiler
       - cloudflare-worker
+      - pot-integrations
