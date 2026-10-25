@@ -21,7 +21,9 @@ function sha256(value: string): string {
   return "sha256:" + createHash("sha256").update(value).digest("hex");
 }
 
-const DOMAIN = "iP-v1\x00";
+const DOMAIN_RECEIPT = "iP-v2\x00";
+const DOMAIN_MERKLE_LEAF = Buffer.from("iP-v2:merkle-leaf\x00");
+const DOMAIN_MERKLE_NODE = Buffer.from("iP-v2:merkle-node\x00");
 
 export function createExecutionReceipt(
   operation: string,
@@ -29,10 +31,12 @@ export function createExecutionReceipt(
   workload?: WorkloadRequest,
   execution?: ExecutionResult,
   anchor?: ChainReceipt,
+  prevReceiptHash: string | null = null,
 ): PoPExecutionReceipt & { anchor: ChainReceipt } {
   const body = {
     schema: "pop/compute-control-execution/v2" as const,
     operation,
+    prevReceiptHash,
     resource,
     workload: workload ?? null,
     execution: execution ?? null,
@@ -48,19 +52,22 @@ export function createExecutionReceipt(
         ? "ACTION_REQUIRED" as const
         : "QUARANTINED" as const,
   };
-  return { ...body, receiptHash: sha256(DOMAIN + stableStringify(body)) };
+  return { ...body, receiptHash: sha256(DOMAIN_RECEIPT + stableStringify(body)) };
 }
 
 export function merkleRoot(leaves: string[]): string {
   if (!leaves.length) throw new Error("empty receipt set");
-  let level = leaves.map(h => Buffer.from(h.replace(/^sha256:/, ""), "hex"));
+  let level = leaves.map(h => createHash("sha256").update(Buffer.concat([
+    DOMAIN_MERKLE_LEAF,
+    Buffer.from(h.replace(/^sha256:/, ""), "hex"),
+  ])).digest());
   while (level.length > 1) {
     const next: Uint8Array[] = [];
     for (let i = 0; i < level.length; i += 2) {
       const a = level[i], b = level[i + 1] ?? a;
-      next.push(createHash("sha256").update(Buffer.concat([a, b])).digest());
+      next.push(createHash("sha256").update(Buffer.concat([DOMAIN_MERKLE_NODE, a, b])).digest());
     }
     level = next;
   }
-  return "sha256:" + level[0].toString("hex");
+  return "sha256:" + Buffer.from(level[0]).toString("hex");
 }
