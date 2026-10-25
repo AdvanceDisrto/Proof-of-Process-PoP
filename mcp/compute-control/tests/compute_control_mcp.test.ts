@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { createHash, generateKeyPairSync } from "node:crypto";
+import { createHash, generateKeyPairSync, sign, verify } from "node:crypto";
 import test from "node:test";
 
 function canonicalJson(value: unknown): string {
@@ -35,7 +35,6 @@ test("canonical hash is reproducible", () => {
 test("Ed25519 signature verifies", () => {
   const { privateKey, publicKey } = generateKeyPairSync("ed25519");
   const message = Buffer.from("receipt-test");
-  const { sign, verify } = require("node:crypto") as typeof import("node:crypto");
   const signature = sign(null, message, privateKey);
   assert.equal(verify(null, message, publicKey, signature), true);
 });
