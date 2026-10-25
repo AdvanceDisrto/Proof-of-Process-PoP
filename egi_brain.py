@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 import os
 import uuid
@@ -96,7 +97,7 @@ class EpidemicGenesisBrain:
 
     def analyze_fabric_data(self, payload: FabricPayload) -> EGIReceipt:
         calculated_input_hash = self._hash_source(payload)
-        if not hashlib.compare_digest(calculated_input_hash, payload.data_hash.lower()):
+        if not hmac.compare_digest(calculated_input_hash, payload.data_hash.lower()):
             raise ValueError("QUARANTINED: Fabric payload hash mismatch.")
 
         hypothesis = self._run_correlation(payload)
