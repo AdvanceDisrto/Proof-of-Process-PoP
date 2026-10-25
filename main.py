@@ -15,6 +15,7 @@ from fastapi.responses import FileResponse, Response
 
 from iska_authority import verify_receipt
 from ledger_persistence import commit_verified_receipt, validate_ledger_record
+from buddy_brain import BuddyRequest, ask_buddy, language_catalog
 
 BASE_DIR = Path(__file__).resolve().parent
 UI_PATH = BASE_DIR / "index.html"
@@ -153,6 +154,34 @@ def verify_attestation_submission(submission: AttestationSubmission):
         "action_required": "Verify vendor hardware quote and certificate chain before promotion.",
     }
 
+
+
+@app.get("/api/buddy/capabilities")
+def buddy_capabilities():
+    return {
+        "status": "VERIFIED_PROCESS",
+        "name": "Buddy",
+        "capabilities": [
+            "read_code",
+            "understand_code",
+            "generate_code",
+            "explain_code",
+            "multi_language_registry",
+            "verification_first_workflow",
+        ],
+        "language_catalog": language_catalog(),
+        "model_configured": bool(os.getenv("BUDDY_AI_BASE_URL") and os.getenv("BUDDY_AI_MODEL")),
+    }
+
+
+@app.post("/api/buddy/chat")
+async def buddy_chat(request: BuddyRequest):
+    try:
+        return await ask_buddy(request)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Buddy model gateway failed closed: {exc}") from exc
 
 
 @app.post("/api/voice/capture")
