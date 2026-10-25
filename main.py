@@ -16,6 +16,7 @@ from fastapi.responses import FileResponse, Response
 from iska_authority import verify_receipt
 from ledger_persistence import commit_verified_receipt, validate_ledger_record
 from buddy_brain import BuddyRequest, ask_buddy, language_catalog
+from fab_api import router as fab_router
 
 BASE_DIR = Path(__file__).resolve().parent
 UI_PATH = BASE_DIR / "index.html"
@@ -36,6 +37,9 @@ app = FastAPI(
     redoc_url=None,
     openapi_url=None,
 )
+
+app.include_router(fab_router)
+
 
 app.add_middleware(
     CORSMiddleware,
