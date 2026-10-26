@@ -1,0 +1,27 @@
+name: Physical Subsea Lane Proof
+
+on:
+  push:
+    branches: [feat/sovereign-cpu-iproof]
+    paths:
+      - "parallel_subsea_lanes.py"
+      - "test_parallel_subsea_lanes.py"
+      - ".github/workflows/physical-subsea-lanes.yml"
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  physical-subsea-lanes:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test dependency
+        run: python -m pip install --upgrade pip cryptography pytest
+      - name: Run physical mapping tests
+        run: python -m pytest -q test_parallel_subsea_lanes.py
+      - name: Run 100-lane simulation
+        run: python parallel_subsea_lanes.py
