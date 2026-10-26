@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#020606">
+<title>i™ Remote Terminal</title>
+<link rel="stylesheet" href="./vendor/xterm.css">
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#020606;color:#ecfffb;font:14px ui-monospace,SFMono-Regular,Menlo,monospace}.shell{min-height:100dvh;display:grid;grid-template-rows:auto 1fr auto;padding:env(safe-area-inset-top) 10px env(safe-area-inset-bottom)}header,.keys{display:flex;gap:8px;align-items:center;padding:10px;background:#06100fdd;backdrop-filter:blur(18px)}header{border-bottom:1px solid #183c37}.brand{font-weight:900;letter-spacing:.12em}.state{margin-left:auto;font-size:11px;opacity:.8}.term{min-height:0;padding:8px;background:#000;border:1px solid #122a27;border-radius:16px;overflow:hidden}.keys{overflow:auto;border-top:1px solid #183c37}.keys button,header button{border:1px solid #285a52;background:#081a17;color:#dffcf5;border-radius:10px;padding:10px 13px;font:inherit;white-space:nowrap}.keys button:active,header button:active{transform:translateY(1px)}#token{width:11rem;background:#06100f;border:1px solid #285a52;color:white;border-radius:10px;padding:10px}
+</style>
+</head>
+<body>
+<div class="shell">
+<header><span class="brand">i™ REMOTE TERMINAL</span><input id="token" type="password" placeholder="iKey token"><button id="connect">CONNECT</button><span id="state" class="state">OFFLINE</span></header>
+<div id="terminal" class="term"></div>
+<div class="keys"><button data-k="\u001b">ESC</button><button data-k="\t">TAB</button><button data-k="\u0003">CTRL-C</button><button data-k="\u0004">CTRL-D</button><button data-k="\u001a">CTRL-Z</button><button data-k="\u001b[A">↑</button><button data-k="\u001b[B">↓</button><button data-k="\u001b[D">←</button><button data-k="\u001b[C">→</button><button data-k="|">|</button><button data-k="~">~</button></div>
+</div>
+<script src="./vendor/xterm.js"></script>
+<script>
+const term=new Terminal({cursorBlink:true,convertEol:true,fontSize:14,theme:{background:"#000000"}});
+term.open(document.getElementById("terminal"));term.focus();
+let ws=null;
+const state=document.getElementById("state"),token=document.getElementById("token");
+function endpoint(){const p=location.protocol==="https:"?"wss":"ws";return p+"://"+location.hostname+":8768/terminal"}
+async function connect(){
+ if(ws)ws.close(); state.textContent="CONNECTING";
+ // Browsers cannot set Authorization headers on WebSocket handshakes. The PWA
+ // therefore uses the first message as an authentication envelope.
+ ws=new WebSocket(endpoint()); ws.binaryType="arraybuffer";
+ ws.onopen=()=>{ws.send(JSON.stringify({type:"auth",token:token.value}));};
+ ws.onmessage=e=>{if(typeof e.data==="string"){try{const m=JSON.parse(e.data);if(m.type==="hello"){state.textContent="CONNECTED · "+m.host;return}if(m.type==="error"){state.textContent="DENIED";return}}catch{term.write(e.data)}}else term.write(new Uint8Array(e.data))};
+ ws.onclose=()=>state.textContent="OFFLINE";ws.onerror=()=>state.textContent="ERROR";
+}
+document.getElementById("connect").onclick=connect;
+term.onData(data=>{if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:"input",data}))});
+new ResizeObserver(()=>{if(!ws||ws.readyState!==1)return;const cols=Math.max(20,Math.floor(innerWidth/9));const rows=Math.max(10,Math.floor((innerHeight-130)/18));term.resize(cols,rows);ws.send(JSON.stringify({type:"resize",cols,rows}))}).observe(document.getElementById("terminal"));
+document.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{const data=b.dataset.k;if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:"input",data}));term.focus()});
+</script>
+</body></html>
