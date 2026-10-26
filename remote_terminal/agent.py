@@ -19,7 +19,6 @@ import pty
 import secrets
 import signal
 import struct
-import subprocess
 import termios
 from pathlib import Path
 
@@ -27,7 +26,6 @@ import websockets
 from websockets.exceptions import ConnectionClosed
 
 ROOT = Path(__file__).resolve().parent
-WEB = ROOT / "web"
 
 
 def token_hash(token: str) -> str:
@@ -47,7 +45,6 @@ async def terminal_session(ws, shell: str) -> None:
         os.execvp(shell, [shell, "-l"])
 
     loop = asyncio.get_running_loop()
-    closed = asyncio.Event()
 
     def on_output() -> None:
         try:
@@ -56,7 +53,6 @@ async def terminal_session(ws, shell: str) -> None:
             data = b""
         if not data:
             loop.remove_reader(fd)
-            closed.set()
             return
         asyncio.create_task(ws.send(data))
 
@@ -91,16 +87,29 @@ async def terminal_session(ws, shell: str) -> None:
             pass
 
 
-def authorized(ws, expected_hash: str) -> bool:
+async def authenticate(ws, expected_hash: str) -> bool:
+    """Accept native Authorization header or browser first-message auth."""
     auth = ws.request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
+    if auth.startswith("Bearer "):
+        supplied = auth.removeprefix("Bearer ").strip()
+        return hmac.compare_digest(token_hash(supplied), expected_hash)
+
+    try:
+        raw = await asyncio.wait_for(ws.recv(), timeout=10)
+        if not isinstance(raw, str):
+            return False
+        event = json.loads(raw)
+        if event.get("type") != "auth":
+            return False
+        supplied = str(event.get("token", ""))
+        return hmac.compare_digest(token_hash(supplied), expected_hash)
+    except (asyncio.TimeoutError, ConnectionClosed, json.JSONDecodeError):
         return False
-    supplied = auth.removeprefix("Bearer ").strip()
-    return hmac.compare_digest(token_hash(supplied), expected_hash)
 
 
 async def handler(ws, expected_hash: str, shell: str) -> None:
-    if not authorized(ws, expected_hash):
+    if not await authenticate(ws, expected_hash):
+        await ws.send(json.dumps({"type": "error", "error": "unauthorized"}))
         await ws.close(code=4401, reason="unauthorized")
         return
     await ws.send(json.dumps({
