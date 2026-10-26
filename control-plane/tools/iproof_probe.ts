@@ -36,9 +36,9 @@ const receipt = buildEvidence(
   "islr-iproof-schema-probe",
 );
 
-mkdirSync("../../evidence/islr", { recursive: true });
+mkdirSync("../evidence/islr", { recursive: true });
 writeFileSync(
-  "../../evidence/islr/iproof-probe.json",
+  "../evidence/islr/iproof-probe.json",
   JSON.stringify(receipt, null, 2) + "\n",
   "utf8",
 );
