@@ -1,1 +1,0 @@
-"""i™ intelligence authority modules."""

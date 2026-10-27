@@ -1,6 +1,0 @@
-{
- "name":"@innovulis/threshold-prototype-tests", "version":"0.1.0", "private":true,
- "type":"module", "scripts":{"test":"node --test tests.mjs"},
- "devDependencies":{"ethers":"6.15.0", "ganache":"7.9.2", "solc":"0.8.24"}
-}
-

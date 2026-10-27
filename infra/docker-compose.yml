@@ -1,9 +1,0 @@
-services:
-  pop-engine:
-    image: node:20-bookworm
-    working_dir: /app
-    volumes:
-      - ../intelligence/server:/app
-    command: ["npm","run","build"]
-    environment:
-      IDR_TRUSTED_PUBLIC_KEY_HEX: "${IDR_TRUSTED_PUBLIC_KEY_HEX:-}"

@@ -1,106 +1,86 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#020506">
-<meta name="description" content="i™ Proof of Process — executed models, evidence, receipts and verification.">
-<title>i™ Proof of Process · i™🧾 Executed Models</title>
-<style>
-:root{--bg:#020506;--panel:rgba(7,18,18,.72);--line:rgba(92,255,224,.24);--g:#73ffe2;--g2:#b9fff3;--muted:#83a9a4;--white:#f1fffc;--shadow:0 24px 90px rgba(0,0,0,.5)}
-*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--white);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-body{overflow-x:hidden;background:radial-gradient(circle at 50% 10%,rgba(48,255,218,.09),transparent 32%),linear-gradient(180deg,#020506,#010303)}
-body:before{content:"";position:fixed;inset:0;pointer-events:none;background:linear-gradient(115deg,transparent 0 45%,rgba(115,255,226,.025) 50%,transparent 55%);mix-blend-mode:screen}
-a{color:inherit;text-decoration:none}.shell{width:min(1240px,calc(100% - 28px));margin:auto;padding:22px 0 48px}
-.top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:22px}.brand{font:900 20px/1 monospace;letter-spacing:.16em}.brand b{color:var(--g)}.links{display:flex;gap:8px;flex-wrap:wrap}.link{padding:9px 12px;border:1px solid var(--line);border-radius:999px;background:rgba(115,255,226,.025);font:700 10px monospace;letter-spacing:.08em}.link:hover{background:rgba(115,255,226,.08)}
-.hero{display:grid;grid-template-columns:1.15fr .85fr;gap:16px}.panel{border:1px solid var(--line);border-radius:24px;background:var(--panel);box-shadow:var(--shadow),inset 0 0 40px rgba(115,255,226,.025);backdrop-filter:blur(18px)}.copy{padding:34px}.eyebrow{color:var(--g);font:800 10px monospace;letter-spacing:.22em}.title{font:900 clamp(48px,8vw,92px)/.88 monospace;letter-spacing:.08em;margin:14px 0}.title span{display:block}.lead{max-width:650px;color:var(--g2);font:500 14px/1.8 monospace}.law{margin-top:24px;padding:16px 18px;border-left:2px solid var(--g);background:rgba(115,255,226,.035);font:700 11px/1.7 monospace}.receipt{padding:28px;display:flex;flex-direction:column;justify-content:center;min-height:100%}.receipt-head{display:flex;justify-content:space-between;align-items:center}.receipt-title{font:900 28px monospace;letter-spacing:.12em}.seal{width:48px;height:48px;border:1px solid var(--g);border-radius:50%;display:grid;place-items:center;color:var(--g);box-shadow:0 0 30px rgba(115,255,226,.12);font-size:22px}.status{display:inline-block;width:max-content;margin:18px 0 20px;padding:7px 10px;border:1px solid var(--line);border-radius:999px;color:var(--g);font:800 9px monospace;letter-spacing:.14em}.rows{display:grid;gap:14px;border-top:1px dashed rgba(185,255,243,.2);border-bottom:1px dashed rgba(185,255,243,.2);padding:18px 0}.row small{display:block;color:var(--muted);font:700 8px monospace;letter-spacing:.15em}.row b{display:block;margin-top:5px;color:var(--white);font:800 11px monospace;word-break:break-all}.section{margin-top:16px}.section-title{display:flex;align-items:end;justify-content:space-between;gap:12px;margin:26px 0 12px}.section-title h2{margin:0;font:900 19px monospace;letter-spacing:.1em}.section-title p{margin:0;color:var(--muted);font:500 10px monospace}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.card{padding:20px;min-height:185px}.card h3{margin:0;font:900 14px monospace;letter-spacing:.08em}.card .repo{margin-top:8px;color:var(--g);font:600 9px monospace;word-break:break-all}.card p{color:var(--muted);font:500 10px/1.65 monospace}.tag{display:inline-block;margin-top:8px;padding:5px 8px;border:1px solid var(--line);border-radius:999px;color:var(--g2);font:800 8px monospace;letter-spacing:.08em}.chain{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}.step{padding:14px 10px;text-align:center;border:1px solid var(--line);border-radius:15px;background:rgba(115,255,226,.025)}.step strong{display:block;color:var(--g);font:900 12px monospace}.step span{display:block;margin-top:6px;color:var(--muted);font:600 8px/1.4 monospace}.footer{margin-top:22px;padding:18px;text-align:center;color:var(--muted);font:600 9px/1.7 monospace}.footer b{color:var(--g)}
-@media(max-width:900px){.hero{grid-template-columns:1fr}.grid{grid-template-columns:1fr}.chain{grid-template-columns:repeat(2,1fr)}.copy{padding:25px}.top{align-items:flex-start;flex-direction:column}.links{width:100%}}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#020915">
+  <meta name="description" content="i™ i-PoP local cryptographic evidence verifier">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <title>i™ · iVerify 🧾</title>
+  <style>
+  :root{color-scheme:dark;--blue:#70dcff;--text:#eafaff;--edge:rgba(103,212,255,.32)}
+  *{box-sizing:border-box}body{margin:0;min-height:100vh;font-family:system-ui,-apple-system,sans-serif;color:var(--text);background:radial-gradient(ellipse at 70% -10%,#075083 0%,#041525 32%,#02060c 76%)}
+  main{max-width:760px;margin:0 auto;padding:36px 18px 80px}header{display:flex;align-items:center;justify-content:space-between;gap:12px}h1{font-size:clamp(36px,7vw,62px);letter-spacing:-.05em;margin:46px 0 14px}h1 strong{color:var(--blue)}
+  p{line-height:1.6;color:#b1cdda}.kicker{font-weight:750;letter-spacing:.25em;color:var(--blue);font-size:11px}
+  .glass{background:linear-gradient(130deg,rgba(81,193,255,.11),rgba(9,27,52,.6));border:1px solid var(--edge);border-radius:24px;padding:24px;margin-top:20px;box-shadow:0 25px 75px #0006;backdrop-filter:blur(18px)}
+  label{display:block;margin:19px 0 8px;font-size:14px;font-weight:700}input{display:block;width:100%;padding:12px;border:1px dashed var(--edge);border-radius:12px;background:#081c31;color:var(--text)}
+  button{cursor:pointer;margin-top:22px;border:1px solid #8debff;border-radius:12px;padding:14px 22px;background:linear-gradient(120deg,#16b3dc,#1e719f);color:#fff;font-weight:800;font-size:15px}button:disabled{opacity:.5;cursor:wait}
+  pre{white-space:pre-wrap;overflow-wrap:anywhere;color:#cdf7ff;font-size:12px;line-height:1.65}#state{font-size:15px;font-weight:850;color:#ffbfc0}.note{font-size:12px}code{color:#9deaff}footer{margin-top:30px;font-size:12px;color:#86a6b8}
+  </style>
 </head>
-<body>
-<div class="shell">
-<header class="top">
-  <div class="brand"><b>i™</b> PROOF OF PROCESS</div>
-  <nav class="links">
-    <a class="link" href="https://github.com/AdvanceDisrto/Proof-of-Process-PoP">PoP</a>
-    <a class="link" href="https://github.com/i-iNNOVULiS/iNNOVULIS">iNNOVULIS</a>
-    <a class="link" href="https://github.com/AdvanceDisrto/Advance-Distro">Advance Distro</a>
-  </nav>
-</header>
-
-<section class="hero">
-  <article class="panel copy">
-    <div class="eyebrow">i™🧾 EXECUTED MODELS</div>
-    <h1 class="title"><span>EXECUTE.</span><span>RECORD.</span><span>PROVE.</span></h1>
-    <p class="lead">A model is not called executed because code exists. Execution produces observable state change. iProof binds that execution to hashes, traces and a signed receipt.</p>
-    <div class="law">FAILURE STAYS RECORDED → CORRECTION REFERENCES THE FAILURE → NEW EXECUTION PROVES THE CORRECTION → ONLY SUCCESSFUL EVIDENCE ADVANCES THE CHAIN.</div>
-  </article>
-  <article class="panel receipt">
-    <div class="receipt-head"><div class="receipt-title">i™🧾</div><div class="seal">✓</div></div>
-    <div class="status" id="truth">CHECKING LIVE EVIDENCE</div>
-    <div class="rows">
-      <div class="row"><small>MASTER MANIFEST</small><b id="rid">Loading…</b></div>
-      <div class="row"><small>PROCESS STATE</small><b id="state">Loading…</b></div>
-      <div class="row"><small>PHYSICAL GATE</small><b id="gate">ACTION_REQUIRED</b></div>
-      <div class="row"><small>OBSERVED</small><b id="time">Loading…</b></div>
-    </div>
-  </article>
+<body><main>
+<header><span class="kicker">i™ · JUST ASK BUDDY™</span><span>🧾 iVERIFY</span></header>
+<h1>THE PROOF<br><strong>STAYS WITH YOU.</strong></h1>
+<p>Verify a cryptographic receipt on this device, without a server. The record cannot replace independent proof that the underlying real-world event occurred.</p>
+<section class="glass">
+  <div class="kicker">OFFLINE RECEIPT CHECK</div>
+  <label for="registry">1 · Choose an independently trusted key registry (.json)</label>
+  <input id="registry" type="file" accept="application/json,.json">
+  <label for="bundle">2 · Signed evidence (.json or .tar.gz)</label>
+  <input id="bundle" type="file" accept="application/json,.json">
+  <label for="carrier">Optional scannable carrier (QR/NFC text; does not confer trust)</label>
+  <input id="carrier" type="text" maxlength="128" placeholder="itm-pop:v1:sha256:…">
+  <button id="verify" type="button">Verify locally</button>
+  <p class="note">Neither file is uploaded. The registry must be verified out-of-band: a key provided inside the evidence itself is not proof of trust. v2 accepts a bounded TAR.GZ and JSON. OTS/Bitcoin and hardware quotes are not independently verified.</p>
 </section>
-
-<section class="section">
-  <div class="section-title"><h2>THREE REPOSITORIES · ONE EVIDENCE FABRIC</h2><p>Source boundaries remain explicit.</p></div>
-  <div class="grid">
-    <a class="panel card" href="https://github.com/AdvanceDisrto/Proof-of-Process-PoP">
-      <h3>PROOF OF PROCESS</h3><div class="repo">AdvanceDisrto/Proof-of-Process-PoP</div>
-      <p>Execution, receipts, MMR, physical gates, iProof, sovereign CPU and the integrated run-all chain.</p>
-      <span class="tag">PRIMARY EXECUTION SURFACE</span>
-    </a>
-    <a class="panel card" href="https://github.com/i-iNNOVULiS/iNNOVULIS">
-      <h3>iNNOVULIS</h3><div class="repo">i-iNNOVULiS/iNNOVULIS</div>
-      <p>i™ ecosystem identity and implementation source. Its own repository state remains a separate evidence surface.</p>
-      <span class="tag">ECOSYSTEM SOURCE</span>
-    </a>
-    <a class="panel card" href="https://github.com/AdvanceDisrto/Advance-Distro">
-      <h3>ADVANCE DISTRO</h3><div class="repo">AdvanceDisrto/Advance-Distro</div>
-      <p>Distribution layer and production-facing ecosystem source. No status is upgraded merely because it is linked here.</p>
-      <span class="tag">DISTRIBUTION SOURCE</span>
-    </a>
-  </div>
+<section class="glass" role="status" aria-live="polite">
+  <div class="kicker">GATE STATE</div>
+  <p id="state">ACTION_REQUIRED · No evidence loaded</p>
+  <pre id="details">Disbursement: BLOCKED
+Physical actuation: BLOCKED
+Bitcoin anchor: NOT VERIFIED</pre>
 </section>
-
-<section class="section">
-  <div class="section-title"><h2>EXECUTED MODEL CHAIN</h2><p>Observable process, not parameter-count theater.</p></div>
-  <div class="chain">
-    <div class="step"><strong>01</strong><span>INITIALIZE</span></div>
-    <div class="step"><strong>02</strong><span>FORWARD</span></div>
-    <div class="step"><strong>03</strong><span>LOSS</span></div>
-    <div class="step"><strong>04</strong><span>BACKPROP + UPDATE</span></div>
-    <div class="step"><strong>05</strong><span>STATE / CHECKPOINT HASH</span></div>
-    <div class="step"><strong>06</strong><span>SIGNED iPROOF</span></div>
-  </div>
-</section>
-
-<footer class="panel footer"><b>Technology should serve humanity.</b><br>i™ Proof of Process · The receipt records reality; it cannot manufacture reality.</footer>
-</div>
-<script>
-async function load(){
-  const now=()=>new Date().toISOString().replace("T"," ").replace("Z"," UTC");
-  document.getElementById("time").textContent=now();
-  try{
-    const r=await fetch("/reality/manifest",{cache:"no-store"});
-    if(!r.ok)throw new Error("manifest unavailable");
-    const d=await r.json();
-    document.getElementById("rid").textContent=d.master_manifest_hash?d.master_manifest_hash.slice(0,28)+"…":"UNSEALED";
-    document.getElementById("state").textContent=d.state||"UNKNOWN";
-    document.getElementById("gate").textContent=d.physical_gate||"ACTION_REQUIRED";
-    document.getElementById("truth").textContent=d.physical_gate==="MEASURED_PASS"?"TRUTH LOCK: VERIFIED":"PROCESS STATE: RECORDED";
-  }catch(e){
-    document.getElementById("rid").textContent="OFFLINE / NOT OBSERVED";
-    document.getElementById("state").textContent="ACTION_REQUIRED";
-    document.getElementById("truth").textContent="EVIDENCE API UNAVAILABLE";
-  }
+<footer>i™ Proof of Process · Offline-first, fail-closed. A signature is evidence of key control, not a guarantee of truth.</footer>
+</main><script type="module">
+import {verifyEvidence} from './verifier.mjs';
+import {initializeWasm} from './wasm-sha256.mjs';
+import {readBundleArchive} from './archive.mjs';
+const button = document.getElementById('verify');
+const state = document.getElementById('state');
+const details = document.getElementById('details');
+button.addEventListener('click', async () => {
+  button.disabled = true;
+  state.textContent = 'CHECKING';
+  try {
+    const registryFile = document.getElementById('registry').files[0];
+    const bundleFile = document.getElementById('bundle').files[0];
+    if (!registryFile || !bundleFile) throw new Error('Both JSON files are required');
+    if (registryFile.size > 2_000_000 || bundleFile.size > 15_000_000) throw new Error('File size limit exceeded');
+    await initializeWasm(); // fail closed on cache miss, do not silently fallback
+    const registry = JSON.parse(await registryFile.text());
+    const bundle = /\.(tar\.gz|tgz)$/i.test(bundleFile.name) ?
+      (await readBundleArchive(bundleFile)).bundle : JSON.parse(await bundleFile.text());
+    const outcome = await verifyEvidence(bundle, registry);
+    const carrier = document.getElementById('carrier').value.trim();
+    if (carrier) {
+      const expected = 'itm-pop:v1:' + bundle.body?.merkle_root;
+      outcome.carrier_state = carrier === expected ?
+        'ROOT_MATCH_ONLY_NOT_CERTIFICATION' : 'REFUTED_CARRIER_ROOT_MISMATCH';
+      if (carrier !== expected) outcome.status = 'REJECTED';
+    }
+    state.textContent = outcome.status;
+    details.textContent = JSON.stringify(outcome, null, 2);
+  } catch (err) {
+    state.textContent = 'REJECTED';
+    details.textContent = (err.message || 'Read failure') + '\nDisbursement: BLOCKED\nPhysical actuation: BLOCKED';
+  } finally { button.disabled = false; }
+});
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js', {scope:'./'}).catch(() => {
+    // Offline state requires a successful install; verification still works online.
+    document.getElementById('state').textContent = 'ACTION_REQUIRED · Offline installation unavailable';
+  });
 }
-load();
-</script>
-</body>
-</html>
+</script></body></html>
