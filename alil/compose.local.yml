@@ -1,0 +1,20 @@
+# Local Docker execution only. Requires explicit receipt keys and pinned registry in ./runtime.
+services:
+  innovulis-receipt-machine:
+    build:
+      context: ..
+      dockerfile: alil/Dockerfile
+    user: "65532:65532"
+    restart: unless-stopped
+    read_only: true
+    environment:
+      PYTHONDONTWRITEBYTECODE: "1"
+      INNOVULIS_RECEIPT_ENDPOINT: "${INNOVULIS_RECEIPT_ENDPOINT:-}"
+      INNOVULIS_RECEIPT_TOKEN: "${INNOVULIS_RECEIPT_TOKEN:-}"
+    volumes:
+      - ../runtime:/runtime:rw
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    # No network port exposed. Explicitly keep local-only unless a trusted HTTPS destination is configured.
+
