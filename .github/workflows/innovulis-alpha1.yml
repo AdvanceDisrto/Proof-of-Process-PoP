@@ -1,0 +1,45 @@
+name: 'iNNOVULIS Alpha-1 API and Simulation (no production deploy)'
+on:
+  push:
+    paths:
+      - 'innovulis/**'
+      - 'tests/test_alpha1_api.py'
+      - 'docs/INNOVULIS_**'
+      - 'docs/ALPHA1_**'
+      - 'docs/CAUSAL_**'
+      - 'docs/API_INTEGRATION_GUIDE.md'
+      - 'docs/ROLLOUT_RELEASE_GATES.md'
+      - 'openapi.json'
+      - 'requirements-dev.txt'
+      - '.github/workflows/innovulis-alpha1.yml'
+  pull_request:
+    paths:
+      - 'innovulis/**'
+      - 'tests/test_alpha1_api.py'
+      - 'openapi.json'
+      - 'requirements-dev.txt'
+      - '.github/workflows/innovulis-alpha1.yml'
+permissions:
+  contents: read
+jobs:
+  alpha1-reference:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install isolated API test dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Structural and adversarial API tests
+        run: python -m pytest -q tests/test_alpha1_api.py
+      - name: Ensure OpenAPI contract has not drifted
+        run: python -m innovulis.openapi --check
+      - name: Execute synthetic Genesis run and signed chain verification
+        run: python -m innovulis.simulate --out alpha1-demo-output
+      - name: Attach clearly labeled SIMULATED example only
+        uses: actions/upload-artifact@v4
+        with:
+          name: alpha1-simulated-receipt-not-hardware
+          path: alpha1-demo-output/
+          if-no-files-found: error
