@@ -1,5 +1,6 @@
 """Buddy portable runtime: discover, adapt, execute, prove, hand off."""
 import time
+from copy import deepcopy
 from .identity import derive_from_seed, public_hex
 from .discovery import probe
 from .device_model import build_device_model
@@ -19,7 +20,7 @@ class Buddy:
         if approver_priv is not None and plan.get("feasible"):
             approval=sign_approval(approver_priv, plan["plan_hash"], self.id, self.state["seq"])
         execution=run_task(task, plan)
-        knowledge={"lessons":self.state["lessons"],"prior_receipt_count":len(self.state["receipts"]),
+        knowledge={"lessons":deepcopy(self.state["lessons"]),"prior_receipt_count":len(self.state["receipts"]),
                    "chain_root":sha(jcs([r["receipt_id"] for r in self.state["receipts"]])) if self.state["receipts"] else None}
         receipt=build_receipt(self.priv,device,plan,execution,task,self.state["seq"],self.state["last_receipt"],knowledge,approval)
         self.state["seq"]+=1; self.state["last_receipt"]=receipt["receipt_id"]; self.state["receipts"].append(receipt)

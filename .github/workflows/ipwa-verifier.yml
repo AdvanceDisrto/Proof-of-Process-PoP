@@ -1,0 +1,53 @@
+name: i™ iPWA offline verifier
+on:
+  push:
+    paths:
+      - 'ipwa/**'
+      - 'tests/ipwa-verifier.test.mjs'
+      - 'tests/ipwa-wasm-v2.test.mjs'
+      - 'schemas/**'
+      - 'receipts/**'
+      - 'tools/ipwa_v2_package.py'
+      - 'tools/test_ipwa_schema_v2.py'
+      - '.github/workflows/ipwa-verifier.yml'
+  pull_request:
+    paths:
+      - 'ipwa/**'
+      - 'tests/ipwa-verifier.test.mjs'
+      - '.github/workflows/ipwa-verifier.yml'
+permissions:
+  contents: read
+jobs:
+  offline-verifier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install WASM compiler and linker
+        run: sudo apt-get update && sudo apt-get install -y clang lld
+      - name: Compile actual freestanding WebAssembly SHA-256
+        run: |
+          clang --target=wasm32 -Oz -nostdlib -fno-builtin \
+            -Wl,--no-entry -Wl,--export-memory -Wl,--export=sha256_digest \
+            -Wl,--export=__heap_base -Wl,--initial-memory=131072 \
+            -Wl,--max-memory=16777216 -Wl,--stack-first \
+            -o ipwa/verifier_bg.wasm ipwa/src/wasm_sha256.c
+      - name: JavaScript syntax
+        run: node --check ipwa/verifier.mjs && node --check ipwa/sw.js
+      - name: Check generated WASM known answer vectors and evidence archive
+        run: node --test tests/ipwa-wasm-v2.test.mjs
+      - name: Cryptographic tamper / fail-closed tests
+        run: node --test tests/ipwa-verifier.test.mjs
+
+      - name: Validate federal and global schema structures + negative cases
+        run: python -m pip install 'jsonschema>=4.22,<5' && python tools/test_ipwa_schema_v2.py
+      - name: Generate unsigned build bundle + independent demo trust registry
+        run: node ipwa/make_demo.mjs ./ipwa-demo && python tools/ipwa_v2_package.py
+      - name: Upload local-only iPWA v2 build evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: ipwa-v2-draft-evidence
+          path: ipwa-v2-dist/
+          if-no-files-found: error

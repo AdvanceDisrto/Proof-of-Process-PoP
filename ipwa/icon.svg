@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="iVerify">
+<defs><radialGradient id="o"><stop stop-color="#187ab6"/><stop offset="1" stop-color="#020915"/></radialGradient></defs>
+<rect width="512" height="512" rx="110" fill="url(#o)"/>
+<circle cx="256" cy="256" r="184" fill="none" stroke="#69ddff" stroke-opacity=".65" stroke-width="7"/>
+<text x="256" y="348" text-anchor="middle" font-family="Arial,sans-serif" font-size="304" font-weight="bold" fill="#eaffff">i</text>
+</svg>

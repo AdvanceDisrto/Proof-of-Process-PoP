@@ -1,0 +1,263 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://proofofprocess.online/schemas/ITM-FED-DISBURSEMENT-v1.schema.json",
+  "title": "ITM-FED-DISBURSEMENT-v1",
+  "description": "STRUCTURAL JSON schema only. No verified device, bank, Medicaid service, KYC, Bitcoin, or human consent is established.",
+  "type": "object",
+  "required": [
+    "protocol",
+    "state",
+    "body",
+    "attestations"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "protocol": {
+      "const": "ITM-FED-DISBURSEMENT-v1"
+    },
+    "state": {
+      "enum": [
+        "DRAFT_PENDING_ATTESTATION",
+        "READY_FOR_INDEPENDENT_REVIEW"
+      ]
+    },
+    "body": {
+      "type": "object",
+      "required": [
+        "transaction_id",
+        "amount_minor",
+        "currency",
+        "issued_at",
+        "expires_at",
+        "intent_hash",
+        "beneficiary_commitment",
+        "execution_proof",
+        "anchor",
+        "agency",
+        "program",
+        "eligibility",
+        "do_not_pay",
+        "service"
+      ],
+      "properties": {
+        "transaction_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{32}$"
+        },
+        "amount_minor": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "currency": {
+          "const": "USD"
+        },
+        "issued_at": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "expires_at": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "intent_hash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "beneficiary_commitment": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "execution_proof": {
+          "type": "object",
+          "required": [
+            "tee_quote",
+            "verifier_report_hash"
+          ],
+          "properties": {
+            "tee_quote": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "verifier_report_hash": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "anchor": {
+          "type": "object",
+          "required": [
+            "type",
+            "verified",
+            "proof_hash"
+          ],
+          "properties": {
+            "type": {
+              "const": "OTS_BITCOIN"
+            },
+            "verified": {
+              "const": false
+            },
+            "proof_hash": {
+              "type": "null"
+            }
+          },
+          "additionalProperties": false
+        },
+        "agency": {
+          "type": "string",
+          "minLength": 2
+        },
+        "program": {
+          "type": "string",
+          "minLength": 2
+        },
+        "eligibility": {
+          "type": "object",
+          "required": [
+            "decision",
+            "evidence_root"
+          ],
+          "properties": {
+            "decision": {
+              "enum": [
+                "ELIGIBLE",
+                "INELIGIBLE",
+                "UNVERIFIED"
+              ]
+            },
+            "evidence_root": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          },
+          "additionalProperties": false
+        },
+        "do_not_pay": {
+          "type": "object",
+          "required": [
+            "decision",
+            "evidence_root"
+          ],
+          "properties": {
+            "decision": {
+              "enum": [
+                "CLEAR",
+                "BLOCKED",
+                "UNVERIFIED"
+              ]
+            },
+            "evidence_root": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          },
+          "additionalProperties": false
+        },
+        "service": {
+          "type": "object",
+          "required": [
+            "decision",
+            "evidence_root"
+          ],
+          "properties": {
+            "decision": {
+              "enum": [
+                "EXTERNALLY_CORROBORATED",
+                "SELF_REPORTED",
+                "UNVERIFIED"
+              ]
+            },
+            "evidence_root": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "attestations": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "required": [
+          "role",
+          "key_id",
+          "signature_hex"
+        ],
+        "properties": {
+          "role": {
+            "enum": [
+              "provider",
+              "eligibility_verifier",
+              "dnp_verifier",
+              "service_verifier",
+              "agency_authorizer"
+            ]
+          },
+          "key_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "signature_hex": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{128}$"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "DRAFT_PENDING_ATTESTATION"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "attestations": {
+            "maxItems": 0
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "attestations": {
+            "minItems": 5,
+            "maxItems": 5
+          },
+          "body": {
+            "properties": {
+              "execution_proof": {
+                "properties": {
+                  "tee_quote": {
+                    "type": "string",
+                    "pattern": "^base64:[A-Za-z0-9+/]{8,}={0,2}$"
+                  },
+                  "verifier_report_hash": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

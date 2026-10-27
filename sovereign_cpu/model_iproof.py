@@ -52,6 +52,10 @@ def generate_iproof(initial_hash, final_hash, steps_log, model_params):
         "final_state_hash": f"sha256:{final_hash}",
         "execution_trace": steps_log,
         "state": "TRAINING_VERIFIED_PROCESS",
+        "parameter_claim_note": (
+            "This GenesisModel architecture contains 7312 parameters; "
+            "parameter count is measured from the instantiated model."
+        ),
     }
 
     payload_bytes = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
@@ -108,11 +112,6 @@ def run_genesis_training(output_path="ifm_genesis_receipt.json"):
     final_hash = hash_weights(model)
     receipt = generate_iproof(
         initial_hash, final_hash, steps_log, param_count
-    )
-
-    receipt["payload"]["parameter_claim_note"] = (
-        "This GenesisModel architecture contains 7312 parameters; "
-        "parameter count is measured from the instantiated model."
     )
 
     with open(output_path, "w", encoding="utf-8") as f:
