@@ -37,3 +37,11 @@ docker compose -f alil/compose.local.yml logs --tail=100
 
 The Docker service exposes **zero ports**, watches only a local mounted inbox and signs local intake receipts. Production endpoint enrollment, non-exportable HSM/YubiKey signing, certificate pinning, outside anchoring, IAM controls, key rotation, real incoming app connectors and host deployment are not included.
 
+### Independent verifier (no private machine key needed)
+
+```bash
+python -m alil.verify --records runtime/records --machine-public-key-hex YOUR_EXTERNALLY_PINNED_32_BYTE_ED25519_PUBLIC_KEY_HEX
+```
+
+This verifies the intake-machine's Ed25519 signatures and hash-chain continuity. It does not verify the original source receipts unless source registry and originals are also supplied, and it cannot establish underlying legal facts, physical reality or immutability without a separately witnessed external anchor.
+

@@ -142,3 +142,14 @@ def test_rejected_cannot_claim_legal_facts(setup):
     write(d)
     assert eng.cycle_once()['REJECTED'] == 1
 
+
+def test_independent_machine_signature_verification(setup):
+    from alil.verify import verify_chain
+    eng, _, signer, make, write = setup
+    write(make()); eng.cycle_once()
+    result = verify_chain(eng.root / 'records', pub_hex(signer))
+    assert result['receipt_count'] == 1
+    assert result['underlying_events_verified'] is False
+    with pytest.raises(ValueError):
+        verify_chain(eng.root / 'records', pub_hex(Ed25519PrivateKey.generate()))
+

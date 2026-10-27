@@ -10,3 +10,7 @@ The resulting comparison is a HEURISTIC FLAG. It must never be equated to legal 
 
 If Groth16 is selected: before any mainnet use, run an independently auditable multi-party **phase-2 ceremony**, publish transcripts, validate with `snarkjs zkey verify`, and commission a security audit. Don't publish private inputs, salts or witness files.
 
+## CI demonstration proofs and Solidity verifier
+
+The GitHub Actions circuit job can run `bash scripts/dev-groth16.sh`: it creates **single-runner development-only** Groth16 ceremony files, proves a fabricated demo witness, checks the proof and an altered public output, and exports a Solidity verifier marked `DEV_ONLY_Verifier.sol`. No private witness, salt, proving key or toxic-waste-related files are included in the published CI artifact. This does **not** fulfill independent production multi-party setup, circuit auditing, authenticated real-world evidence, legal adjudication, or on-chain deployment.
+

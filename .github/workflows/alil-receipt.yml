@@ -31,10 +31,19 @@ jobs:
         working-directory: zkp
       - run: npm test
         working-directory: zkp
+      - name: Generate and verify DEVELOPMENT-ONLY Groth16 proof and Solidity verifier
+        run: bash scripts/dev-groth16.sh
+        working-directory: zkp
       - uses: actions/upload-artifact@v4
         with:
-          name: alil-circom-UNTRUSTED-SOURCE-COMPILE
-          path: zkp/build/
+          name: alil-zk-DEV-ONLY-UNTRUSTED-GROTH16
+          path: |
+            zkp/build/PretextualShield.r1cs
+            zkp/build/DEV_ONLY_Verifier.sol
+            zkp/build/DEV_ONLY_verification_key.json
+            zkp/build/DEV_ONLY_proof.json
+            zkp/build/DEV_ONLY_public.json
+            zkp/build/DEV_ONLY_verification_result.json
   solidity-source-compile:
     runs-on: ubuntu-latest
     steps:
