@@ -175,6 +175,9 @@ print("[Envelop] gate=", v["physical_gate"], "self_verify=OK")
 PY
 
 python3 tools/master_run_receipt.py "$OUT"
+# Verify the sealed artifact inventory, pytest report and MMR independently.
+# Keep this verifier's stdout outside OUT, otherwise it would mutate the sealed tree.
+python3 tools/verify_master_run.py "$OUT"
 
 echo
 echo "======================================================================"
