@@ -1,0 +1,37 @@
+{
+  "protocol": "ITM-FED-DISBURSEMENT-v1",
+  "state": "DRAFT_PENDING_ATTESTATION",
+  "body": {
+    "transaction_id": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+    "amount_minor": 450000,
+    "currency": "USD",
+    "issued_at": 1,
+    "expires_at": 1,
+    "intent_hash": "sha256:67525a6827bd9520b555232bbfed50bab9a2e325c95aa8c3df7f5ee44db691bf",
+    "beneficiary_commitment": "sha256:67525a6827bd9520b555232bbfed50bab9a2e325c95aa8c3df7f5ee44db691bf",
+    "execution_proof": {
+      "tee_quote": null,
+      "verifier_report_hash": null
+    },
+    "anchor": {
+      "type": "OTS_BITCOIN",
+      "verified": false,
+      "proof_hash": null
+    },
+    "agency": "HHS_CMS",
+    "program": "Medicaid",
+    "eligibility": {
+      "decision": "UNVERIFIED",
+      "evidence_root": "sha256:67525a6827bd9520b555232bbfed50bab9a2e325c95aa8c3df7f5ee44db691bf"
+    },
+    "do_not_pay": {
+      "decision": "UNVERIFIED",
+      "evidence_root": "sha256:67525a6827bd9520b555232bbfed50bab9a2e325c95aa8c3df7f5ee44db691bf"
+    },
+    "service": {
+      "decision": "UNVERIFIED",
+      "evidence_root": "sha256:67525a6827bd9520b555232bbfed50bab9a2e325c95aa8c3df7f5ee44db691bf"
+    }
+  },
+  "attestations": []
+}

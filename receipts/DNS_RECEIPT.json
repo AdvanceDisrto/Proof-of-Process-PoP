@@ -1,0 +1,11 @@
+{
+  "protocol": "ITM-DNS-INTENT-v1",
+  "domain": "proofofprocess.online",
+  "desired_resolution_target": "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55n4",
+  "observed_dns_target": null,
+  "owner_public_key": null,
+  "owner_signature": null,
+  "signed": false,
+  "status": "ACTION_REQUIRED_YUBIKEY_AND_DNS_PUBLICATION",
+  "note": "Proposed DNS/IPFS association only. No DNS changed. CID not retrieved/verified."
+}
