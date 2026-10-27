@@ -70,3 +70,6 @@ node --test tests/ipwa-verifier.test.mjs
 Deploy `ipwa/` as static HTTPS content, and check home-screen launch + airplane
 mode manually on the actual iPhone and Android versions being supported. PNG 192/512 and an SVG fallback are included, but a browser/PWA is not immune
 to OS policy, storage eviction or user uninstall.
+
+## v2 real WebAssembly and TAR.GZ
+`verifier_bg.wasm` is SHA-256 built with LLVM/clang from `src/wasm_sha256.c`; signature verification remains browser WebCrypto Ed25519. This is **not a compiled Rust Ed25519 WASM implementation**. The iPWA needs an initial HTTPS load, then cache-only operation for installed assets. Upload `public-evidence.tar.gz` plus a separately validated trust registry. A QR/barcode merely transports the Merkle root; no camera scanner or physical scanner attestations are claimed.

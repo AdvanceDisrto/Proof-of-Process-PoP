@@ -22,5 +22,7 @@ jobs:
           node-version: '22'
       - name: JavaScript syntax
         run: node --check ipwa/verifier.mjs && node --check ipwa/sw.js
+      - name: Check generated WASM known answer vectors and evidence archive
+        run: node --test tests/ipwa-wasm-v2.test.mjs
       - name: Cryptographic tamper / fail-closed tests
         run: node --test tests/ipwa-verifier.test.mjs

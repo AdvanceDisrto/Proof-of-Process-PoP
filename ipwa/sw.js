@@ -1,6 +1,6 @@
 // Offline-first. On a controlled client, NEVER fall back to the network.
-const CACHE = 'itm-ipop-verifier-static-v1';
-const ASSETS = ['./', './index.html', './verifier.mjs', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png'];
+const CACHE = 'itm-ipop-verifier-static-v2';
+const ASSETS = ['./', './index.html', './verifier.mjs', './wasm-sha256.mjs', './archive.mjs', './verifier_bg.wasm', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
 });

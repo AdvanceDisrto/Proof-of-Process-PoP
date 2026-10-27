@@ -1,3 +1,4 @@
+import {digestWasm,isWasmReady} from './wasm-sha256.mjs';
 const encoder = new TextEncoder();
 const HASH_RE = /^sha256:[0-9a-f]{64}$/;
 const HEX_KEY = /^[0-9a-f]{64}$/;
@@ -32,7 +33,7 @@ function concat(...arrays) {
   for (const part of arrays) { out.set(part, offset); offset += part.length; }
   return out;
 }
-async function sha256(bytes) { return new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)); }
+async function sha256(bytes) { return isWasmReady()?digestWasm(bytes):new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)); }
 async function namedHash(prefix, bytes) { return sha256(concat(encoder.encode(prefix + '\0'), bytes)); }
 export async function hashEvent(event) {
   const {event_hash, ...unsigned} = event;
