@@ -1,60 +1,43 @@
-# i™ Proof of Process (PoP)
+# i™ iNNOVULIS — Threshold Receipt Mesh / Article XIX reference
 
-**Truth is Processing Made Permanent. The Receipt is the Judge.**
+**Scope: real source code and unit tests, not a live BFT network or issued legal certification.**
 
-Executable, fail-closed evidence architecture binding declared human/machine process evidence into independently signed domain receipts and an aggregate Merkle commitment.
+This review build addresses the three independently actionable failures in the previous blueprint: all jurors in one pod; containers with host-wide privileges masquerading as PUFs; and on-chain approval counts without cryptographic voting / rotation. Cryptographic attestations confirm that **configured keys endorsed a receipt hash**, not that any physical, legal or financial event is objectively true. No action in this repository can freeze somebody else's money, certify an indictment, or automatically transfer assets.
 
-## Parallel Proof of Process
+## Trust boundaries
 
-Independent domains execute concurrently and sign their own results. The aggregator verifies signatures and receipt IDs, constructs a domain-separated binary Merkle tree, and emits either `VERIFIED_PROCESS` or `INCOMPLETE`.
+1. Three separately registered **Ed25519 juror public keys**, each associated with one role. The signed payload commits to `receipt_sha256`, `policy_sha256`, a 128-bit request nonce, approval or rejection, issue and expiry timestamps. Each signed payload is verified under a separately pinned trust registry SHA-256. At least **2 of 3** distinct valid approvals are required, with a valid negative vote acting as a veto. The relay signs a new machine receipt (`ITM-RELAY-SIGNED-RECEIPT-v1`) whose permission flags remain **false**. The heuristic/consensus decision must never be mistaken for real-world causality or legal adjudication.
+2. `contracts/EpistemicReceiptQuorum.sol` implements a **different cryptographic domain**: five secp256k1 Ethereum EIP-712 validator keys. Three distinct, ordered signatures bound to the chain, verifying contract, receipt root, validator epoch and short deadline confirm the root in a non-custodial registry. It does not independently verify juror signatures or ZKP proofs. Governance rotation/pause requires a **separate 3-of-5** governor-key quorum, typed data including epoch, nonce and deadline. Node key rotation always preserves five active node slots and increments epoch. No unilateral `owner` or `onlyArbitrator` key exists.
+3. The Kubernetes manifests are **review-only, intentionally unpublishable** (use `registry.invalid`). Each juror is a different hardened Deployment with same-label anti-affinity. The relay and verifier are in different namespaces with explicit ingress/egress NetworkPolicies. **The CNI must be checked and an actual denied connection demonstrated**; the YAML itself proves no physical isolation, genuine PUF, or independent provider. TPM2 is a separate unprovisioned bare-metal reference with a device-plugin requirement, and cannot claim PUF authenticity on its own.
+4. The optional API (`threshold.server`) binds **127.0.0.1** by default and requires *independently provisioned* pinned registry, raw 32-byte relay Ed25519 key (mode 0400), and a random bearer token. Payloads limited to 16KiB. No external forwarding, financial settlement, autonomous deployment, or remote origin is enabled.
 
-The aggregate proves cryptographic inclusion/integrity of the listed receipts. It does **not** prove simultaneity, picosecond physical timing, hardware independence, physical energy, fabrication, or the truth of payload claims that lack independent evidence.
-
-## Truth boundaries
-
-- Software timestamps are nanosecond-valued clock observations, not physical picosecond measurements.
-- Ephemeral Ed25519 keys prove possession for a run, not hardware binding. Production identities require a stable external signer/HSM/TPM evidence path.
-- Energy is `ACTION_REQUIRED` with a null value when hardware counters are unavailable or ambiguous.
-- PPSO physical promotion requires explicit traceable measurement evidence.
-- The reality manifest is a signed taxonomy. Its hash fingerprints the manifest, not the universe.
-- Canonical serialization currently uses a deterministic JSON subset and is not claimed as strict RFC 8785 JCS.
-
-## Run
+## Verified development test commands
 
 ```bash
-python -m pip install -r requirements.txt
-make build-all
+python -m pip install 'cryptography>=43,<48' 'pytest>=8,<10' 'fastapi>=0.115,<1' 'httpx>=0.27,<1' 'uvicorn>=0.30,<1' 'PyYAML>=6,<7'
+python -m pytest -q tests/test_quorum.py tests/test_relay_api.py tests/test_k8s_review.py
+cd contracts
+npm install --no-audit --no-fund --ignore-scripts
+npm test               # builds with solc 0.8.24 and executes adversarial tests in Ganache
 ```
 
-Outputs include `PARALLEL_MASTER_RECEIPT.json` and `MASTER_REALITY_LEDGER.json`. CI uploads them as evidence artifacts.
+CI compiles the actual Solidity bytecode, checks `3 of 5` and `2 of 3` failure/success cases, rejects duplicate/expired/wrong-domain attestations and proves governance key rotation/pausing in a throwaway EVM. No mainnet/testnet assets are deployed. Do not promote this to a production service without a security review, source-lock pinning, HSM integration, real CNI isolation checks, on-chain audit, and operator approval.
 
-## iBare portable receipt core
+## API example
 
-`baremetal/` contains a small C receipt core designed to be portable across
-x86_64, ARM64, ARM32, and RISC-V builds. The cryptographic core has no libc
-dependency and is compiled in CI with `-ffreestanding -fno-builtin`.
+`POST /v1/quorum` accepts a **JSON document** containing: `protocol=ITM-JUROR-QUORUM-BATCH-v1`, `receipt_sha256`, `policy_sha256`, `request_nonce`, `attestations` with source `juror`, `decision`, `issued_at`, `expires_at`, `signature_hex`. Authentication uses a separately configured bearer token; a valid response contains the machine `evaluation` and an Ed25519 `relay_signature_hex`. No validation means no receipt. **Importantly, clients must independently verify the response signature and pinned relay key**; JSON label `QUORUM_APPROVED` alone is untrusted.
 
-The host adapter is intentionally separate: on Linux it can observe whether
-`/dev/tpm0` or `/dev/tpmrm0` exists, but **device presence is not TPM
-attestation**. A real TPM quote/signature must be supplied by a platform
-adapter before a receipt can claim hardware-rooted evidence.
+## Falsification and deployment gates
 
-Build and self-test:
+- 1 or 2 EVM votes cannot confirm; 3 distinct valid signatures can. Signatures expire and cannot be reused for other contract, chain, root or node epoch. Duplicate root rejected; high-s ECDSA rejected.
+- Node rotation must require 3 of 5 governors, invalidate old keys and old node-epoch signatures, and keep five nodes. Governance nonce must advance for pause/resume/replacement. The current prototype has no recovery path if ≥3 governance keys are lost or compromised; that is a design review blocker.
+- Valid source-signed approval alone cannot make false sensor measurements true. AI hallucinations cannot be universally detected by DAG topology alone. ZKP circuits prove a mathematical relation to declared inputs, not source integrity.
+- Kubernetes scheduling and policy enforcement must be established with **runtime probes**, signed container images and attested physical inventory. Five containers is not evidence of five hardware roots; three cloud pods may share a control plane.
+- Never claim an AND-threshold attack cost like `3/5 hardware AND 2/3 models AND 51% oracles AND 3/5 DAO` until **every gate is demonstrably wired together**, independent, and fail-closed. This reference does NOT implement an oracle majority, an HSM signature, a real PUF, BFT state-machine replication or financial escrow.
 
-```bash
-make test-ibare
-```
+## Status legend
 
-This verifies the SHA-256 known-answer vector, deterministic receipt payload
-construction, and both freestanding object compilation and the host adapter.
+`LOCAL_TEST_PASS`: a concrete test passed. `CI_PASS`: remote workflow passed on an exact commit. `ACTION_REQUIRED`: lack of sufficient evidence or authorization. `BLOCKED`: no settlement or physical actuation. `NOT_DEPLOYED`: the repo is not the cluster.
 
-iBare reports `VERIFIED_PROCESS (Software)` for its generated software receipt
-and keeps `Physical Gate: ACTION_REQUIRED` until independently measured
-hardware evidence is supplied.
+Never label demos `IMMUTABLE REALITY`, `PHYSICALLY CERTIFIED`, or `CRIME PROVEN`.
 
-## Epidemic Genesis Intelligence
-
-The repository also contains an executable epidemic model of epistemic genesis in tools/epidemic_genesis.py.
-A variant is generated by an agent's repertoire plus mutation/recombination, then tested against evidence and an external checker. Graph propagation tracks unexposed/exposed/trial/adopted/retained/failed/quarantined states and exposes R0, effective Rt, mutation pressure, fidelity, trust, and contradiction-driven quarantine.
-
-The model intentionally separates a cryptographic receipt's self-consistency signal from external verification. A high-R0 variant can spread confidence without establishing correctness. EPIDEMIC_GENESIS.md defines the boundary and the tests exercise the generate-and-test and population dynamics.
