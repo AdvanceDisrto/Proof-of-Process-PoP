@@ -30,6 +30,8 @@
   <input id="registry" type="file" accept="application/json,.json">
   <label for="bundle">2 · Signed evidence (.json or .tar.gz)</label>
   <input id="bundle" type="file" accept="application/json,.json">
+  <label for="carrier">Optional scannable carrier (QR/NFC text; does not confer trust)</label>
+  <input id="carrier" type="text" maxlength="128" placeholder="itm-pop:v1:sha256:…">
   <button id="verify" type="button">Verify locally</button>
   <p class="note">Neither file is uploaded. The registry must be verified out-of-band: a key provided inside the evidence itself is not proof of trust. v2 accepts a bounded TAR.GZ and JSON. OTS/Bitcoin and hardware quotes are not independently verified.</p>
 </section>
@@ -61,6 +63,13 @@ button.addEventListener('click', async () => {
     const bundle = /\.(tar\.gz|tgz)$/i.test(bundleFile.name) ?
       (await readBundleArchive(bundleFile)).bundle : JSON.parse(await bundleFile.text());
     const outcome = await verifyEvidence(bundle, registry);
+    const carrier = document.getElementById('carrier').value.trim();
+    if (carrier) {
+      const expected = 'itm-pop:v1:' + bundle.body?.merkle_root;
+      outcome.carrier_state = carrier === expected ?
+        'ROOT_MATCH_ONLY_NOT_CERTIFICATION' : 'REFUTED_CARRIER_ROOT_MISMATCH';
+      if (carrier !== expected) outcome.status = 'REJECTED';
+    }
     state.textContent = outcome.status;
     details.textContent = JSON.stringify(outcome, null, 2);
   } catch (err) {
