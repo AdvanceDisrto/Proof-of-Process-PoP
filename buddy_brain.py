@@ -157,23 +157,17 @@ async def ask_buddy(request: BuddyRequest) -> BuddyResponse:
         "actions remain ACTION_REQUIRED and are never authorized by model output."
     )
     if request.mode == "explain" and request.code:
-        system += "
-Explain the supplied code and identify concrete failure modes before proposing changes."
+        system += "\nExplain the supplied code and identify concrete failure modes before proposing changes."
     if request.mode == "generate":
-        system += "
-Generate production-oriented code with explicit types and tests. Do not fabricate external API responses."
+        system += "\nGenerate production-oriented code with explicit types and tests. Do not fabricate external API responses."
     if request.language:
-        system += f"
-Target language: {request.language}."
+        system += f"\nTarget language: {request.language}."
 
     payload = {
         "model": config.model,
         "messages": [
             {"role": "system", "content": system},
-            {"role": "user", "content": request.message + (f"
-
-CODE:
-{request.code}" if request.code else "")},
+            {"role": "user", "content": request.message + (f"\n\nCODE:\n{request.code}" if request.code else "")},
         ],
         "temperature": 0.1,
     }
