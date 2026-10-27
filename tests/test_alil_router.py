@@ -153,3 +153,31 @@ def test_independent_machine_signature_verification(setup):
     with pytest.raises(ValueError):
         verify_chain(eng.root / 'records', pub_hex(Ed25519PrivateKey.generate()))
 
+
+def test_live_cycle_processes_incoming_signed_receipt(setup):
+    """Observed a receipt arriving AFTER the long-running watcher was started."""
+    import sys
+    import time
+    eng, _, _, make, write = setup
+    proc = subprocess.Popen([
+        sys.executable, '-m', 'alil.router', '--root', str(eng.root),
+        '--registry', str(eng.registry_path), '--machine-key', str(eng.signer_path),
+        '--machine-key-id', eng.machine_key_id, '--watch', '--interval', '1',
+    ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    try:
+        time.sleep(.4)
+        write(make('arrived-after-watcher'), 'new-arrival.json')
+        deadline = time.monotonic() + 7
+        output = eng.root / 'records' / '000000000001.json'
+        while not output.exists() and time.monotonic() < deadline:
+            if proc.poll() is not None:
+                raise AssertionError('router exited unexpectedly')
+            time.sleep(.1)
+        assert output.exists(), 'watcher did not ingest incoming receipt within cycle'
+        assert eng.chain()[0] == 1
+    finally:
+        proc.terminate()
+        try: proc.communicate(timeout=3)
+        except subprocess.TimeoutExpired:
+            proc.kill(); proc.communicate(timeout=3)
+
