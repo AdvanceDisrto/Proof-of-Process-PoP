@@ -23,7 +23,7 @@ def setup(tmp_path):
         'public_key_hex': pub_hex(src)}}}
     regpath = tmp_path / 'registry.json'
     regpath.write_bytes(canonical(registry))
-    engine = Router(tmp_path / 'runtime', regpath, machinepath, 'machine-01')
+    engine = Router(tmp_path / 'runtime', regpath, machinepath, 'machine-01', sha256(regpath.read_bytes()))
     def make(rid='receipt1', body=None):
         d = {'protocol': 'ITM-INGRESS-RECEIPT-v1', 'source_id': 'bank-01',
              'receipt_id': rid, 'key_id': 'src-01', 'body': body if body is not None else {'amount_minor': 1250}}
@@ -162,7 +162,7 @@ def test_live_cycle_processes_incoming_signed_receipt(setup):
     proc = subprocess.Popen([
         sys.executable, '-m', 'alil.router', '--root', str(eng.root),
         '--registry', str(eng.registry_path), '--machine-key', str(eng.signer_path),
-        '--machine-key-id', eng.machine_key_id, '--watch', '--interval', '1',
+        '--machine-key-id', eng.machine_key_id, '--registry-sha256', eng.registry_sha256, '--watch', '--interval', '1',
     ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     try:
         time.sleep(.4)
@@ -180,4 +180,12 @@ def test_live_cycle_processes_incoming_signed_receipt(setup):
         try: proc.communicate(timeout=3)
         except subprocess.TimeoutExpired:
             proc.kill(); proc.communicate(timeout=3)
+
+
+def test_out_of_band_registry_pin_blocks_substitution(setup):
+    eng, _, _, make, write = setup
+    forged = eng.registry_path.read_bytes() + b' '
+    eng.registry_path.write_bytes(forged)
+    with pytest.raises(ValueError, match='fingerprint'):
+        Router(eng.root, eng.registry_path, eng.signer_path, eng.machine_key_id, eng.registry_sha256)
 

@@ -136,10 +136,14 @@ class Router:
     registry_path: Path
     signer_path: Path
     machine_key_id: str
+    registry_sha256: str
 
     def __post_init__(self):
         self.root = Path(self.root)
-        self.registry = load_json(self.registry_path.read_bytes())
+        registry_raw = self.registry_path.read_bytes()
+        if not HEX64.fullmatch(self.registry_sha256) or sha256(registry_raw) != self.registry_sha256:
+            raise ValueError("source trust registry fingerprint differs from independent pin")
+        self.registry = load_json(registry_raw)
         if not isinstance(self.registry, dict) or set(self.registry) != {"protocol", "keys"} or self.registry["protocol"] != "ITM-TRUST-REGISTRY-v1" or not isinstance(self.registry["keys"], dict):
             raise ValueError("externally pinned trust registry required")
         self.signer = load_signer(self.signer_path)
@@ -267,13 +271,14 @@ def main():
     ap.add_argument("--registry", type=Path, required=True)
     ap.add_argument("--machine-key", type=Path, required=True)
     ap.add_argument("--machine-key-id", default="local-machine")
+    ap.add_argument("--registry-sha256", required=True, help="pinned SHA-256 of source trust registry from independent channel")
     ap.add_argument("--watch", action="store_true", help="run polling cycles indefinitely")
     ap.add_argument("--interval", type=float, default=5)
     ap.add_argument("--forward-url", default=os.environ.get("INNOVULIS_RECEIPT_ENDPOINT"))
     args = ap.parse_args()
     if args.interval < 1:
         ap.error("minimum interval one second")
-    router = Router(args.root, args.registry, args.machine_key, args.machine_key_id)
+    router = Router(args.root, args.registry, args.machine_key, args.machine_key_id, args.registry_sha256)
     while True:
         print(json.dumps(router.cycle_once(), sort_keys=True), flush=True)
         if args.forward_url:

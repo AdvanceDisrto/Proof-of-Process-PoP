@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-from .router import canonical, SOURCE_DOMAIN, pub_hex
+from .router import canonical, SOURCE_DOMAIN, pub_hex, sha256
 
 
 def main():
@@ -28,6 +28,7 @@ def main():
       'role':'source', 'source_id':'demo-device', 'active':True,
       'public_key_hex':pub_hex(source)}}}
     (a.root / 'registry.json').write_bytes(canonical(registry))
+    print('out_of_band_demo_registry_sha256:',sha256((a.root / 'registry.json').read_bytes()))
     data = {'protocol':'ITM-INGRESS-RECEIPT-v1','source_id':'demo-device',
             'receipt_id':'DEMONSTRATION-ONLY-0001','key_id':'source-dev',
             'body':{'claim':'EXAMPLE_ONLY_NOT_INDEPENDENTLY_CORROBORATED'}}
