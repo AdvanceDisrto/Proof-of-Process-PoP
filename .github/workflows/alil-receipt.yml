@@ -4,6 +4,9 @@ on:
     paths: ['alil/**','go/hashproof/**','zkp/**','contracts/ReceiptArbitrator.sol','tests/test_alil_router.py','.github/workflows/alil-receipt.yml']
   pull_request:
     paths: ['alil/**','go/hashproof/**','zkp/**','contracts/ReceiptArbitrator.sol','tests/test_alil_router.py','.github/workflows/alil-receipt.yml']
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:

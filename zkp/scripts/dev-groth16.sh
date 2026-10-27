@@ -3,7 +3,7 @@ set -euo pipefail
 # Demo-only single-runner trusted setup: no public ceremony / no production security.
 # Executed only inside CI, no private witness/zkey exported as artifact.
 cd "$(dirname "$0")/.."
-./node_modules/.bin/snarkjs powersoftau new bn128 12 build/unsafe_0000.ptau
+./node_modules/.bin/snarkjs powersoftau new bn128 10 build/unsafe_0000.ptau
 entropy="$(head -c 48 /dev/urandom | od -An -tx1 | tr -d ' \n')"
 ./node_modules/.bin/snarkjs powersoftau contribute build/unsafe_0000.ptau build/unsafe_0001.ptau \
   --name="CI_SINGLE_PARTICIPANT_DEV_NOT_PRODUCTION" -e="$entropy"
