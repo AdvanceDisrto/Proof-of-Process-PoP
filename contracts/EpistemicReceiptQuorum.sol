@@ -37,8 +37,11 @@ contract EpistemicReceiptQuorum {
     constructor(address[5] memory nodes, address[5] memory governors) {
         for (uint256 i; i < MEMBERS; ++i) {
             if (nodes[i] == address(0) || isNode[nodes[i]]) revert InvalidMember();
-            if (governors[i] == address(0) || isGovernor[governors[i]]) revert InvalidMember();
             isNode[nodes[i]] = true;
+        }
+        for (uint256 i; i < MEMBERS; ++i) {
+            if (governors[i] == address(0) || isGovernor[governors[i]] || isNode[governors[i]])
+                revert InvalidMember(); // no overlapping initial control domains
             isGovernor[governors[i]] = true;
         }
     }
@@ -96,7 +99,7 @@ contract EpistemicReceiptQuorum {
         emit ReceiptQuorumReached(root, nodeEpoch, block.timestamp);
     }
     function rotateNode(address oldNode, address newNode, uint256 deadline, bytes[] calldata signatures) external {
-        if (!isNode[oldNode] || newNode == address(0) || isNode[newNode]) revert InvalidMember();
+        if (!isNode[oldNode] || newNode == address(0) || isNode[newNode] || isGovernor[newNode]) revert InvalidMember();
         _deadline(deadline);
         bytes32 digest = _hashTypedData(keccak256(abi.encode(ROTATE_NODE_TYPEHASH, oldNode, newNode,
             nodeEpoch, governanceEpoch, governanceNonce, deadline)));
@@ -108,7 +111,7 @@ contract EpistemicReceiptQuorum {
         emit NodeRotated(oldNode, newNode, nodeEpoch);
     }
     function rotateGovernor(address oldGovernor, address newGovernor, uint256 deadline, bytes[] calldata signatures) external {
-        if (!isGovernor[oldGovernor] || newGovernor == address(0) || isGovernor[newGovernor]) revert InvalidMember();
+        if (!isGovernor[oldGovernor] || newGovernor == address(0) || isGovernor[newGovernor] || isNode[newGovernor]) revert InvalidMember();
         _deadline(deadline);
         bytes32 digest = _hashTypedData(keccak256(abi.encode(ROTATE_GOV_TYPEHASH, oldGovernor,
             newGovernor, governanceEpoch, governanceNonce, deadline)));

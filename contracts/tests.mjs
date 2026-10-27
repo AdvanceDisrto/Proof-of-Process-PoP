@@ -131,3 +131,27 @@ test('no fund withdrawal or external asset transfer ABI',()=>{
  assert.equal(names.includes('transferFunds'),false);
 });
 
+
+test('validator and governance signing keys must be disjoint at genesis',async()=>{
+ const e=await setup();try{
+ const factory=new ethers.ContractFactory(target.abi,'0x'+target.evm.bytecode.object,e.payer);
+ const badGovs=[e.nodes[4].address,...e.governors.slice(1).map(x=>x.address)];
+ await expectRevert(factory.deploy(e.nodes.map(x=>x.address),badGovs));
+ }finally{close(e)}
+});
+
+test('governance cannot rotate a validator into a governance key',async()=>{
+ const e=await setup();try{const d={oldNode:e.nodes[0].address,newNode:e.governors[4].address,
+ nodeEpoch:1n,governanceEpoch:1n,nonce:0n,deadline:e.deadline};
+ const signs=await signatures(e.governors.slice(0,3),e.domain,'RotateNode',d);
+ await expectRevert(e.contract.rotateNode(d.oldNode,d.newNode,d.deadline,signs));
+ }finally{close(e)}
+});
+
+test('governance cannot rotate a governor into a validator key',async()=>{
+ const e=await setup();try{const d={oldGovernor:e.governors[0].address,newGovernor:e.nodes[4].address,
+ governanceEpoch:1n,nonce:0n,deadline:e.deadline};
+ const signs=await signatures(e.governors.slice(0,3),e.domain,'RotateGovernor',d);
+ await expectRevert(e.contract.rotateGovernor(d.oldGovernor,d.newGovernor,d.deadline,signs));
+ }finally{close(e)}
+});
