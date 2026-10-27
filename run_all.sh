@@ -82,7 +82,9 @@ manifest = {
 print(json.dumps(manifest, indent=2))
 PY
 
-log_step pytest_all python3 -m pytest -q
+# Bind machine-readable per-test results into the evidence directory.
+# Do not suppress the pytest exit code: a failed suite must abort before sealing.
+log_step pytest_all python3 -m pytest -q --json-report --json-report-file="$OUT/test_results.json"
 
 python3 - <<'PY' > "$OUT/host_capabilities.json"
 import json, platform, os
