@@ -28,8 +28,10 @@
   <div class="kicker">OFFLINE RECEIPT CHECK</div>
   <label for="registry">1 · Choose an independently trusted key registry (.json)</label>
   <input id="registry" type="file" accept="application/json,.json">
-  <label for="bundle">2 · Signed evidence (.json or .tar.gz)</label>
-  <input id="bundle" type="file" accept="application/json,.json">
+  <label for="pin">2 · Trusted registry SHA-256 fingerprint (verified independently)</label>
+  <input id="pin" type="text" maxlength="64" pattern="[0-9a-fA-F]{64}" autocapitalize="off" spellcheck="false" placeholder="64 lowercase hex digits">
+  <label for="bundle">3 · Signed evidence (.json or .tar.gz)</label>
+  <input id="bundle" type="file" accept=".json,.tar.gz,.tgz,application/json,application/gzip">
   <label for="carrier">Optional scannable carrier (QR/NFC text; does not confer trust)</label>
   <input id="carrier" type="text" maxlength="128" placeholder="itm-pop:v1:sha256:…">
   <button id="verify" type="button">Verify locally</button>
@@ -56,9 +58,14 @@ button.addEventListener('click', async () => {
   try {
     const registryFile = document.getElementById('registry').files[0];
     const bundleFile = document.getElementById('bundle').files[0];
-    if (!registryFile || !bundleFile) throw new Error('Both JSON files are required');
+    if (!registryFile || !bundleFile) throw new Error('Choose a trusted registry and signed evidence');
     if (registryFile.size > 2_000_000 || bundleFile.size > 15_000_000) throw new Error('File size limit exceeded');
     await initializeWasm(); // fail closed on cache miss, do not silently fallback
+    const fingerprint = document.getElementById('pin').value.trim().toLowerCase();
+    if(!/^[0-9a-f]{64}$/.test(fingerprint)) throw new Error('Independent registry SHA-256 fingerprint required');
+    const actualBytes = new Uint8Array(await crypto.subtle.digest('SHA-256',await registryFile.arrayBuffer()));
+    const actual = Array.from(actualBytes, b => b.toString(16).padStart(2,'0')).join('');
+    if(actual !== fingerprint) throw new Error('Independent registry fingerprint mismatch');
     const registry = JSON.parse(await registryFile.text());
     const bundle = /\.(tar\.gz|tgz)$/i.test(bundleFile.name) ?
       (await readBundleArchive(bundleFile)).bundle : JSON.parse(await bundleFile.text());
