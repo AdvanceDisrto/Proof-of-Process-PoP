@@ -1,0 +1,48 @@
+name: i™ Master Receipt Evidence Binding
+
+on:
+  pull_request:
+    paths:
+      - run_all.sh
+      - requirements.txt
+      - tools/master_run_receipt.py
+      - tools/verify_master_run.py
+      - tests/test_master_run_receipt.py
+      - .github/workflows/master-receipt-proof.yml
+  push:
+    branches: [main]
+    paths:
+      - run_all.sh
+      - requirements.txt
+      - tools/master_run_receipt.py
+      - tools/verify_master_run.py
+      - tests/test_master_run_receipt.py
+      - .github/workflows/master-receipt-proof.yml
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install isolated test dependencies
+        run: python -m pip install 'pytest>=8,<9' 'pytest-json-report>=1.5,<2'
+      - name: Test fail-closed master receipt creation and verification
+        run: python -m pytest -q tests/test_master_run_receipt.py --json-report --json-report-file=/tmp/master-receipt-tests.json
+      - name: Verify captured test report is non-empty and green
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("/tmp/master-receipt-tests.json")
+          r=json.loads(p.read_text())
+          assert r["exitcode"] == 0 and r["summary"]["passed"] >= 8, r["summary"]
+          assert len(r["tests"]) >= 8 and all(t["outcome"] == "passed" for t in r["tests"])
+          print("MASTER_RECEIPT_LOCAL_VERIFIER_TESTS_PASS", r["summary"])
+          PY

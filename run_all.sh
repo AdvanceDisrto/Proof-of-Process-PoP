@@ -82,7 +82,9 @@ manifest = {
 print(json.dumps(manifest, indent=2))
 PY
 
-log_step pytest_all python3 -m pytest -q
+# Bind machine-readable per-test results into the evidence directory.
+# Do not suppress the pytest exit code: a failed suite must abort before sealing.
+log_step pytest_all python3 -m pytest -q --json-report --json-report-file="$OUT/test_results.json"
 
 python3 - <<'PY' > "$OUT/host_capabilities.json"
 import json, platform, os
@@ -173,6 +175,9 @@ print("[Envelop] gate=", v["physical_gate"], "self_verify=OK")
 PY
 
 python3 tools/master_run_receipt.py "$OUT"
+# Verify the sealed artifact inventory, pytest report and MMR independently.
+# Keep this verifier's stdout outside OUT, otherwise it would mutate the sealed tree.
+python3 tools/verify_master_run.py "$OUT"
 
 echo
 echo "======================================================================"
