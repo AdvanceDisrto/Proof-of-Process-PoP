@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#020915">
+  <meta name="description" content="i™ i-PoP local cryptographic evidence verifier">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <title>i™ · iVerify 🧾</title>
+  <style>
+  :root{color-scheme:dark;--blue:#70dcff;--text:#eafaff;--edge:rgba(103,212,255,.32)}
+  *{box-sizing:border-box}body{margin:0;min-height:100vh;font-family:system-ui,-apple-system,sans-serif;color:var(--text);background:radial-gradient(ellipse at 70% -10%,#075083 0%,#041525 32%,#02060c 76%)}
+  main{max-width:760px;margin:0 auto;padding:36px 18px 80px}header{display:flex;align-items:center;justify-content:space-between;gap:12px}h1{font-size:clamp(36px,7vw,62px);letter-spacing:-.05em;margin:46px 0 14px}h1 strong{color:var(--blue)}
+  p{line-height:1.6;color:#b1cdda}.kicker{font-weight:750;letter-spacing:.25em;color:var(--blue);font-size:11px}
+  .glass{background:linear-gradient(130deg,rgba(81,193,255,.11),rgba(9,27,52,.6));border:1px solid var(--edge);border-radius:24px;padding:24px;margin-top:20px;box-shadow:0 25px 75px #0006;backdrop-filter:blur(18px)}
+  label{display:block;margin:19px 0 8px;font-size:14px;font-weight:700}input{display:block;width:100%;padding:12px;border:1px dashed var(--edge);border-radius:12px;background:#081c31;color:var(--text)}
+  button{cursor:pointer;margin-top:22px;border:1px solid #8debff;border-radius:12px;padding:14px 22px;background:linear-gradient(120deg,#16b3dc,#1e719f);color:#fff;font-weight:800;font-size:15px}button:disabled{opacity:.5;cursor:wait}
+  pre{white-space:pre-wrap;overflow-wrap:anywhere;color:#cdf7ff;font-size:12px;line-height:1.65}#state{font-size:15px;font-weight:850;color:#ffbfc0}.note{font-size:12px}code{color:#9deaff}footer{margin-top:30px;font-size:12px;color:#86a6b8}
+  </style>
+</head>
+<body><main>
+<header><span class="kicker">i™ · JUST ASK BUDDY™</span><span>🧾 iVERIFY</span></header>
+<h1>THE PROOF<br><strong>STAYS WITH YOU.</strong></h1>
+<p>Verify a cryptographic receipt on this device, without a server. The record cannot replace independent proof that the underlying real-world event occurred.</p>
+<section class="glass">
+  <div class="kicker">OFFLINE RECEIPT CHECK</div>
+  <label for="registry">1 · Choose an independently trusted key registry (.json)</label>
+  <input id="registry" type="file" accept="application/json,.json">
+  <label for="bundle">2 · Choose the signed evidence bundle (.json)</label>
+  <input id="bundle" type="file" accept="application/json,.json">
+  <button id="verify" type="button">Verify locally</button>
+  <p class="note">Neither file is uploaded. The registry must be verified out-of-band: a key provided inside the evidence itself is not proof of trust. This v1 verifier accepts JSON, not tar.gz or OTS proofs.</p>
+</section>
+<section class="glass" role="status" aria-live="polite">
+  <div class="kicker">GATE STATE</div>
+  <p id="state">ACTION_REQUIRED · No evidence loaded</p>
+  <pre id="details">Disbursement: BLOCKED
+Physical actuation: BLOCKED
+Bitcoin anchor: NOT VERIFIED</pre>
+</section>
+<footer>i™ Proof of Process · Offline-first, fail-closed. A signature is evidence of key control, not a guarantee of truth.</footer>
+</main><script type="module">
+import {verifyEvidence} from './verifier.mjs';
+const button = document.getElementById('verify');
+const state = document.getElementById('state');
+const details = document.getElementById('details');
+button.addEventListener('click', async () => {
+  button.disabled = true;
+  state.textContent = 'CHECKING';
+  try {
+    const registryFile = document.getElementById('registry').files[0];
+    const bundleFile = document.getElementById('bundle').files[0];
+    if (!registryFile || !bundleFile) throw new Error('Both JSON files are required');
+    if (registryFile.size > 2_000_000 || bundleFile.size > 15_000_000) throw new Error('File size limit exceeded');
+    const registry = JSON.parse(await registryFile.text());
+    const bundle = JSON.parse(await bundleFile.text());
+    const outcome = await verifyEvidence(bundle, registry);
+    state.textContent = outcome.status;
+    details.textContent = JSON.stringify(outcome, null, 2);
+  } catch (err) {
+    state.textContent = 'REJECTED';
+    details.textContent = (err.message || 'Read failure') + '\nDisbursement: BLOCKED\nPhysical actuation: BLOCKED';
+  } finally { button.disabled = false; }
+});
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js', {scope:'./'}).catch(() => {
+    // Offline state requires a successful install; verification still works online.
+    document.getElementById('state').textContent = 'ACTION_REQUIRED · Offline installation unavailable';
+  });
+}
+</script></body></html>

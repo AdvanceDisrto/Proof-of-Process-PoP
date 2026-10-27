@@ -1,0 +1,14 @@
+{
+  "id": "./index.html",
+  "name": "i™ i-PoP Verifier",
+  "short_name": "iVerify",
+  "description": "Offline cryptographic integrity checker for i™ Proof of Process evidence.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#020915",
+  "theme_color": "#020915",
+  "icons": [
+    {"src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}
+  ]
+}

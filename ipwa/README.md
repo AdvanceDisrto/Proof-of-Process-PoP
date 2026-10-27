@@ -1,0 +1,68 @@
+# i™ i-PoP iPWA — offline integrity verifier (prototype)
+
+This directory is an **installable static PWA**, intended to be served under HTTPS at
+`/ipwa/`. After an initial successful install, the service worker serves its own
+assets from local cache without network fallback. The *receipts themselves* are
+read with the browser File API, not uploaded or cached. It does **not** accept
+`.tar.gz` bundles yet. No operational government data should be tested here.
+
+## Verify
+
+1. Obtain a trusted key registry through a channel independent of the evidence
+   package; confirm its key fingerprints with the appropriate authority.
+2. Upload the registry as JSON, then upload a signed receipt bundle as JSON.
+3. The verifier recomputes event hashes, parent linkage, domain-separated
+   SHA-256 Merkle root, and independently pinned Ed25519 signature(s).
+4. A passing result is `LOCAL_CRYPTOGRAPHY_PASSED_ANCHOR_UNVERIFIED`. Both
+   payment and physical-actuation gates **remain closed**. No OTS/Bitcoin SPV,
+   TEE hardware attestation, eligibility database, government authority,
+   healthcare delivery validation, or legal-disqualification check exists here.
+
+### JSON formats
+
+Trust registry (`required_roles` contains at least two distinct signers):
+
+```json
+{"protocol":"ITM-POP-TRUST-v1","required_roles":["intent_owner","executor"],"keys":[{"role":"intent_owner","key_id":"person-001","public_key_hex":"<64 lowercase hex>"},{"role":"executor","key_id":"worker-001","public_key_hex":"<64 lowercase hex>"}]}
+```
+
+Evidence bundle:
+
+```json
+{
+  "body": {
+    "protocol":"ITM-POP-OFFLINE-v1",
+    "intent_hash":"sha256:<64 lowercase hex>",
+    "events":[{"sequence":0,"stage":"INTENT","parent_hash":null,"evidence_hash":"sha256:<64 lowercase hex>","event_hash":"sha256:<64 lowercase hex>"}],
+    "merkle_root":"sha256:<64 lowercase hex>",
+    "anchor":{"type":"OTS_BITCOIN","status":"PENDING","txid":null}
+  },
+  "signatures":[{"role":"intent_owner","key_id":"person-001","signature_hex":"<128 lowercase hex>"},{"role":"executor","key_id":"worker-001","signature_hex":"<128 lowercase hex>"}]
+}
+```
+
+The `intent_hash` must equal the first event's `evidence_hash`. `event_hash` is
+SHA-256 of `UTF8("i-pop-event-v1\\0") || UTF8(canonical(event_without_event_hash))`.
+Merkle leaves are SHA-256 of `UTF8("i-pop-leaf-v1\\0") || raw_event_hash`;
+parents are SHA-256 of `UTF8("i-pop-node-v1\\0") || left || right` (duplicate
+odd trailing node). The signatures cover canonical `body` bytes; canonical JSON
+sorts object keys lexically and rejects floating-point numbers. **This is a
+restricted deterministic JSON subset, not complete RFC 8785 JCS.** Encode money
+as an integer number of cents or a decimal string.
+
+Never infer proof of *actual service rendered*, a live blacklist result, or
+hardware-key possession from a signed JSON assertion alone. Patient identity and
+health records must not be put on public blockchain ledgers. Automated
+forfeiture/bounties would require lawful review and an appeals mechanism.
+
+## Test
+
+```bash
+node --test tests/ipwa-verifier.test.mjs
+```
+
+Deploy `ipwa/` as static HTTPS content, and check home-screen launch + airplane
+mode manually on the actual iPhone and Android versions being supported. SVG
+icon fallback is included; platform-specific PNG/apple-touch-icon artwork may
+be necessary for full cross-platform install polish. A browser/PWA is not
+immune to OS policy, storage eviction or user uninstall.
