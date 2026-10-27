@@ -10,7 +10,7 @@ jobs:
       - uses: actions/setup-python@v5
         with: {python-version: "3.12"}
       - uses: actions/setup-node@v4
-        with: {node-version: "20"}
+        with: {node-version: "22"}
       - uses: dtolnay/rust-toolchain@stable
       - name: Install RTL simulator
         run: sudo apt-get update && sudo apt-get install -y iverilog
@@ -67,7 +67,8 @@ jobs:
       - name: TypeScript engine compile and tests
         run: cd intelligence/server && npm install && npm run build && npm test
       - name: iTensor Fabrication Plant React + TypeScript build
-        run: cd itensor-fab && npm install && npm run typecheck && npm run build
+        # Work around npm Arborist peer-graph null edgesOut crash; keep full typecheck/build.
+        run: cd itensor-fab && npm install --legacy-peer-deps && npm run typecheck && npm run build
       - name: Tailwind CLI pipeline
         run: cd itensor-fab && npm run tailwind:cli
       - name: Tailwind PostCSS pipeline
