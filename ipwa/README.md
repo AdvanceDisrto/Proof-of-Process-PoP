@@ -55,6 +55,12 @@ hardware-key possession from a signed JSON assertion alone. Patient identity and
 health records must not be put on public blockchain ledgers. Automated
 forfeiture/bounties would require lawful review and an appeals mechanism.
 
+To create disposable local demonstration JSON files run:
+
+```bash
+node ipwa/make_demo.mjs ./ipwa-demo
+```
+
 ## Test
 
 ```bash
@@ -62,7 +68,5 @@ node --test tests/ipwa-verifier.test.mjs
 ```
 
 Deploy `ipwa/` as static HTTPS content, and check home-screen launch + airplane
-mode manually on the actual iPhone and Android versions being supported. SVG
-icon fallback is included; platform-specific PNG/apple-touch-icon artwork may
-be necessary for full cross-platform install polish. A browser/PWA is not
-immune to OS policy, storage eviction or user uninstall.
+mode manually on the actual iPhone and Android versions being supported. PNG 192/512 and an SVG fallback are included, but a browser/PWA is not immune
+to OS policy, storage eviction or user uninstall.
