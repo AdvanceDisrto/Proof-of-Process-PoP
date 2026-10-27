@@ -104,7 +104,11 @@ test('governance pause blocks mint and unpause needs fresh signatures/nonce',asy
  d={paused:false,governanceEpoch:await e.contract.governanceEpoch(),nonce:await e.contract.governanceNonce(),deadline:e.deadline};
  const resume=await signatures(e.governors.slice(0,3),e.domain,'SetPaused',d);
  await(await e.contract.setPaused(false,d.deadline,resume)).wait();
- await(await e.contract.confirmReceipt(c.receiptRoot,c.deadline,votes)).wait();
+ assert.equal(await e.contract.paused(),false);
+ assert.equal(await e.contract.confirmedRoot(c.receiptRoot),false);
+ // Execute a previously rejected attestation after unpausing; bypass Ganache's cached gas estimate.
+ await(await e.contract.confirmReceipt(c.receiptRoot,c.deadline,votes,{gasLimit:350000})).wait();
+ assert.equal(await e.contract.confirmedRoot(c.receiptRoot),true);
  }finally{close(e)}
 });
 test('rotate governor revokes its prior voting power and invalidates old nonce',async()=>{
