@@ -1,0 +1,53 @@
+name: 'iNNOVULIS threshold relay and governance — review only'
+on:
+  push:
+    paths:
+      - 'threshold/**'
+      - 'contracts/EpistemicReceiptQuorum.sol'
+      - 'contracts/package.json'
+      - 'contracts/tests.mjs'
+      - 'tests/test_quorum.py'
+      - 'tests/test_relay_api.py'
+      - 'tests/test_k8s_review.py'
+      - 'infra/k8s/**'
+      - '.github/workflows/threshold-mesh-review.yml'
+  pull_request:
+    paths:
+      - 'threshold/**'
+      - 'contracts/EpistemicReceiptQuorum.sol'
+      - 'contracts/package.json'
+      - 'contracts/tests.mjs'
+      - 'tests/test_quorum.py'
+      - 'tests/test_relay_api.py'
+      - 'tests/test_k8s_review.py'
+      - 'infra/k8s/**'
+      - '.github/workflows/threshold-mesh-review.yml'
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  signed-juror-relay:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test-only dependencies
+        run: python -m pip install 'cryptography>=43,<48' 'pytest>=8,<10' 'fastapi>=0.115,<1' 'httpx>=0.27,<1' 'uvicorn>=0.30,<1' 'PyYAML>=6,<7'
+      - name: Signed multi-juror and Kubernetes security tests
+        run: python -m pytest -q tests/test_quorum.py tests/test_relay_api.py tests/test_k8s_review.py
+  solidity-signature-governance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Solidity compiler, Ganache and Ethers for ephemeral local EVM
+        run: cd contracts && npm install --no-audit --no-fund --ignore-scripts
+      - name: Compile EIP-712 governance contract, run on-chain adversarial tests
+        run: cd contracts && npm test
+
