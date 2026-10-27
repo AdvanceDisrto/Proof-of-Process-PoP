@@ -1,0 +1,57 @@
+name: i™ Evidence-Bound Intake and ZK Shield (Review)
+on:
+  push:
+    paths: ['alil/**','go/hashproof/**','zkp/**','contracts/ReceiptArbitrator.sol','tests/test_alil_router.py','.github/workflows/alil-receipt.yml']
+  pull_request:
+    paths: ['alil/**','go/hashproof/**','zkp/**','contracts/ReceiptArbitrator.sol','tests/test_alil_router.py','.github/workflows/alil-receipt.yml']
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  intake:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - uses: actions/setup-go@v5
+        with: {go-version: '1.23'}
+      - run: python -m pip install 'cryptography>=43,<48' 'pytest>=8,<10'
+      - run: python -m pytest -q tests/test_alil_router.py
+  circuit-compile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - run: npm install --no-audit --no-fund
+        working-directory: zkp
+      - run: npm run compile
+        working-directory: zkp
+      - run: npm run r1cs
+        working-directory: zkp
+      - run: npm test
+        working-directory: zkp
+      - name: Generate and verify DEVELOPMENT-ONLY Groth16 proof and Solidity verifier
+        run: bash scripts/dev-groth16.sh
+        working-directory: zkp
+      - uses: actions/upload-artifact@v4
+        with:
+          name: alil-zk-DEV-ONLY-UNTRUSTED-GROTH16
+          path: |
+            zkp/build/PretextualShield.r1cs
+            zkp/build/DEV_ONLY_Verifier.sol
+            zkp/build/DEV_ONLY_verification_key.json
+            zkp/build/DEV_ONLY_proof.json
+            zkp/build/DEV_ONLY_public.json
+            zkp/build/DEV_ONLY_verification_result.json
+  solidity-source-compile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - run: npx --yes solc@0.8.24 --bin contracts/ReceiptArbitrator.sol -o /tmp/solidity-review-bin
+

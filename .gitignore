@@ -1,0 +1,9 @@
+runtime/
+zkp/node_modules/
+zkp/build/
+zkp/*.zkey
+zkp/*.ptau
+zkp/*_witness*.json
+__pycache__/
+.pytest_cache/
+
