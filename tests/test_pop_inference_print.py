@@ -65,12 +65,18 @@ class ProofReceiptTests(unittest.TestCase):
     def test_no_print_without_approval(self):
         p = Mock()
         with self.assertRaises(ReceiptRejected):
-            print_escpos(paper_payload(self.envelope, {self.pub}), p)
+            print_escpos(self.envelope, {self.pub}, p)
+        p.text.assert_not_called()
+
+    def test_forged_print_payload_cannot_bypass_gate(self):
+        p = Mock()
+        with self.assertRaises(ReceiptRejected):
+            print_escpos({"signature_integrity": "VERIFIED_WITH_TRUSTED_PUBLIC_KEY"}, {self.pub}, p, operator_approved=True)
         p.text.assert_not_called()
 
     def test_approved_print_with_injected_hardware(self):
         p = Mock()
-        print_escpos(paper_payload(self.envelope, {self.pub}), p, operator_approved=True)
+        print_escpos(self.envelope, {self.pub}, p, operator_approved=True)
         p.qr.assert_called_once()
         p.cut.assert_called_once()
 
