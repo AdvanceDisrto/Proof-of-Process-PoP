@@ -13,9 +13,9 @@ class OracleRejected(ValueError): pass
 
 STEP_COMMANDS = {
     "compile": "python -m compileall -q core proof integrations",
-    "frontier_tests": "python -m unittest discover -s tests -p 'test_frontier_evidence.py' -v",
-    "receipt_tests": "python -m unittest discover -s tests -p 'test_pop_inference_print.py' -v",
-    "ci_tests": "python -m unittest discover -s tests -p 'test_ci_oracle.py' -v",
+    "frontier_tests": "python -m unittest discover -s tests -p test_frontier_evidence.py -v",
+    "receipt_tests": "python -m unittest discover -s tests -p test_pop_inference_print.py -v",
+    "ci_tests": "python -m unittest discover -s tests -p test_ci_oracle.py -v",
     "sign_gate": "python -m integrations.ci_sign_gate",
 }
 DEFAULT_STEPS = ["compile", "frontier_tests", "receipt_tests", "ci_tests", "sign_gate"]
