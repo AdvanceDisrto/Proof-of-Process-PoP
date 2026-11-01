@@ -63,12 +63,11 @@ def render_58mm_text(payload: dict) -> str:
         "--------------------------------",
     ]) + "\n"
 
-def print_escpos(payload: dict, printer, *, operator_approved: bool = False) -> None:
+def print_escpos(envelope: dict, trusted_signers: set[str], printer, *, operator_approved: bool = False, verify_base_url: str | None = None) -> None:
     """Hardware print is opt-in; injected printer only, never auto-discover USB."""
     if not operator_approved:
         raise ReceiptRejected("Physical printing requires explicit operator approval")
-    if payload.get("signature_integrity") != "VERIFIED_WITH_TRUSTED_PUBLIC_KEY":
-        raise ReceiptRejected("Unverified receipt cannot be printed as verified")
+    payload = paper_payload(envelope, trusted_signers, verify_base_url=verify_base_url)
     printer.text(render_58mm_text(payload))
     printer.qr(payload["qr_content"], size=5)
     printer.cut()
