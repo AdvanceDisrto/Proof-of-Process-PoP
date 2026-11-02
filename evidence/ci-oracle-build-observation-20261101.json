@@ -1,0 +1,54 @@
+{
+  "schema": "ipqr/pop-ci-oracle-build-observation/1",
+  "evidence_class": "GITHUB_ACTIONS_JOB_LOGS",
+  "repository": "AdvanceDisrto/Proof-of-Process-PoP",
+  "branch": "feat/unified-inference-evidence-20261101",
+  "verification_status": "CI_TESTS_PASSED_SOURCE_NOT_DEPLOYED",
+  "observed_runs": [
+    {
+      "run_id": 41361635789,
+      "job_id": 125013038031,
+      "head_sha": "e1aa1e91366ab5411c78f54c6df5cba5e158258c",
+      "suite": "ci_oracle",
+      "tests_passed": 12,
+      "conclusion": "success"
+    },
+    {
+      "run_id": 41360457939,
+      "job_id": 125009522353,
+      "head_sha": "b49893ce661bb306585ea4642ff6f2c58ee4c88b",
+      "suite": "frontier_and_receipt",
+      "tests_passed": 26,
+      "conclusion": "success"
+    }
+  ],
+  "claims": {
+    "test_count_observed": 38,
+    "source_committed": true,
+    "bitbucket_deployed": false,
+    "woodpecker_deployed": false,
+    "jenkins_deployed": false,
+    "real_inference_observed": false,
+    "thermal_printer_connected": false,
+    "sigstore_rekor_verified": false,
+    "trusted_external_signer_operational": false,
+    "dual_signature_verified": false,
+    "production_deployed": false
+  },
+  "truth_boundary": {
+    "proves": [
+      "GitHub Actions logged successful targeted test execution for the specified commits"
+    ],
+    "does_not_prove": [
+      "All tests in repository pass",
+      "latest head has completed a full CI run",
+      "Bitbucket workspace access",
+      "hardware-rooted identity",
+      "live inference or print",
+      "Rekor append or external transparency",
+      "production deployment"
+    ]
+  },
+  "signature": null,
+  "external_anchor": null
+}
