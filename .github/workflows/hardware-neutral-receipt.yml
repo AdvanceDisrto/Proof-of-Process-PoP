@@ -1,0 +1,25 @@
+name: iRECEIPT Portable Hardware-Neutral Envelope
+on:
+  push:
+    paths:
+      - integrations/hardware_neutral_receipt.py
+      - tests/test_hardware_neutral_receipt.py
+      - .github/workflows/hardware-neutral-receipt.yml
+  pull_request:
+    paths:
+      - integrations/hardware_neutral_receipt.py
+      - tests/test_hardware_neutral_receipt.py
+      - .github/workflows/hardware-neutral-receipt.yml
+permissions:
+  contents: read
+jobs:
+  cpu-compatibility:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'cryptography>=42,<47'
+      - run: python -m compileall -q integrations/hardware_neutral_receipt.py tests/test_hardware_neutral_receipt.py
+      - run: python -m unittest discover -s tests -p test_hardware_neutral_receipt.py -v
