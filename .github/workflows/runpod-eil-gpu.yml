@@ -1,0 +1,35 @@
+name: RunPod GPU Evidence Gate (CPU Negative Tests)
+on:
+  push:
+    paths:
+      - integrations/runpod_eil_gpu.py
+      - tests/test_runpod_eil_gpu.py
+      - .github/workflows/runpod-eil-gpu.yml
+  pull_request:
+    paths:
+      - integrations/runpod_eil_gpu.py
+      - tests/test_runpod_eil_gpu.py
+      - .github/workflows/runpod-eil-gpu.yml
+permissions:
+  contents: read
+jobs:
+  cpu-negative-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m unittest discover -s tests -p test_runpod_eil_gpu.py -v
+      - name: Missing RunPod pod and CUDA must not pass
+        shell: bash
+        run: |
+          set +e
+          env -u RUNPOD_POD_ID python -m integrations.runpod_eil_gpu observe \
+            --nonce aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+            --out runpod_probe.json
+          code=$?
+          set -e
+          test "$code" -eq 2
+          python -c 'import json; j=json.load(open("runpod_probe.json")); assert j["verdict"]=="BLOCKED"'
+          cat runpod_probe.json
