@@ -1,0 +1,74 @@
+name: iRECEIPT Native Cross-Silicon Exchange
+on:
+  push:
+    paths:
+      - integrations/cross_silicon_exchange.py
+      - integrations/hardware_neutral_receipt.py
+      - tests/test_cross_silicon_exchange.py
+      - .github/workflows/cross-silicon-exchange.yml
+  pull_request:
+    paths:
+      - integrations/cross_silicon_exchange.py
+      - integrations/hardware_neutral_receipt.py
+      - tests/test_cross_silicon_exchange.py
+      - .github/workflows/cross-silicon-exchange.yml
+permissions:
+  contents: read
+jobs:
+  cpu-origin-x86:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'cryptography>=42,<47'
+      - run: python -m integrations.cross_silicon_exchange cpu-generate --out exchange/cpu
+      - run: python -m unittest discover -s tests -p test_cross_silicon_exchange.py -v
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cpu-intent-development
+          path: exchange/cpu/
+          if-no-files-found: error
+  edge-verifier-arm:
+    needs: cpu-origin-x86
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'cryptography>=42,<47'
+      - uses: actions/download-artifact@v4
+        with:
+          name: cpu-intent-development
+          path: exchange/cpu/
+      - run: python -m integrations.cross_silicon_exchange arm-verify --source exchange/cpu --out exchange/edge
+      - uses: actions/upload-artifact@v4
+        with:
+          name: edge-verification-development
+          path: exchange/edge/
+          if-no-files-found: error
+  final-independent-cpu:
+    needs: edge-verifier-arm
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'cryptography>=42,<47'
+      - uses: actions/download-artifact@v4
+        with:
+          name: cpu-intent-development
+          path: exchange/cpu/
+      - uses: actions/download-artifact@v4
+        with:
+          name: edge-verification-development
+          path: exchange/edge/
+      - run: python -m integrations.cross_silicon_exchange cpu-finalize --source exchange/cpu --edge exchange/edge --out exchange/final
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cross-silicon-integrity-assessment
+          path: exchange/final/
+          if-no-files-found: error
