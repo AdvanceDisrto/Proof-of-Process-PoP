@@ -1,7 +1,7 @@
 name: i™ AMD Instinct ROCm GPU Verification
 on:
   push:
-    branches: [feature/amd-instinct-rocm-gpu-gate-20261103]
+    branches: [fix/amd-rgpu-evidence-gate-v2-20261103]
     paths:
       - 'integrations/amd_instinct_gpu_gate.py'
       - 'tests/test_amd_instinct_gpu_gate.py'
@@ -43,6 +43,7 @@ jobs:
   amd-instinct-real-gpu:
     # Only trusted manual run; NEVER run untrusted PR code on a persistent self-hosted GPU.
     if: github.event_name == 'workflow_dispatch'
+    environment: amd-rgpu-trusted
     runs-on: [self-hosted, Linux, X64, amd-instinct, rocm, trusted]
     timeout-minutes: 20
     steps:
@@ -63,7 +64,9 @@ jobs:
           python -m pip install 'cryptography>=42,<47'
           # ROCm-compatible torch must be installed and tested on the runner image.
           python -c 'import torch; assert torch.version.hip, "ROCm PyTorch required"'
+          test -n "$IGPU_ED25519_KEY_B64" || { echo "Missing protected Ed25519 key"; exit 2; }
           python -m integrations.amd_instinct_gpu_gate probe --nonce "${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}" --out amd-instinct-gpu-receipt.json
+          python -c 'import json; r=json.load(open("amd-instinct-gpu-receipt.json")); assert r["signing"]["mode"]=="ED25519_SOFTWARE"; assert r["body"]["verdict"]=="ACCEPT_AMD_INSTINCT_SOFTWARE_GPU_GATE"'
       - name: Upload evidence even on failed gate
         uses: actions/upload-artifact@v4
         if: always()
