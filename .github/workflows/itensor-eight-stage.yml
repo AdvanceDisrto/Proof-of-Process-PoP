@@ -1,0 +1,27 @@
+name: iTensor Eight Stage Gated Execution
+on:
+  push:
+    paths:
+      - integrations/itensor_eight_stage.py
+      - integrations/eil_production_trust.py
+      - tests/test_itensor_eight_stage.py
+      - .github/workflows/itensor-eight-stage.yml
+  pull_request:
+    paths:
+      - integrations/itensor_eight_stage.py
+      - integrations/eil_production_trust.py
+      - tests/test_itensor_eight_stage.py
+      - .github/workflows/itensor-eight-stage.yml
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install "cryptography>=42,<47"
+      - run: python -m compileall -q integrations/itensor_eight_stage.py tests/test_itensor_eight_stage.py
+      - run: python -m unittest discover -s tests -p test_itensor_eight_stage.py -v
