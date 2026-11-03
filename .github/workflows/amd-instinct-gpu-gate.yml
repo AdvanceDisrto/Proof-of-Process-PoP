@@ -1,0 +1,73 @@
+name: i™ AMD Instinct ROCm GPU Verification
+on:
+  push:
+    branches: [feature/amd-instinct-rocm-gpu-gate-20261103]
+    paths:
+      - 'integrations/amd_instinct_gpu_gate.py'
+      - 'tests/test_amd_instinct_gpu_gate.py'
+      - '.github/workflows/amd-instinct-gpu-gate.yml'
+  pull_request:
+    paths:
+      - 'integrations/amd_instinct_gpu_gate.py'
+      - 'tests/test_amd_instinct_gpu_gate.py'
+      - '.github/workflows/amd-instinct-gpu-gate.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  cpu-contract-check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'cryptography>=42,<47'
+      - run: python -m unittest discover -s tests -p test_amd_instinct_gpu_gate.py -v
+      - name: Assert CPU-only probe fails closed
+        shell: bash
+        run: |
+          set +e
+          python -m integrations.amd_instinct_gpu_gate probe --nonce "${{ github.sha }}-cpu-negative" --out amd-cpu-negative.json
+          code=$?
+          set -e
+          test "$code" -eq 2
+          python -c 'import json; r=json.load(open("amd-cpu-negative.json")); assert r["body"]["verdict"]=="GPU_NOT_VERIFIED"'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: amd-cpu-negative-control
+          path: amd-cpu-negative.json
+          if-no-files-found: warn
+  amd-instinct-real-gpu:
+    # Only trusted manual run; NEVER run untrusted PR code on a persistent self-hosted GPU.
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: [self-hosted, Linux, X64, amd-instinct, rocm, trusted]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify AMD software stack installed
+        run: |
+          command -v amd-smi
+          command -v rocminfo
+          test -e /dev/kfd
+          test -e /dev/dri
+      - name: Run fail-closed GPU gate
+        env:
+          IGPU_ED25519_KEY_B64: ${{ secrets.IGPU_ED25519_KEY_B64 }}
+        run: |
+          python -m pip install 'cryptography>=42,<47'
+          # ROCm-compatible torch must be installed and tested on the runner image.
+          python -c 'import torch; assert torch.version.hip, "ROCm PyTorch required"'
+          python -m integrations.amd_instinct_gpu_gate probe --nonce "${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}" --out amd-instinct-gpu-receipt.json
+      - name: Upload evidence even on failed gate
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: amd-instinct-gpu-evidence
+          path: amd-instinct-gpu-receipt.json
+          if-no-files-found: warn
