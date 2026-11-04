@@ -31,6 +31,24 @@ jobs:
           set -euo pipefail
           mkdir -p innovulis/evidence/ci
           python -m pip install -r innovulis/api/requirements.txt pytest httpx 2>&1 | tee innovulis/evidence/ci/install.log
+      - name: Build FastAPI Cloud-compatible wheel and assert distribution metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install 'setuptools>=68' wheel
+          python -m pip wheel --no-deps --no-build-isolation --wheel-dir innovulis/evidence/ci/wheels ./innovulis 2>&1 | tee innovulis/evidence/ci/wheel-build.log
+          python - <<'PY'
+          from pathlib import Path
+          import zipfile
+          wheels=list(Path('innovulis/evidence/ci/wheels').glob('innovulis_iverify_spu-*.whl'))
+          assert len(wheels)==1, wheels
+          with zipfile.ZipFile(wheels[0]) as z:
+              meta=next(x for x in z.namelist() if x.endswith('.dist-info/METADATA'))
+              content=z.read(meta).decode()
+              assert 'Name: innovulis-iverify-spu' in content
+              assert 'Version: 0.4.1' in content
+          print('WHEEL_METADATA_NAME_VERSION_PASS')
+          PY
       - name: Count actual application tests
         shell: bash
         run: |
