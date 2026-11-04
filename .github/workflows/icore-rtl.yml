@@ -1,0 +1,39 @@
+name: iCore iISA RTL Simulation and Synthesis
+on:
+  push:
+    branches: [feature/icore-iisa-rtl-matmul-20261104]
+    paths: ['hardware/icore-rtl/**', '.github/workflows/icore-rtl.yml']
+  pull_request:
+    paths: ['hardware/icore-rtl/**', '.github/workflows/icore-rtl.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  simulate-synthesize:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install open-source RTL toolchain
+        run: sudo apt-get update -qq && sudo apt-get install -y iverilog yosys
+      - name: SystemVerilog simulation
+        run: |
+          iverilog -g2012 -s tb_icore_matmul -o /tmp/icore_sim hardware/icore-rtl/rtl/icore_matmul.sv hardware/icore-rtl/tb/tb_icore_matmul.sv
+          vvp /tmp/icore_sim | tee icore-simulation.log
+          grep -q 'ALL_RTL_SIMULATION_TESTS_PASS vectors=1007 expected_cycles=63' icore-simulation.log
+      - name: Yosys synthesis
+        run: |
+          yosys -Q -T -l icore-synthesis.log -p 'read_verilog -sv hardware/icore-rtl/rtl/icore_matmul.sv; hierarchy -check -top icore_matmul; proc; opt; check -assert; synth -top icore_matmul; stat'
+      - name: Ensure structural checks remain clean
+        run: |
+          grep -q 'Found and reported 0 problems.' icore-synthesis.log
+          grep -q 'Number of cells:' icore-synthesis.log
+      - name: Upload proof logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: icore-rtl-simulation-synthesis
+          path: |
+            icore-simulation.log
+            icore-synthesis.log
+          if-no-files-found: warn
