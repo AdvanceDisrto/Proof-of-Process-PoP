@@ -1,7 +1,7 @@
 name: iCore iISA v0.2 Systolic PE Simulation and Synthesis
 on:
   push:
-    branches: [feature/icore-systolic-pe-v02-20261104]
+    branches: [test/icore-systolic-coverage-v03-20261104]
     paths: ['hardware/icore-systolic/**', '.github/workflows/icore-systolic.yml']
   pull_request:
     paths: ['hardware/icore-systolic/**', '.github/workflows/icore-systolic.yml']
@@ -24,7 +24,13 @@ jobs:
             hardware/icore-systolic/tb/tb_icore_systolic_2x2.sv
           vvp /tmp/icore-systolic | tee systolic-simulation.log
           grep -q 'ALL_SYSTOLIC_SIMULATION_TESTS_PASS' systolic-simulation.log
-          grep -q 'PASS systolic_vectors=262 randomized=256' systolic-simulation.log
+          grep -q 'PASS corner_vectors=32' systolic-simulation.log
+          grep -q 'PASS skew_vectors=16' systolic-simulation.log
+          grep -q 'PASS back_to_back_vectors=4' systolic-simulation.log
+          grep -q 'PASS mid_pipeline_resets=4' systolic-simulation.log
+          grep -q 'PASS randomized_vectors=512 seed=0x00091911' systolic-simulation.log
+          grep -q 'PASS deterministic_replays=1000' systolic-simulation.log
+          grep -q 'ALL_SYSTOLIC_SIMULATION_TESTS_PASS total=1568 skew_scheme=output_stationary array=2x2 tiles_per_matmul=1' systolic-simulation.log
       - name: Generic synthesis and structural checks
         run: |
           yosys -Q -T -l systolic-synthesis.log -p 'read_verilog -sv hardware/icore-systolic/rtl/icore_pe.sv hardware/icore-systolic/rtl/icore_systolic_2x2.sv; hierarchy -check -top icore_systolic_2x2; proc; opt; check -assert; synth -top icore_systolic_2x2; stat'
