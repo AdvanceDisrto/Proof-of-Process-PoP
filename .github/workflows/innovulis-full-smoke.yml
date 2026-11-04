@@ -35,7 +35,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          PYTHONPATH=innovulis:innovulis/api python -m pytest innovulis/tests --collect-only -q | tee innovulis/evidence/ci/collection.log
+          PYTHONPATH=innovulis:innovulis/api python -m pytest innovulis/tests --collect-only | tee innovulis/evidence/ci/collection.log
           grep -q '34 tests collected' innovulis/evidence/ci/collection.log
       - name: Execute real HTTP smoke including SPU endpoints and offline verification
         shell: bash
