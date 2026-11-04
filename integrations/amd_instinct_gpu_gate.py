@@ -5,6 +5,7 @@ Run only on an authenticated, trusted ROCm runner; signatures alone do not attes
 import argparse
 import base64
 import hashlib
+import hmac
 import json
 import os
 import platform
@@ -44,7 +45,7 @@ def active_matmul():
         name = torch.cuda.get_device_name(0)
         result["device_name"] = name
         result["device_properties"] = str(torch.cuda.get_device_properties(0))
-        if not any(x in name.upper() for x in ("MI300", "MI325", "MI350", "MI355", "INSTINCT")):
+        if not any(x in name.upper() for x in ("MI210", "MI250", "MI300", "MI325", "MI350", "MI355", "INSTINCT")):
             result["error"] = "NOT_RECOGNIZED_AS_AMD_INSTINCT"
             return result
         torch.manual_seed(20261103)
@@ -76,18 +77,22 @@ def sign_if_configured(body):
             "signature": key.sign(canonical(body)).hex(),
             "key_trust": "OUT_OF_BAND_PIN_REQUIRED"}
 
-def verify_receipt(receipt, expected_pubkey):
+def verify_receipt(receipt, expected_pubkey, expected_nonce=None):
     if not expected_pubkey or len(expected_pubkey) != 64:
         return False
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
     try:
         body = receipt["body"]
         sig = receipt["signing"]
+        if body.get("schema") != "i/amd-instinct-gpu/v1":
+            return False
+        if expected_nonce is not None and not hmac.compare_digest(str(body.get("nonce", "")), expected_nonce):
+            return False
         if sig["mode"] != "ED25519_SOFTWARE" or sig["public_key"] != expected_pubkey:
             return False
         Ed25519PublicKey.from_public_bytes(bytes.fromhex(expected_pubkey)).verify(bytes.fromhex(sig["signature"]), canonical(body))
         return hashlib.sha256(canonical(body)).hexdigest() == receipt["body_sha256"]
-    except (KeyError, ValueError, TypeError, Exception):
+    except Exception:
         return False
 
 def probe(nonce):
@@ -115,11 +120,14 @@ def main():
     v = sub.add_parser("verify")
     v.add_argument("receipt")
     v.add_argument("--pinned-public-key", required=True)
+    v.add_argument("--expected-nonce", required=True)
     args = parser.parse_args()
     if args.command == "verify":
-        ok = verify_receipt(json.loads(Path(args.receipt).read_text()), args.pinned_public_key)
-        print("ACCEPT_SIGNED_SOFTWARE_GPU_RECEIPT" if ok else "REJECT_SIGNATURE_OR_KEY")
-        return 0 if ok else 2
+        receipt = json.loads(Path(args.receipt).read_text(encoding="utf-8"))
+        ok = verify_receipt(receipt, args.pinned_public_key, args.expected_nonce)
+        accepted = ok and receipt["body"].get("verdict") == "ACCEPT_AMD_INSTINCT_SOFTWARE_GPU_GATE"
+        print("ACCEPT_SIGNED_SOFTWARE_GPU_OBSERVATION" if accepted else ("VALID_SIGNATURE_GPU_NOT_VERIFIED" if ok else "REJECT_SIGNATURE_KEY_OR_NONCE"))
+        return 0 if accepted else 2
     if len(args.nonce) < 32:
         parser.error("--nonce must be at least 32 characters and externally generated")
     body = probe(args.nonce)
@@ -130,8 +138,11 @@ def main():
         return 2
     receipt = {"body": body, "body_sha256": hashlib.sha256(canonical(body)).hexdigest(), "signing": sig}
     Path(args.out).write_text(json.dumps(receipt, sort_keys=True, indent=2) + "\n", encoding="utf-8")
-    print(json.dumps({"verdict": body["verdict"], "signature": sig["mode"], "receipt": args.out}))
-    return 0 if body["verdict"].startswith("ACCEPT_") else 2
+    signed = sig["mode"] == "ED25519_SOFTWARE"
+    accepted = body["verdict"] == "ACCEPT_AMD_INSTINCT_SOFTWARE_GPU_GATE" and signed
+    print(json.dumps({"verdict": body["verdict"], "signature": sig["mode"], "receipt": args.out,
+                      "gate_passed": accepted, "hardware_attestation": False}))
+    return 0 if accepted else 2
 
 if __name__ == "__main__":
     raise SystemExit(main())
