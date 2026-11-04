@@ -20,10 +20,14 @@ jobs:
         run: |
           iverilog -g2012 -s tb_icore_matmul -o /tmp/icore_sim hardware/icore-rtl/rtl/icore_matmul.sv hardware/icore-rtl/tb/tb_icore_matmul.sv
           vvp /tmp/icore_sim | tee icore-simulation.log
-          grep -q 'ALL_RTL_SIMULATION_TESTS_PASS' icore-simulation.log
+          grep -q 'ALL_RTL_SIMULATION_TESTS_PASS vectors=1007 expected_cycles=63' icore-simulation.log
       - name: Yosys synthesis
         run: |
           yosys -Q -T -l icore-synthesis.log -p 'read_verilog -sv hardware/icore-rtl/rtl/icore_matmul.sv; hierarchy -check -top icore_matmul; proc; opt; check -assert; synth -top icore_matmul; stat'
+      - name: Ensure structural checks remain clean
+        run: |
+          grep -q 'Found and reported 0 problems.' icore-synthesis.log
+          grep -q 'Number of cells:' icore-synthesis.log
       - name: Upload proof logs
         if: always()
         uses: actions/upload-artifact@v4
