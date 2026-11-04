@@ -35,6 +35,11 @@ jobs:
         run: |
           yosys -Q -T -l systolic-synthesis.log -p 'read_verilog -sv hardware/icore-systolic/rtl/icore_pe.sv hardware/icore-systolic/rtl/icore_systolic_2x2.sv; hierarchy -check -top icore_systolic_2x2; proc; opt; check -assert; synth -top icore_systolic_2x2; stat'
           grep -q 'Found and reported 0 problems.' systolic-synthesis.log
+      - name: Map design into Gowin FPGA primitives (no placement/routing)
+        run: |
+          yosys -Q -T -l systolic-gowin-mapping.log -p 'read_verilog -sv hardware/icore-systolic/rtl/icore_pe.sv hardware/icore-systolic/rtl/icore_systolic_2x2.sv; hierarchy -check -top icore_systolic_2x2; synth_gowin -top icore_systolic_2x2 -json icore-gowin-netlist.json; check -assert; stat'
+          test -s icore-gowin-netlist.json
+          grep -q 'Found and reported 0 problems.' systolic-gowin-mapping.log
       - name: Produce inspectable software evidence receipt
         run: python hardware/icore-systolic/tools/make_ci_evidence.py
       - uses: actions/upload-artifact@v4
@@ -45,4 +50,6 @@ jobs:
             systolic-simulation.log
             systolic-synthesis.log
             icore-rtl-evidence.json
+            systolic-gowin-mapping.log
+            icore-gowin-netlist.json
           if-no-files-found: warn
