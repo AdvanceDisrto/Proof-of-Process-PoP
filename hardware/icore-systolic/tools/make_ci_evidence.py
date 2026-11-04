@@ -8,6 +8,8 @@ from pathlib import Path
 
 sim = Path("systolic-simulation.log").read_bytes()
 synth = Path("systolic-synthesis.log").read_bytes()
+gowin = Path("systolic-gowin-mapping.log").read_bytes()
+gowin_netlist = Path("icore-gowin-netlist.json").read_bytes()
 simtext = sim.decode(errors="replace")
 synthtext = synth.decode(errors="replace")
 required = {
@@ -41,6 +43,10 @@ if total != 1568 or expected not in simtext:
     raise SystemExit("FAIL_SUMMARY_MISMATCH")
 if "Found and reported 0 problems." not in synthtext or "Number of cells:" not in synthtext:
     raise SystemExit("FAIL_SYNTHESIS_EVIDENCE")
+if "Found and reported 0 problems." not in gowin.decode(errors="replace"):
+    raise SystemExit("FAIL_GOWIN_MAPPING_EVIDENCE")
+if not gowin_netlist.strip():
+    raise SystemExit("FAIL_GOWIN_NETLIST_MISSING")
 paths = [
     "hardware/icore-systolic/rtl/icore_pe.sv",
     "hardware/icore-systolic/rtl/icore_systolic_2x2.sv",
@@ -69,6 +75,8 @@ body = {
     },
     "synthesis": {
         "tool": "yosys",
+        "gowin_primitive_mapping": "PASS",
+        "gowin_placement_and_routing": "NOT_RUN",
         "target": "generic",
         "structural_check": "PASS",
         "target_lut": None,
@@ -79,6 +87,8 @@ body = {
     "evidence_sha256": {
         "simulation_log": hashlib.sha256(sim).hexdigest(),
         "synthesis_log": hashlib.sha256(synth).hexdigest(),
+        "gowin_mapping_log": hashlib.sha256(gowin).hexdigest(),
+        "gowin_unplaced_netlist": hashlib.sha256(gowin_netlist).hexdigest(),
         "rtl_and_testbench": {
             name: hashlib.sha256(Path(name).read_bytes()).hexdigest() for name in paths
         },
