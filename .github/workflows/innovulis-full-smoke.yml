@@ -31,6 +31,13 @@ jobs:
           set -euo pipefail
           mkdir -p innovulis/evidence/ci
           python -m pip install -r innovulis/api/requirements.txt pytest httpx 2>&1 | tee innovulis/evidence/ci/install.log
+      - name: Assert FastAPI CLI starts (FastAPI Cloud startup regression)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip show fastapi-cli
+          fastapi --help > innovulis/evidence/ci/fastapi-cli-help.log
+          grep -qE '(run|dev)' innovulis/evidence/ci/fastapi-cli-help.log
       - name: Build FastAPI Cloud-compatible wheel and assert distribution metadata
         shell: bash
         run: |
