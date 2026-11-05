@@ -30,7 +30,8 @@ jobs:
           python-version: '3.11'
       - name: Install source and dependencies
         working-directory: ors-research
-        run: python -m pip install -U 'setuptools>=68' wheel build
+        run: |
+          python -m pip install -U 'setuptools>=68' wheel build
           python -m pip install -e '.[test]'
       - name: Execute complete numerical software regression suite
         working-directory: ors-research
