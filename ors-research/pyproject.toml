@@ -1,19 +1,18 @@
 [build-system]
 requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
-
 [project]
 name = "innovulis-ors-numerical"
-version = "0.4.0"
+version = "0.4.1"
 description = "Research-only ORS numerical models and smoke API"
 requires-python = ">=3.11,<3.14"
 dependencies = ["numpy>=1.26,<3", "scipy>=1.11,<2", "cryptography>=42,<47", "fastapi[standard]>=0.115,<1"]
-
 [project.optional-dependencies]
 test = ["pytest>=8,<10", "httpx>=0.27,<1"]
-
 [tool.setuptools.packages.find]
 include = ["ors*"]
-
 [tool.fastapi]
 entrypoint = "ors.service:app"
+
+[tool.setuptools.package-data]
+ors = ["static/*.html", "static/*.css", "static/*.md"]
