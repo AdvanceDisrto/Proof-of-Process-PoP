@@ -1,8 +1,10 @@
-tests/
-evidence/
+# Source package and built static assets must be available to the Cloud builder.
+!ors/static/index.html
+!ors/static/output.css
 .venv/
 __pycache__/
 *.pyc
 .pytest_cache/
+tests/
 build/
-dist/
+evidence/
