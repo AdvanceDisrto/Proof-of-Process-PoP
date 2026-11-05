@@ -16,3 +16,6 @@ entrypoint = "ors.service:app"
 
 [tool.setuptools.package-data]
 ors = ["static/*.html", "static/*.css", "static/*.md"]
+
+[tool.setuptools.package-data]
+ors = ["static/*.html", "static/*.css", "static/*.md"]
