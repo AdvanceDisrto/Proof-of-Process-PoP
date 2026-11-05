@@ -1,0 +1,70 @@
+name: ORS + Trust Fabric Python and Web UI
+on:
+  pull_request:
+    paths:
+      - 'ors-research/**'
+      - '.github/workflows/ors-trust-fabric-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'ors-research/**'
+      - '.github/workflows/ors-trust-fabric-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Python dependencies
+        run: python -m pip install -e '.[test]' setuptools wheel
+        working-directory: ors-research
+      - name: Compile Tailwind v4 static CSS
+        run: |
+          npm install --no-save tailwindcss @tailwindcss/cli
+          npx @tailwindcss/cli -i ors/static/input.css -o ors/static/output.css --minify
+          test -s ors/static/output.css
+        working-directory: ors-research
+      - name: Run Python unit tests, HTTP smoke, and JUnit
+        run: python -m pytest tests -q --junitxml=junit.xml
+        working-directory: ors-research
+      - name: Validate HTTP endpoints and package CSS
+        working-directory: ors-research
+        run: |
+          python - <<'PY'
+          from fastapi.testclient import TestClient
+          from ors.service import app
+          c=TestClient(app)
+          for p in ('/','/static/output.css','/health','/v1/ors/smoke'):
+              res=c.get(p)
+              assert res.status_code==200,(p,res.status_code)
+          print('TRUST_HTTP_SMOKE_PASS')
+          PY
+      - name: Build wheel and assert frontend assets
+        working-directory: ors-research
+        run: |
+          python -m pip wheel --no-deps --wheel-dir dist .
+          python - <<'PY'
+          import glob,zipfile
+          wheels=glob.glob('dist/innovulis_ors_numerical-*.whl')
+          assert len(wheels)==1,wheels
+          with zipfile.ZipFile(wheels[0]) as z:
+              files=z.namelist()
+              assert any(x.endswith('ors/static/output.css') for x in files),files
+              assert any(x.endswith('ors/static/index.html') for x in files),files
+          print('WHEEL_STATIC_ASSETS_PASS')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ors-trust-fabric-ci-evidence
+          path: |
+            ors-research/junit.xml
+            ors-research/dist/*.whl
