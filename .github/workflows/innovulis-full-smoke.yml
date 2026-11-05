@@ -1,0 +1,137 @@
+name: iNNOVULIS Full FastAPI + SPU CI and OIDC Attestation
+on:
+  push:
+    branches:
+      - main
+      - 'ci/innovulis-full-fastapi-*'
+    paths:
+      - 'innovulis/**'
+      - '.github/workflows/innovulis-full-smoke.yml'
+  pull_request:
+    paths:
+      - 'innovulis/**'
+      - '.github/workflows/innovulis-full-smoke.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+jobs:
+  full-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install full FastAPI application dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p innovulis/evidence/ci
+          python -m pip install -r innovulis/api/requirements.txt pytest httpx 2>&1 | tee innovulis/evidence/ci/install.log
+      - name: Build FastAPI Cloud-compatible wheel and assert distribution metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install 'setuptools>=68' wheel
+          python -m pip wheel --no-deps --no-build-isolation --wheel-dir innovulis/evidence/ci/wheels ./innovulis 2>&1 | tee innovulis/evidence/ci/wheel-build.log
+          python - <<'PY'
+          from pathlib import Path
+          import zipfile
+          wheels=list(Path('innovulis/evidence/ci/wheels').glob('innovulis_iverify_spu-*.whl'))
+          assert len(wheels)==1, wheels
+          with zipfile.ZipFile(wheels[0]) as z:
+              meta=next(x for x in z.namelist() if x.endswith('.dist-info/METADATA'))
+              content=z.read(meta).decode()
+              assert 'Name: innovulis-iverify-spu' in content
+              assert 'Version: 0.4.1' in content
+          print('WHEEL_METADATA_NAME_VERSION_PASS')
+          PY
+      - name: Count actual application tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH=innovulis:innovulis/api python -m pytest innovulis/tests --collect-only | tee innovulis/evidence/ci/collection.log
+          grep -q '34 tests collected' innovulis/evidence/ci/collection.log
+      - name: Execute real HTTP smoke including SPU endpoints and offline verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd innovulis
+          OUTPUT_DIR="$GITHUB_WORKSPACE/innovulis/evidence/ci" bash run_all_smokes.sh 2>&1 | tee "$GITHUB_WORKSPACE/innovulis/evidence/ci/full-smoke.log"
+          grep -q 'ALL_SOFTWARE_SMOKES_PASSED' evidence/ci/full-smoke.log
+      - name: Execute complete 34-case application test suite and JUnit
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH=innovulis:innovulis/api python -m pytest innovulis/tests -v --junitxml=innovulis/evidence/ci/pytest-full.xml 2>&1 | tee innovulis/evidence/ci/pytest-full.log
+          grep -q '34 passed' innovulis/evidence/ci/pytest-full.log
+      - name: Assert signed SPU receipts and honest physical gate
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,pathlib
+          p=pathlib.Path('innovulis/evidence/ci')
+          for name in ('spu-cwa-receipt.json','spu-model-receipt.json'):
+              r=json.loads((p/name).read_text())
+              assert r.get('signature') or r.get('signature_hex'),name
+          status=json.loads((p/'icore-status.json').read_text())
+          assert status['physical_gate']['verdict']=='ACTION_REQUIRED'
+          print('PASS_SIGNED_CPU_SPU_RECEIPTS_PHYSICAL_GATE_ACTION_REQUIRED')
+          PY
+      - name: Create CI SHA256 evidence manifest
+        if: always()
+        shell: bash
+        env:
+          REPOSITORY: ${{ github.repository }}
+          COMMIT: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          ATTEMPT: ${{ github.run_attempt }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          python - <<'PY'
+          import os,json,hashlib,datetime,pathlib
+          p=pathlib.Path('innovulis/evidence/ci')
+          p.mkdir(parents=True,exist_ok=True)
+          record={'schema':'innovulis/full-fastapi-spu-ci/v1',
+                  'repository':os.environ['REPOSITORY'],
+                  'commit_sha':os.environ['COMMIT'],
+                  'run_id':os.environ['RUN_ID'],
+                  'attempt':os.environ['ATTEMPT'],
+                  'status_at_manifest_step':os.environ['JOB_STATUS'],
+                  'timestamp_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                  'coverage':'actual FastAPI HTTP + SPU CPU mathematical model + 34 pytest cases',
+                  'physical_gate':'ACTION_REQUIRED',
+                  'evidence_attestation':'PENDING_LATER_GITHUB_OIDC_STEP',
+                  'does_not_prove':['physical photonic execution','FPGA execution','model correctness']}
+          (p/'ci-provenance.json').write_text(json.dumps(record,sort_keys=True,indent=2)+'\n')
+          entries=[]
+          for f in sorted(p.iterdir()):
+              if f.is_file() and f.name not in ('SHA256SUMS.txt','receipts.db','server.log'):
+                  entries.append(hashlib.sha256(f.read_bytes()).hexdigest()+'  '+f.name)
+          (p/'SHA256SUMS.txt').write_text('\n'.join(entries)+'\n')
+          PY
+      - name: Upload downloadable complete CI evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: innovulis-full-fastapi-spu-${{ github.run_id }}
+          path: |
+            innovulis/evidence/ci/*.json
+            innovulis/evidence/ci/*.txt
+            innovulis/evidence/ci/*.log
+            innovulis/evidence/ci/*.xml
+            !innovulis/evidence/ci/receipts.db
+            !innovulis/evidence/ci/server.log
+          retention-days: 30
+          if-no-files-found: error
+      - name: GitHub OIDC attest manifest and JUnit results
+        if: success()
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            innovulis/evidence/ci/SHA256SUMS.txt
+            innovulis/evidence/ci/pytest-full.xml
+            innovulis/evidence/ci/ci-provenance.json
