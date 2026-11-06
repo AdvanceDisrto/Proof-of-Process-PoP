@@ -11,7 +11,7 @@
 - [ ] Size regulator, fuse, input protection, power planes and trace widths from load/temperature measurements rather than generic 1-mm assumptions.
 - [ ] Design KiCad schematic, assign footprints and pin mappings; pass electrical rules check.
 - [ ] Design 4-layer PCB and impedance calculation for **actual selected fab stackup**; pass DRC and routing review.
-- [ ] Check E-Ink controller and board/display compatibility: dedicated BUSY GPIO, SPI command wiring, vendor power and level shifting.
+- [ ] Check E-Ink controller and board/display compatibility: dedicated BUSY GPIO, SPI command wiring, vendor power and level shifting. **The existing experimental ipQR generator outputs a 2000x2000-pixel image; a typical 2.13-inch low-resolution E-Ink display cannot render it pixel-for-pixel. Do not claim the current ipQR is scannable on this E-Ink module without an independently verified smaller-capacity optical profile or appropriately higher-resolution display.**
 - [ ] Independent review of all CSI/PCIe pairs if included. No high-speed interface allocated in Rev0.
 - [ ] Generate **real** Gerber/Excellon, BOM and CPL from verified PCB CAD source; inspect in an independent Gerber viewer.
 - [ ] Sign off board test points, power-up without SoM, isolation, I2C read-only scan, secure key provisioning, thermal testing.
