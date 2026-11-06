@@ -1,4 +1,4 @@
-name: STRMKRD Rev0 KiCad Interposer CAD DRC (Engineering Seed)
+name: STRMKRD Rev0 KiCad Interposer CAD Parse and Preview (DRC HOLD)
 
 on:
   push:
@@ -33,10 +33,10 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends kicad
-      - name: Check actual KiCad board design rules
+      - name: Verify KiCad toolchain and reserve independent design-rule gate
         run: |
           kicad-cli version
-          kicad-cli pcb drc --exit-code-violations -o out/DRC.txt out/STRMKRD_REV0_INTERPOSER.kicad_pcb
+          echo 'DRC_NOT_PERFORMED: Ubuntu runner KiCad v7 CLI lacks pcb drc. Independent KiCad GUI/modern CLI DRC is a hard manufacturing requirement.' > out/DRC_HOLD.txt
       - name: Create manufacturing-preview Gerber and drill files
         run: |
           mkdir -p out/gerbers
@@ -52,7 +52,7 @@ jobs:
           assembly, enclosure, power/thermal and independent manufacturer review
           must be accepted before ordering.
           EOF
-          (cd out && sha256sum STRMKRD_REV0_INTERPOSER.kicad_pcb DRC.txt gerbers/* > SHA256SUMS.txt)
+          (cd out && sha256sum STRMKRD_REV0_INTERPOSER.kicad_pcb DRC_HOLD.txt gerbers/* > SHA256SUMS.txt)
       - uses: actions/upload-artifact@v4
         with:
           name: STRMKRD-Rev0-Interposer-CAD-Engineering-Preview
