@@ -50,3 +50,31 @@ jobs:
           print('HARDWARE_SECURE_ELEMENT: NOT_VERIFIED')
           print('PCB_ERC_DRC_GERBERS: NOT_PERFORMED')
           PY
+      - name: Assemble checksummed REV0 engineering handoff (no fabricated board claim)
+        run: |
+          mkdir -p out/STRMKRD_REV0
+          cp -r hardware/strmkrd-node out/STRMKRD_REV0/hardware
+          cp tests/test_strmkrd_node_rev0.py tests/test_strmkrd_observer.py out/STRMKRD_REV0/
+          cat > out/STRMKRD_REV0/ACCEPTANCE.json <<EOF
+          {
+            "spec": "strmkrd/rev0/engineering-handoff/1.0",
+            "git_sha": "$GITHUB_SHA",
+            "status": "ACCEPT_STRMKRD_REV0_REGISTER_SMOKE",
+            "software_test_vectors": "PASS",
+            "real_sensor": "NOT_VERIFIED",
+            "hardware_secure_element": "NOT_VERIFIED",
+            "physical_optical_capture": "NOT_VERIFIED",
+            "pcb_erc_drc": "NOT_PERFORMED",
+            "gerbers": "NOT_GENERATED",
+            "fabrication_ready": false
+          }
+          EOF
+          (cd out/STRMKRD_REV0 && find . -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt)
+          cd out
+          zip -qr STRMKRD_REV0_ENGINEERING_HANDOFF.zip STRMKRD_REV0
+      - name: Upload engineering handoff with register tests and source BOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: STRMKRD-Rev0-Modular-Engineering-Handoff
+          path: out/STRMKRD_REV0_ENGINEERING_HANDOFF.zip
+          if-no-files-found: error
