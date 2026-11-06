@@ -1,0 +1,60 @@
+name: STRMKRD Rev0 KiCad Interposer CAD DRC (Engineering Seed)
+
+on:
+  push:
+    branches: [feat/strmkrd-modular-node-rev0]
+    paths:
+      - 'hardware/strmkrd-node/generate_interposer_pcb.py'
+      - '.github/workflows/strmkrd_kicad_seed.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'hardware/strmkrd-node/generate_interposer_pcb.py'
+      - '.github/workflows/strmkrd_kicad_seed.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cad-drc:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Create KiCad 2-layer I2C/SPI interposer source
+        run: |
+          python hardware/strmkrd-node/generate_interposer_pcb.py --out out/STRMKRD_REV0_INTERPOSER.kicad_pcb
+          grep -q '(kicad_pcb' out/STRMKRD_REV0_INTERPOSER.kicad_pcb
+      - name: Install KiCad command line for independent DRC
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends kicad
+      - name: Check actual KiCad board design rules
+        run: |
+          kicad-cli version
+          kicad-cli pcb drc --exit-code-violations -o out/DRC.txt out/STRMKRD_REV0_INTERPOSER.kicad_pcb
+      - name: Create manufacturing-preview Gerber and drill files
+        run: |
+          mkdir -p out/gerbers
+          kicad-cli pcb export gerbers -l F.Cu,B.Cu,F.SilkS,B.SilkS,F.Mask,B.Mask,Edge.Cuts -o out/gerbers/ out/STRMKRD_REV0_INTERPOSER.kicad_pcb
+          kicad-cli pcb export drill -o out/gerbers/ out/STRMKRD_REV0_INTERPOSER.kicad_pcb
+          cat > out/INTERPOSER_ONLY.txt <<'EOF'
+          STRMKRD REV0 INTERPOSER ENGINEERING PREVIEW
+          IMPORTANT: This board is only six passive pin-headers and their
+          3.3 V I2C/SPI pass-through traces. NO sensor IC, shunt, regulator,
+          secure element or photonic engine is soldered to this PCB.
+          NOT a qualified factory assembly release. Footprint dimensions,
+          net label orientation, actual board connectivity, signal integrity,
+          assembly, enclosure, power/thermal and independent manufacturer review
+          must be accepted before ordering.
+          EOF
+          (cd out && sha256sum STRMKRD_REV0_INTERPOSER.kicad_pcb DRC.txt gerbers/* > SHA256SUMS.txt)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: STRMKRD-Rev0-Interposer-CAD-Engineering-Preview
+          path: out/
+          if-no-files-found: error
