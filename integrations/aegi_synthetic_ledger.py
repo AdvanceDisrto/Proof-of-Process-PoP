@@ -4,6 +4,7 @@ from decimal import Decimal
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
 from cryptography.hazmat.primitives import serialization
 from z3 import Int, Solver, Not, unsat, sat
+from cryptography.exceptions import InvalidSignature
 
 def canonical(x):
     return json.dumps(x, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
@@ -23,7 +24,7 @@ def verify(envelope, pin):
         Ed25519PublicKey.from_public_bytes(bytes.fromhex(pin)).verify(
             bytes.fromhex(envelope["signature"]), canonical(envelope["body"]))
         return True
-    except (KeyError, TypeError, ValueError):
+    except (KeyError, TypeError, ValueError, InvalidSignature):
         return False
 
 def merkle(leaves):
@@ -95,7 +96,7 @@ class AeGiSyntheticLedger:
         # Bookkeeping-only demo credits; no real tokens are minted or transferred.
         credit=Decimal("12.50")*len(hashes)*self.weights[miner]/sum(self.weights.values())
         self.balances[miner]+=credit
-        block["demo_credit"]=str(credit)
+        block["demo_credit"]=format(credit.quantize(Decimal("0.0001")), "f")
         self.blocks.append(block);self.staged.clear()
         return block
 
