@@ -1,0 +1,48 @@
+name: STRMKRD Rev0 Linux Hardware Register Smoke (No Physical Board)
+
+on:
+  push:
+    branches:
+      - feat/strmkrd-modular-node-rev0
+      - main
+    paths:
+      - "hardware/strmkrd-node/**"
+      - "tests/test_strmkrd_node_rev0.py"
+      - ".github/workflows/strmkrd_node_rev0.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "hardware/strmkrd-node/**"
+      - "tests/test_strmkrd_node_rev0.py"
+      - ".github/workflows/strmkrd_node_rev0.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  register-verification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Execute actual register conversion and fail-closed hardware tests
+        run: python -m unittest discover -s tests -p 'test_strmkrd_node_rev0.py' -v
+      - name: Execute Linux bridge deterministic self-test (no simulated hardware pass)
+        run: python hardware/strmkrd-node/bringup.py --self-test
+      - name: Assert gate remains unverified absent physical hardware
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          source=Path('hardware/strmkrd-node/bringup.py').read_text()
+          assert '"silicon_signature": "NOT_PRESENT"' in source
+          assert '"physical_device_authentication": "NOT_VERIFIED"' in source
+          assert 'UNAUTHENTICATED_I2C_OBSERVATION' in source
+          print('ACCEPT_STRMKRD_REV0_REGISTER_SMOKE: simulated register operations only')
+          print('PHYSICAL_SENSOR: NOT_VERIFIED')
+          print('HARDWARE_SECURE_ELEMENT: NOT_VERIFIED')
+          print('PCB_ERC_DRC_GERBERS: NOT_PERFORMED')
+          PY
