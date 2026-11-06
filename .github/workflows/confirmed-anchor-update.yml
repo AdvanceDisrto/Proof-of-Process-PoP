@@ -60,7 +60,7 @@ jobs:
           git push
 
       - name: Send confirmed notification
-        if: ${{ success() && secrets.CONFIRMED_ANCHOR_NOTIFICATION_WEBHOOK != '' }}
+        if: ${{ success() }}
         env:
           WEBHOOK_URL: ${{ secrets.CONFIRMED_ANCHOR_NOTIFICATION_WEBHOOK }}
           SUBJECT_HASH: ${{ github.event.client_payload.subject_hash }}
@@ -69,6 +69,10 @@ jobs:
           CONFIRMED_AT: ${{ github.event.client_payload.confirmed_at }}
           CONFIRMATIONS: ${{ github.event.client_payload.confirmations }}
         run: |
+          if [ -z "$WEBHOOK_URL" ]; then
+            echo "No notification webhook configured; source remains independently confirmed."
+            exit 0
+          fi
           node - <<'NODE'
           const https = require('node:https');
           const url = new URL(process.env.WEBHOOK_URL);
