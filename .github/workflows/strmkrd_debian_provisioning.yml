@@ -76,6 +76,8 @@ jobs:
             test -f "out/check/$arch/data/lib/systemd/system/strmkrd-observer.service"
             test -f "out/check/$arch/data/usr/lib/strmkrd/bringup.py"
             test -f "out/check/$arch/data/usr/lib/strmkrd/observer.py"
+            test -f "out/check/$arch/data/usr/lib/strmkrd/factory_provisioning_gate.py"
+            test -f "out/check/$arch/data/usr/share/doc/strmkrd-rev0/INSTALLATION_RUNBOOK.md"
             test -f "out/check/$arch/data/usr/share/doc/strmkrd-rev0/DEVICE_KEY_PROVISIONING_PROTOCOL.md"
             grep -q '^Architecture: '"$arch" "out/check/$arch/control/control"
             grep -q 'SupplementaryGroups=i2c' "out/check/$arch/data/lib/systemd/system/strmkrd-observer.service"
