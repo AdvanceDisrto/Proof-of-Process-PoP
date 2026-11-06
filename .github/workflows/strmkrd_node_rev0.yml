@@ -29,8 +29,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Install real SMT solver
+        run: python -m pip install 'z3-solver>=4.12.2,<5'
       - name: Execute actual register conversion and fail-closed hardware tests
         run: python -m unittest discover -s tests -p 'test_strmkrd_node_rev0.py' -v
+      - name: Execute scoped real Z3 observation-policy tests
+        run: python -m unittest discover -s tests -p 'test_strmkrd_observer.py' -v
       - name: Execute Linux bridge deterministic self-test (no simulated hardware pass)
         run: python hardware/strmkrd-node/bringup.py --self-test
       - name: Assert gate remains unverified absent physical hardware
