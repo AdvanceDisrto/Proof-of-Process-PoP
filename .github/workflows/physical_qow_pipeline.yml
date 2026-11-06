@@ -33,7 +33,7 @@ jobs:
       - name: Install QoW Z3 optical and signing requirements
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r _qow_checkout/requirements.txt
+          python -m pip install -r _qow_checkout/requirements.txt pytest
       - name: Execute physical-to-cryptographic negative test suite
         run: |
           PYTHONPATH=.:_qow_checkout python -m unittest discover -s tests -p 'test_physical_qow_pipeline.py' -v
