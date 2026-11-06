@@ -2,7 +2,7 @@ name: AeGi Synthetic Ledger Z3 Ed25519 Merkle Acceptance
 
 on:
   push:
-    branches: [feat/aegi-synthetic-ledger-smoke]
+    branches: [main, feat/aegi-synthetic-ledger-smoke]
   pull_request:
     branches: [main]
   workflow_dispatch:
