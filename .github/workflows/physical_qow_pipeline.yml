@@ -1,0 +1,48 @@
+name: Physical Sensor to CIH to QoW to PoP to ipQR (Synthetic Acceptance)
+
+on:
+  push:
+    branches:
+      - feat/qow-real-z3-gate
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  physical-to-cryptographic-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout Proof of Process
+        uses: actions/checkout@v4
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Checkout pinned merged QoW source
+        uses: actions/checkout@v4
+        with:
+          repository: AdvanceDisrto/Quantum-of-Work-QoW
+          ref: 3ee40f7de19070017595d4ff580eb6b978b413c1
+          path: _qow_checkout
+      - name: Install QoW Z3 optical and signing requirements
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r _qow_checkout/requirements.txt
+      - name: Execute physical-to-cryptographic negative test suite
+        run: |
+          PYTHONPATH=.:_qow_checkout python -m unittest discover -s tests -p 'test_physical_qow_pipeline.py' -v
+      - name: Generate full signed synthetic evidence chain and optical PNG
+        run: |
+          PYTHONPATH=.:_qow_checkout python -m integrations.physical_qow_pipeline
+      - name: Upload signed CIH QoW PoP optical smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: physical-qow-pop-ipqr-evidence
+          path: artifacts/physical_qow/
+          if-no-files-found: warn
