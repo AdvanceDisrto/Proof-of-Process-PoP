@@ -43,7 +43,7 @@ int signed16(uint16_t word) {
 uint16_t ina_calibration(uint32_t shunt_uohm = 2000, uint32_t current_lsb_microamp = 1000) {
     if (!shunt_uohm || !current_lsb_microamp) throw std::invalid_argument("zero calibration input");
     // CAL = 0.00512 / (R_shunt[ohm] * I_LSB[A]); integer-micro unit rearrangement.
-    const uint64_t numerator = UINT64_C(5120000000000000);
+    const uint64_t numerator = UINT64_C(5120000000);
     const uint64_t denominator = static_cast<uint64_t>(shunt_uohm) * current_lsb_microamp;
     if (numerator % denominator != 0) throw std::invalid_argument("noninteger calibration");
     const uint64_t result = numerator / denominator;
