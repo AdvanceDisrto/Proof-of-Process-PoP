@@ -22,15 +22,17 @@ mkdir -p "$STAGE/DEBIAN" "$STAGE/usr/lib/strmkrd" "$STAGE/usr/bin" \
 install -m 0755 "$BIN" "$STAGE/usr/bin/strmkrd-i2c-driver"
 install -m 0644 "$ROOT/observer.py" "$STAGE/usr/lib/strmkrd/observer.py"
 install -m 0644 "$ROOT/bringup.py" "$STAGE/usr/lib/strmkrd/bringup.py"
+install -m 0644 "$ROOT/factory_provisioning_gate.py" "$STAGE/usr/lib/strmkrd/factory_provisioning_gate.py"
 install -m 0644 "$ROOT/strmkrd-observer.service" "$STAGE/lib/systemd/system/strmkrd-observer.service"
 install -m 0644 "$ROOT/MANUFACTURING_HOLD.md" "$STAGE/usr/share/doc/strmkrd-rev0/MANUFACTURING_HOLD.md"
 install -m 0644 "$ROOT/DEVICE_KEY_PROVISIONING_PROTOCOL.md" "$STAGE/usr/share/doc/strmkrd-rev0/DEVICE_KEY_PROVISIONING_PROTOCOL.md"
+install -m 0644 "$ROOT/INSTALLATION_RUNBOOK.md" "$STAGE/usr/share/doc/strmkrd-rev0/INSTALLATION_RUNBOOK.md"
 cat > "$STAGE/DEBIAN/control" <<EOF
 Package: strmkrd-rev0
 Version: 0.1.0-1
 Architecture: $ARCH
 Maintainer: STRMKRD Engineering <noreply@strmkrd.com>
-Depends: python3 (>= 3.11), python3-smbus2, python3-z3, adduser, systemd, libc6, libstdc++6
+Depends: python3 (>= 3.11), python3-smbus2, python3-z3, python3-cryptography, adduser, systemd, libc6, libstdc++6
 Section: electronics
 Priority: optional
 Homepage: https://github.com/AdvanceDisrto/Proof-of-Process-PoP
