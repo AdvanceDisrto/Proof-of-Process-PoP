@@ -1,0 +1,17 @@
+Signal,Host_BCM,Pi_40pin_Physical,Peripheral,Function,Voltage,Review
+3V3,,1,MCP9808 VDD INA226 VS ATECC608C VCC,logic supply,3.3V,check breakout tolerance
+GND,,6,all sensor board GND,common ground,0V,required
+SDA1,2,3,MCP9808 SDA INA226 SDA ATECC608C SDA,I2C data,3.3V,unique pull-ups
+SCL1,3,5,MCP9808 SCL INA226 SCL ATECC608C SCL,I2C clock,3.3V,unique pull-ups
+SPI0_MOSI,10,19,E-Ink DIN,display serial input,3.3V,vendor board mapping
+SPI0_SCLK,11,23,E-Ink CLK,display clock,3.3V,vendor board mapping
+SPI0_CE0,8,24,E-Ink CS,display chip select,3.3V,vendor board mapping
+GPIO25,25,22,E-Ink DC,display data-command,3.3V,vendor board mapping
+GPIO24,24,18,E-Ink RST,display reset,3.3V,vendor board mapping
+GPIO23,23,16,E-Ink BUSY,display busy INPUT,3.3V,not SPI MISO
+5V_MON_IN,,,5V source -> approved shunt input pad,load supply input,5V,fuse review
+5V_MON_OUT,,,approved shunt output -> load positive,load supply output,5V,do not route current through INA input pins
+SHUNT_KELVIN_PLUS,,,shunt source sense -> INA226 IN+,kelvin sense,up to bus voltage,separate trace
+SHUNT_KELVIN_MINUS,,,shunt load sense -> INA226 IN-,kelvin sense,up to bus voltage,separate trace
+INA_VBUS,,,monitored load-side 5V -> INA226 VBUS,bus voltage,5V,NOT 3V3 input
+SPU_INTERFACE_TBD,,,TBD reserved no-connect,SPU interface,TBD,HOLD

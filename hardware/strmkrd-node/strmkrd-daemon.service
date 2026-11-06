@@ -1,0 +1,33 @@
+[Unit]
+Description=STRMKRD modular node sensor observation (UNAUTHENTICATED until hardware provisioning)
+After=local-fs.target
+
+[Service]
+Type=simple
+User=strmkrd
+Group=strmkrd
+SupplementaryGroups=i2c
+WorkingDirectory=/opt/strmkrd
+ExecStart=/opt/strmkrd/.venv/bin/python /opt/strmkrd/hardware/strmkrd-node/observer.py --bus 1 --ina-address 0x40 --interval-sec 60
+Restart=on-failure
+RestartSec=15
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateDevices=no
+DevicePolicy=closed
+DeviceAllow=/dev/i2c-1 rw
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX
+MemoryDenyWriteExecute=yes
+LockPersonality=yes
+CapabilityBoundingSet=
+# No network required. Device-only output goes to the systemd journal.
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,80 @@
+name: STRMKRD Rev0 Linux Hardware Register Smoke (No Physical Board)
+
+on:
+  push:
+    branches:
+      - feat/strmkrd-modular-node-rev0
+      - main
+    paths:
+      - "hardware/strmkrd-node/**"
+      - "tests/test_strmkrd_node_rev0.py"
+      - ".github/workflows/strmkrd_node_rev0.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "hardware/strmkrd-node/**"
+      - "tests/test_strmkrd_node_rev0.py"
+      - ".github/workflows/strmkrd_node_rev0.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  register-verification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install real SMT solver
+        run: python -m pip install 'z3-solver>=4.12.2,<5'
+      - name: Execute actual register conversion and fail-closed hardware tests
+        run: python -m unittest discover -s tests -p 'test_strmkrd_node_rev0.py' -v
+      - name: Execute scoped real Z3 observation-policy tests
+        run: python -m unittest discover -s tests -p 'test_strmkrd_observer.py' -v
+      - name: Execute Linux bridge deterministic self-test (no simulated hardware pass)
+        run: python hardware/strmkrd-node/bringup.py --self-test
+      - name: Assert gate remains unverified absent physical hardware
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          source=Path('hardware/strmkrd-node/bringup.py').read_text()
+          assert '"silicon_signature": "NOT_PRESENT"' in source
+          assert '"physical_device_authentication": "NOT_VERIFIED"' in source
+          assert 'UNAUTHENTICATED_I2C_OBSERVATION' in source
+          print('ACCEPT_STRMKRD_REV0_REGISTER_SMOKE: simulated register operations only')
+          print('PHYSICAL_SENSOR: NOT_VERIFIED')
+          print('HARDWARE_SECURE_ELEMENT: NOT_VERIFIED')
+          print('PCB_ERC_DRC_GERBERS: NOT_PERFORMED')
+          PY
+      - name: Assemble checksummed REV0 engineering handoff (no fabricated board claim)
+        run: |
+          mkdir -p out/STRMKRD_REV0
+          cp -r hardware/strmkrd-node out/STRMKRD_REV0/hardware
+          cp tests/test_strmkrd_node_rev0.py tests/test_strmkrd_observer.py out/STRMKRD_REV0/
+          cat > out/STRMKRD_REV0/ACCEPTANCE.json <<EOF
+          {
+            "spec": "strmkrd/rev0/engineering-handoff/1.0",
+            "git_sha": "$GITHUB_SHA",
+            "status": "ACCEPT_STRMKRD_REV0_REGISTER_SMOKE",
+            "software_test_vectors": "PASS",
+            "real_sensor": "NOT_VERIFIED",
+            "hardware_secure_element": "NOT_VERIFIED",
+            "physical_optical_capture": "NOT_VERIFIED",
+            "pcb_erc_drc": "NOT_PERFORMED",
+            "gerbers": "NOT_GENERATED",
+            "fabrication_ready": false
+          }
+          EOF
+          (cd out/STRMKRD_REV0 && find . -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt)
+          cd out
+          zip -qr STRMKRD_REV0_ENGINEERING_HANDOFF.zip STRMKRD_REV0
+      - name: Upload engineering handoff with register tests and source BOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: STRMKRD-Rev0-Modular-Engineering-Handoff
+          path: out/STRMKRD_REV0_ENGINEERING_HANDOFF.zip
+          if-no-files-found: error

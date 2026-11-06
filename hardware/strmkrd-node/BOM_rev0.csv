@@ -1,0 +1,12 @@
+Ref,Subsystem,Description,MPN_or_development_part,Qty,Footprint_or_form,Status,Notes
+HOST1,host,Raspberry Pi Zero 2 W or CM4 IO Board existing development host,HOST_BOARD_TBD,1,40-pin Raspberry expansion,SELECT,host carrier not included
+U1,temperature,Microchip MCP9808 temperature sensor breakout,MCP9808_BREAKOUT_TBD,1,I2C 3V3 breakout,VERIFY_PINOUT,0x18 default address; verify address straps
+U2,meter,Texas Instruments INA226 high side monitor breakout,INA226_BREAKOUT_TBD,1,I2C 3V3 breakout,VERIFY_PINOUT,0x40 baseline; straps may change
+RS1,shunt,2 milliohm high-side current sensing shunt,SHUNT_2mOHM_TBD,1,4-terminal Kelvin rated,ENGINEERING_REVIEW,confirm max load current and dissipation before selecting part
+U3,root of trust,Microchip ATECC608C I2C secure element evaluation breakout,ATECC608C_BREAKOUT_TBD,1,I2C 3V3 breakout,OPTIONAL_NO_SIGNING,hardware ECDSA P256 not Ed25519; provisioning required
+DISP1,optical,Vender-matched 3.3V E-Ink breakout,EPAPER_2_13_SPI_BREAKOUT_TBD,1,SPI header,OPTIONAL_REVIEW,no raw FPC pinout assumed
+J1,host adapter,40 pin Raspberry host adapter interface,2x20_2p54_FEMALE_TBD,1,2x20 2.54mm,VERIFY_KEYING,3.3V bus signals
+J2,SPU expansion,Reserved no-connect until PIC/FPGA interface specified,TBD,0,UNDEFINED,HOLD,no PCIE/optical wire assignment
+PS1,power,Certified 5V host supply,HOST_APPROVED_5V_SUPPLY_TBD,1,approved external,VERIFY_CURRENT,no 12V raw injection
+R1-R2,i2c,pull ups only if NOT already present on host/modules,4K7_0603_OPTIONAL,2,0603,DNI_BY_DEFAULT,avoid multiple parallel pull ups
+F1,power,protected input fuse,PTC_OR_FUSE_TBD,1,per design,HOLD,final value depends on power budget
