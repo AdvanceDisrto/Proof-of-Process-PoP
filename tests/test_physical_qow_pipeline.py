@@ -5,6 +5,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
+# The physical-to-QoW integration requires a separately checked-out pinned QoW.
+# Generic PoP CI may run without that sibling checkout; the dedicated physical
+# acceptance workflow must run all 12 tests with the real QoW source available.
+import pytest
+pytest.importorskip("qow", reason="QoW sibling checkout absent; dedicated physical acceptance CI required")
+
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from integrations.physical_qow_pipeline import (
