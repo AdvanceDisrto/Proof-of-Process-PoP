@@ -41,6 +41,15 @@ python hardware/strmkrd-node/bringup.py --self-test
 python hardware/strmkrd-node/bringup.py --hardware --bus 1 --ina-address 0x40
 ```
 
+To stream observations continuously from the physical device with a scoped Z3 range check (still **unsigned and unauthenticated**):
+
+```bash
+python hardware/strmkrd-node/observer.py --bus 1 --ina-address 0x40 --once
+# systemd uses observer.py without --once, with bounded 60s intervals
+```
+
+Grant the dedicated service account membership in the existing Linux `i2c` group before enabling systemd; ensure `/dev/i2c-1` exists, the modules have 3.3V-safe I/O, and that no kernel hwmon driver already owns the INA226 address. The host must have a Python virtual environment, the linked requirements, and the service file's paths must match the installation.
+
 The hardware command only performs register reads and, with explicit `--calibrate-ina`, programs the INA226 calibration register. It emits an **UNAUTHENTICATED** observation that must not be promoted into the PoP/QoW signer until actual device provisioning, witness identity, signature-verified envelopes, and persistent anti-replay are built.
 
 ## Architecture discrepancies resolved
