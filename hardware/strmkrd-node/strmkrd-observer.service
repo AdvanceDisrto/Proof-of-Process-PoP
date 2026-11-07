@@ -1,0 +1,35 @@
+[Unit]
+Description=STRMKRD Rev0 Hardware Observation (Unsigned, Not Attested)
+ConditionPathExists=/dev/i2c-1
+After=local-fs.target
+
+[Service]
+Type=simple
+User=strmkrd
+Group=strmkrd
+SupplementaryGroups=i2c
+WorkingDirectory=/usr/lib/strmkrd
+ExecStart=/usr/bin/python3 /usr/lib/strmkrd/observer.py --bus 1 --ina-address 0x40 --interval-sec 60
+Restart=on-failure
+RestartSec=15
+StartLimitIntervalSec=300
+StartLimitBurst=5
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=no
+DevicePolicy=closed
+DeviceAllow=/dev/i2c-1 rw
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX
+CapabilityBoundingSet=
+MemoryDenyWriteExecute=true
+LockPersonality=true
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
