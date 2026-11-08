@@ -1,4 +1,5 @@
 import random
+from ci.check_z3_vector import check
 import unittest
 from model.tessera_g_model import TesseraModel, State
 
@@ -78,5 +79,15 @@ class TesseraTests(unittest.TestCase):
         self.assertEqual([x['parent_a'] for x in data],[-1,0,1])
         self.assertEqual([x['parent_b'] for x in data],[-1,-1,-1])
         self.assertEqual([x['depth'] for x in data],[0,1,2])
+
+    def test_real_z3_vector_parser_expected_states(self):
+        rows=[(0,1,-1,-1),(1,1,0,-1),(2,2,0,-1),(3,1,2,-1),
+              (4,1,0,1),(5,1,1,2),(6,0,-1,-1),(7,1,10,-1)]
+        payload=check(''.join('TESSERA_VECTOR %s %s %s %s\n' % r for r in rows))
+        self.assertEqual(payload['statuses'],[1,1,2,3,1,3,4,5])
+        self.assertEqual(payload['nodes'][4]['parent_b'],1)
+
+    def test_real_z3_vector_rejects_missing_rows(self):
+        with self.assertRaises(ValueError):check('TESSERA_VECTOR 0 1 -1 -1\n')
 
 if __name__ == '__main__':unittest.main()
