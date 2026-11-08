@@ -61,3 +61,30 @@ There is **no live BCI**, no Pi I2C access, no actual printer connection, no ind
 **A receipt is evidence, never automatic legal admissibility or a transfer of burden of proof.** Preserve the chain of custody and the accountable operator's identity and qualifications externally.
 
 GNU/Linux demo requirements: Python 3.11+, FastAPI, uvicorn, NumPy, `qrcode`, Pillow; Open verifier reference wheel requires cryptography and msgpack. RTL headless tests require `iverilog`, `vvp`, `verilator`, `yosys`. MIT/BSD/Apache and other third-party licenses must be respected for external datasets and tools. This package's own source is Apache-2.0. No monetized resources are created by the supplied tests.
+
+### Verify a real signed receipt into the live audit journal (local CLI)
+
+The `verify` CLI never trusts a self-reported `VERIFIED` flag. It runs the full
+independent v1.0 verifier and writes a record into SQLite. A separate terminal
+running the localhost dashboard will pick up this record on its next 10-second
+poll (WebSockets deliver events posted directly to the service immediately).
+
+```bash
+python -m innovulis_receipt demo --out /tmp/ipqr-demo    # SYNTHETIC ONLY
+PIN=$(cat /tmp/ipqr-demo/DEMO_ANCHOR_SHA256_NOT_TRUSTED.txt)
+python -m paper_console verify \
+  --input /tmp/ipqr-demo/receipt.json \
+  --trust /tmp/ipqr-demo/trust_anchor.json \
+  --anchor-pin "$PIN" \
+  --revocations /tmp/ipqr-demo/signed_revocations.json \
+  --issuance-log /tmp/ipqr-demo/signed_issuance_log.json \
+  --subject sensor:demo-unit-314 \
+  --evidence-dir /tmp/ipqr-demo \
+  --db paper_console.sqlite3 \
+  --preview-escpos evidence/ipqr-demo.escpos
+```
+
+The displayed `PIN` is deliberately **NOT independently trusted** and may only
+be used for a self-contained synthetic demo. In production, administrators must
+provision an approved trust anchor fingerprint through a separate channel.
+The CLI *never* sends bytes to physical printer or calls RunPod.

@@ -39,7 +39,7 @@ def _raster_qr(text:str,policy:PrintPolicy):
         from qrcode.exceptions import DataOverflowError
     except ImportError as exc:
         raise PrintBlocked("qrcode library required for real QR carrier") from exc
-    qr=qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_M, box_size=1, border=4)
+    qr=qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_M, box_size=1, border=8)
     try: qr.add_data(text, optimize=0);qr.make(fit=True)
     except (DataOverflowError, ValueError) as exc:raise PrintBlocked("signed receipt exceeds standard QR capacity") from exc
     modules=qr.get_matrix()

@@ -52,12 +52,42 @@ def main(argv=None):
     a.add_argument("--out",default="evidence/demo")
     a=sub.add_parser("atlas",help="Hash and validate an operator-supplied offline geography JSON")
     a.add_argument("--input",required=True)
+    a=sub.add_parser("verify",help="OFFLINE ipQR v1 verification and append to console DB; no hardware output")
+    for flag in ("input", "trust", "anchor-pin", "revocations", "issuance-log", "subject", "evidence-dir", "db"):
+        a.add_argument("--"+flag,required=True)
+    a.add_argument("--preview-escpos",help="write untrusted ESC/POS bytes to local file, never hardware")
     a=sub.add_parser("serve",help="localhost-only dashboard; simulated events OFF")
     a.add_argument("--db",default="paper_console.sqlite3")
     a.add_argument("--port",type=int,default=8780)
     args=p.parse_args(argv)
     if args.command=="demo":output=run_demo(args.out)
     elif args.command=="atlas":output=ingest_atlas(args.input)
+    elif args.command=="verify":
+        from .verification import IndependentReceiptGate
+        from .escpos import render_receipt,PrintPolicy,DryRunPrinter
+        from innovulis_receipt.codec import encode_qr_text
+        read=lambda p:json.loads(Path(p).read_text())
+        packet=read(args.input)
+        gate=IndependentReceiptGate(trust=read(args.trust),revocations=read(args.revocations),
+            issuance_log=read(args.issuance_log),independently_pinned_anchor_sha256=args.anchor_pin,
+            expected_subject=args.subject,evidence_dir=args.evidence_dir)
+        event,decision=gate.check(packet,carrier=encode_qr_text(packet))
+        store=EventStore(args.db)
+        try:append=store.append(event)
+        finally:store.close()
+        output={"decision":decision["code"],"verification_success":bool(decision["verified"]),
+                "claim_verdict":event.claim_verdict,"event_id":event.event_id,
+                "audit_event_hash":append["event_hash"],"physical_printer":"NOT_CONNECTED"}
+        if args.preview_escpos:
+            if not decision["verified"]:
+                output["escpos_preview"]="BLOCKED_NO_VERIFIED_RECEIPT"
+            else:
+                data,meta=render_receipt(event,policy=PrintPolicy())
+                DryRunPrinter(args.preview_escpos).write(data)
+                output["escpos_preview"]=str(args.preview_escpos)
+        if not decision["verified"]:
+            print(json.dumps(output,indent=2,sort_keys=True))
+            raise SystemExit(2)
     else:
         import uvicorn
         from .service import create_app

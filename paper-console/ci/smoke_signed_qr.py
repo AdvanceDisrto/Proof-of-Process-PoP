@@ -38,7 +38,18 @@ def run(out_dir):
         assert len(raw)==wb*h
         gray=255-np.unpackbits(np.frombuffer(raw,dtype=np.uint8).reshape(h,wb),axis=1)*255
         cv2.imwrite(str(out/'synthetic_printed_qr.png'),gray)
-        text,_,_=cv2.QRCodeDetector().detectAndDecode(gray)
+        # Independent open-source ZBar optical decoder is more robust for dense
+        # signed QR than OpenCV's detector on some random-signature patterns.
+        # This decodes rendered pixels, NOT the original carrier string.
+        try:
+            from pyzbar.pyzbar import decode as zbar_decode
+            from PIL import Image
+            optical=zbar_decode(Image.fromarray(gray))
+            text=optical[0].data.decode("ascii") if optical else ""
+            scanner="ZBAR_PIXEL_DECODE"
+        except ImportError:
+            text,_,_=cv2.QRCodeDetector().detectAndDecode(gray)
+            scanner="OPENCV_PIXEL_DECODE"
         assert text==carrier, 'ESC/POS QR failed independent optical pixel decode'
         packet=decode_qr_text(text)
         event_again,second=gate.check(packet,now=demo['demo_time'])
@@ -52,6 +63,7 @@ def run(out_dir):
     result={"synthetic_source_only":True,"real_ed25519":True,"optical_qr_scanned":True,
         "escpos_raster_sha256":hashlib.sha256(data).hexdigest(),
         "signed_carrier_sha256":hashlib.sha256(carrier.encode()).hexdigest(),
+        "optical_decoder":scanner,
         "claim_verdict":"REFUTED_FALSE","digital_verification":"VERIFIED_DIGITAL_RECEIPT",
         "ledger_event_hash":result['event_hash'],"printer_hardware":"NOT_CONNECTED",
         "atecc608_hardware":"NOT_CONNECTED","ina226_hardware":"NOT_CONNECTED",
