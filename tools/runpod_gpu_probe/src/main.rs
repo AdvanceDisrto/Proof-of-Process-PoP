@@ -201,9 +201,36 @@ async fn gpu_smoke() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+/// Emit an untrusted but independently recheckable typed input fixture from real CPU Z3.
+/// Only a formal bounded integer relation is evaluated; sensors and signer trust remain absent.
+fn emit_tessera_vectors() {
+    let cases: [(Option<i64>, i64, i32, i32); 8] = [
+        (Some(45_000), 50_000, -1, -1), // 0 bounded genesis
+        (Some(50_000), 50_000, 0, -1),  // 1 bounded child
+        (Some(90_000), 50_000, 0, -1),  // 2 refuted locally
+        (Some(20_000), 50_000, 2, -1),  // 3 valid arithmetic, dependency blocked
+        (Some(20_000), 50_000, 0, 1),   // 4 two-parent valid join
+        (Some(20_000), 50_000, 1, 2),   // 5 two-parent blocked join
+        (None, 50_000, -1, -1),         // 6 UNKNOWN, not proven
+        (Some(20_000), 50_000, 10, -1),// 7 future index invalid topology
+    ];
+    for (index, (reading, limit, pa, pb)) in cases.into_iter().enumerate() {
+        let verdict = match reading {
+            None => 0u32,
+            Some(value) if z3_under_limit(value, limit) => 1u32,
+            Some(_) => 2u32,
+        };
+        println!("TESSERA_VECTOR {index} {verdict} {pa} {pb}");
+    }
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
-    if std::env::args().any(|x| x == "--gpu-smoke") {
+    let args: Vec<String> = std::env::args().collect();
+    if args.iter().any(|x| x == "--gpu-smoke") {
         pollster::block_on(gpu_smoke())
+    } else if args.iter().any(|x| x == "--tessera-vector") {
+        emit_tessera_vectors();
+        Ok(())
     } else {
         println!("DAGE_GPU_SMOKE=NOT_RUN; use --gpu-smoke on a physical AMD Vulkan GPU");
         Ok(())
