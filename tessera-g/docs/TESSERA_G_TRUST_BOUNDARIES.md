@@ -41,9 +41,9 @@ It is a **planning taxonomy**, not evidence that all blocks exist.
    driver, or board dependencies.
 6. Verilator, Yosys and a passing CI simulation do not prove a working FPGA,
    calibrated sensor, trusted witness, board timing closure, or tapeout.
-7. A dual-parent node cannot be represented by the currently installed
-   single-parent GPU shader. The software export refuses such nodes rather
-   than silently dropping a dependency.
+7. This change also upgrades the RunPod Rust/WGSL GPU smoke to preserve
+   two-parent joins and explicitly distinguish unknown from refuted status.
+   It has only CPU shader validation until an actual AMD Vulkan GPU run is evidenced.
 8. Claims of 100x speed, 1 GHz clocks, physical tamper resistance, commercial
    compliance, patentability, or independently verified energy are NOT supported.
 
