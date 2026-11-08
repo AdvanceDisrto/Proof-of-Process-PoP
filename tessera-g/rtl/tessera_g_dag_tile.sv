@@ -25,6 +25,8 @@ module tessera_g_dag_tile #(
     output reg                  rd_exists,
     output reg  [2:0]           rd_state
 );
+    localparam integer ADDR_W = (MAX_NODES > 1) ? $clog2(MAX_NODES) : 1;
+    localparam [IDX_W-1:0] MAX_NODES_COUNT = IDX_W'(MAX_NODES);
     localparam [IDX_W-1:0] NO_PARENT = {IDX_W{1'b1}};
     localparam [2:0] EMPTY = 3'd0;
     localparam [2:0] ACCEPTED = 3'd1;
@@ -38,7 +40,7 @@ module tessera_g_dag_tile #(
     reg topology_ok;
     reg dependencies_ok;
     // MAX_NODES must be smaller than 2^IDX_W-1, preserving the sentinel value.
-    assign cmd_ready = (node_count < MAX_NODES);
+    assign cmd_ready = (node_count < MAX_NODES_COUNT);
 
     always @* begin
         topology_ok = 1'b1;
@@ -47,14 +49,14 @@ module tessera_g_dag_tile #(
         if (cmd_parent_a != NO_PARENT) begin
             if (cmd_parent_a >= node_count) begin
                 topology_ok = 1'b0;
-            end else if (state_memory[cmd_parent_a] != ACCEPTED) begin
+            end else if (state_memory[cmd_parent_a[ADDR_W-1:0]] != ACCEPTED) begin
                 dependencies_ok = 1'b0;
             end
         end
         if (cmd_parent_b != NO_PARENT) begin
             if (cmd_parent_b >= node_count) begin
                 topology_ok = 1'b0;
-            end else if (state_memory[cmd_parent_b] != ACCEPTED) begin
+            end else if (state_memory[cmd_parent_b[ADDR_W-1:0]] != ACCEPTED) begin
                 dependencies_ok = 1'b0;
             end
         end
@@ -79,7 +81,7 @@ module tessera_g_dag_tile #(
         rd_state = EMPTY;
         if (rd_valid && (rd_index < node_count)) begin
             rd_exists = 1'b1;
-            rd_state = state_memory[rd_index];
+            rd_state = state_memory[rd_index[ADDR_W-1:0]];
         end
     end
 
@@ -94,7 +96,7 @@ module tessera_g_dag_tile #(
         end else begin
             cmd_accepted <= 1'b0;
             if (cmd_valid && cmd_ready) begin
-                state_memory[node_count] <= computed_state;
+                state_memory[node_count[ADDR_W-1:0]] <= computed_state;
                 cmd_state <= computed_state;
                 cmd_index <= node_count;
                 node_count <= node_count + 1'b1;
