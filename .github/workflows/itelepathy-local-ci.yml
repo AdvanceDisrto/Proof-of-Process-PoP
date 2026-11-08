@@ -23,7 +23,7 @@ jobs:
           sudo apt-get install -y libz3-4 libz3-dev
           python -m pip install 'cryptography>=41'
       - name: Run real Z3 and secure-intent regression tests
-        run: python -m unittest tests.test_itelepathy_ci -v
+        run: python -m unittest discover -s tests -p test_itelepathy_ci.py -v
       - name: Execute opt-in signed/encrypted localhost HTTP-free smoke
         run: python -m itelepathy.demo | tee itp_demo_result.json
       - name: Upload software-level evidence (never upload private intents)
