@@ -10,7 +10,7 @@ module tessera_g_arty_top (
     output wire rgb0_g,
     output wire rgb0_b
 );
-    localparam [1:0] ISSUE = 2'd0, CHECK = 2'd1, DONE = 2'd2;
+    localparam [1:0] ISSUE = 2'd0, CHECK = 2'd1, VERIFY = 2'd2, DONE = 2'd3;
 
     // Asynchronous assertion, synchronous release. FPGA INIT boot state is demo-only.
     (* ASYNC_REG = "TRUE" *) reg [1:0] rst_pipe = 2'b00;
@@ -24,6 +24,8 @@ module tessera_g_arty_top (
     reg [2:0] step;
     reg error_seen;
     reg [3:0] steps_passed;
+    reg [3:0] readback_passed;
+    reg [1:0] scan_idx;
 
     wire cmd_valid = (phase == ISSUE);
     wire cmd_ready;
@@ -32,6 +34,11 @@ module tessera_g_arty_top (
     wire [7:0] cmd_index;
     wire [7:0] node_count;
     wire overflow_seen;
+    wire rd_exists;
+    wire [2:0] rd_state;
+    wire [7:0] rd_index = {6'd0, scan_idx};
+    wire [2:0] expected_read = (scan_idx == 2'd1) ? 3'd2 :
+                               (scan_idx == 2'd2) ? 3'd3 : 3'd1;
 
     reg [1:0] cmd_verdict;
     reg [7:0] cmd_parent_a;
@@ -66,7 +73,8 @@ module tessera_g_arty_top (
         .cmd_parent_b(8'hff), .cmd_accepted(cmd_accepted),
         .cmd_state(cmd_state), .cmd_index(cmd_index),
         .node_count(node_count), .overflow_seen(overflow_seen),
-        .rd_valid(1'b0), .rd_index(8'd0), .rd_exists(), .rd_state()
+        .rd_valid(phase == VERIFY), .rd_index(rd_index),
+        .rd_exists(rd_exists), .rd_state(rd_state)
     );
 
     always @(posedge clk100 or negedge reset_n) begin
@@ -75,6 +83,8 @@ module tessera_g_arty_top (
             step <= 3'd0;
             error_seen <= 1'b0;
             steps_passed <= 4'd0;
+            readback_passed <= 4'd0;
+            scan_idx <= 2'd0;
         end else begin
             case (phase)
                 ISSUE: begin
@@ -85,19 +95,29 @@ module tessera_g_arty_top (
                     if (cmd_accepted && cmd_index == {5'd0,step} &&
                         cmd_state == expected_state && !overflow_seen) begin
                         steps_passed[step[1:0]] <= 1'b1;
-                        if (step == 3'd3) phase <= DONE;
+                        if (step == 3'd3) phase <= VERIFY;
                         else begin step <= step + 1'b1; phase <= ISSUE; end
                     end else begin
                         error_seen <= 1'b1;
                         phase <= DONE;
                     end
                 end
+                VERIFY: begin
+                    // Explicit on-chip memory readback; a lit LED alone is not enough.
+                    if (rd_exists && rd_state == expected_read &&
+                        node_count == 8'd4 && !overflow_seen) begin
+                        readback_passed[scan_idx] <= 1'b1;
+                        if (scan_idx == 2'd3) phase <= DONE;
+                        else scan_idx <= scan_idx + 1'b1;
+                    end else begin error_seen <= 1'b1; phase <= DONE; end
+                end
                 default: phase <= DONE;
             endcase
         end
     end
 
-    wire all_passed = (steps_passed == 4'b1111);
+    wire all_passed = (steps_passed == 4'b1111) &&
+                      (readback_passed == 4'b1111);
     wire ok = (phase == DONE) && !error_seen && all_passed &&
               (node_count == 8'd4) && !overflow_seen;
 
