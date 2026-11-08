@@ -1,0 +1,43 @@
+name: iNNOVULIS Tessera-G RTL and DAGE integration (headless)
+on:
+  pull_request:
+    paths:
+      - 'tessera-g/**'
+      - '.github/workflows/tessera-g-rtl.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  rtl-gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install open-source RTL toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y iverilog verilator yosys
+      - name: Execute model, RTL, trace comparison, lint and synthesis
+        run: bash tessera-g/ci/run_gate.sh
+      - name: Publish nonsecret RTL traces and synthesis evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tessera-g-rtl-headless-evidence
+          path: tessera-g/evidence/
+          if-no-files-found: ignore
+          retention-days: 14
+  existing-dage-bridge:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install native Z3 and Vulkan headers
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libz3-dev pkg-config libclang-dev clang libvulkan-dev
+      - name: Re-test the real CPU Z3 and DAGE GPU probe source
+        run: cargo test --manifest-path tools/runpod_gpu_probe/Cargo.toml
+      - name: Explicitly state the GPU hardware gate
+        run: echo 'Real AMD GPU, FPGA bitstream, and physical-sensor tests NOT performed by GitHub-hosted CPU runner.'
