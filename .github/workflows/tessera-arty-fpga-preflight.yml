@@ -28,6 +28,22 @@ jobs:
           sudo apt-get install -y iverilog verilator yosys
       - name: Run the physical-board *simulation* and generic synth
         run: bash tessera-g/fpga/arty_a7_100t/ci/run_board_preflight.sh
+      - name: Upload FPGA-ready board source and operator runbook
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tessera-arty-a7-100t-vivado-source-unflashed
+          path: |
+            tessera-g/rtl/tessera_g_dag_tile.sv
+            tessera-g/fpga/arty_a7_100t/**/*.sv
+            tessera-g/fpga/arty_a7_100t/**/*.xdc
+            tessera-g/fpga/arty_a7_100t/*.tcl
+            tessera-g/fpga/arty_a7_100t/*.sh
+            tessera-g/fpga/arty_a7_100t/ci/*.py
+            tessera-g/fpga/arty_a7_100t/ci/*.sh
+            tessera-g/fpga/arty_a7_100t/README.md
+          if-no-files-found: error
+          retention-days: 14
       - name: Publish headless simulator evidence only
         if: always()
         uses: actions/upload-artifact@v4
