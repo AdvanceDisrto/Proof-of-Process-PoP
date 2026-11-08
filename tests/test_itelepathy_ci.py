@@ -3,6 +3,7 @@ from pathlib import Path
 from itelepathy import Identity, Sender, Receiver, Rejected, Policy, verify_ack
 from itelepathy.core import canonical
 from itelepathy.loopback import start_receiver,send_local
+from itelepathy.buddy_tessera_bridge import buddy_tessera_demo
 
 class TrustIntent(unittest.TestCase):
     def setUp(self):
@@ -22,6 +23,18 @@ class TrustIntent(unittest.TestCase):
     def test_negative_and_boolean_denied(self):
         self.assertFalse(self.policy.allowed(-1,1000))
         self.assertFalse(self.policy.allowed(True,1000))
+    def test_buddy_tessera_bridge_with_two_parents(self):
+        p=self.packet();ack=self.receiver.receive(p)
+        result=buddy_tessera_demo(ack,self.b.public(),p,parent_a=0,parent_b=1)
+        self.assertEqual(result["tessera_g"]["cmd_verdict"],1)
+        self.assertEqual(result["tessera_g"]["cmd_parent_a"],0)
+        self.assertEqual(result["tessera_g"]["cmd_parent_b"],1)
+        self.assertFalse(result["tessera_g"]["hardware_has_verified_signature"])
+    def test_buddy_tessera_bridge_rejects_forged_ack(self):
+        p=self.packet();ack=self.receiver.receive(p)
+        ack["signature_hex"]="aa"*64
+        with self.assertRaises(Rejected):
+            buddy_tessera_demo(ack,self.b.public(),p)
     def test_roundtrip_and_offline_ack(self):
         p=self.packet();ack=self.receiver.receive(p)
         self.assertTrue(verify_ack(ack,self.b.public(),p))
