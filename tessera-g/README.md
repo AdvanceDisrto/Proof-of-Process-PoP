@@ -24,10 +24,10 @@ compares all committed RTL states to an independent Python reference model,
 lints Verilog and invokes Yosys logic synthesis. The GitHub Actions workflow
 runs the same gates headlessly and publishes the trace as a CI artifact.
 
-**Integration**: the model exports single-parent node statuses to the existing
-`tools/runpod_gpu_probe` visualizer representation. Multi-parent exports fail
-closed until the GPU shader is upgraded to preserve every required dependency.
-CPU-side formal checking in the existing RunPod GPU probe remains separate.
+**Integration**: the model exports **two-parent** statuses and dependency depth
+to the upgraded `tools/runpod_gpu_probe` GPU shader. The same pull request
+extends the Rust/WGSL structure with two-parent gates and adds a headless
+Naga WGSL parser/validator test. CPU Z3 remains separate from GPU status propagation.
 
 This RTL **does not** execute Z3, SHA-256, cryptographic signatures, RISC-V,
 Vulkan, or physical sensor measurements, and is not a completed FPGA or ASIC.
