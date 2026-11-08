@@ -1,0 +1,190 @@
+//! Minimal REAL GPU integration gate for iNNOVULIS DAGE.
+//! CPU Z3 verifies declared integer policy; GPU propagates dependency states.
+//! DOES NOT establish physically accurate sensors, signature trust, or mathematical
+//! proof on the GPU. AMD-only to honor i™ non-NVIDIA DAGE acceptance.
+use bytemuck::{Pod, Zeroable};
+use std::{error::Error, sync::mpsc};
+use wgpu::util::DeviceExt;
+use z3::{ast::{Ast, Int}, Config, Context, SatResult, Solver};
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, Pod, Zeroable)]
+struct GpuNode {
+    pos: [f32; 4],
+    local_ok: u32,
+    effective: u32,
+    parent_index: i32,
+    depth: u32,
+}
+const _: [(); 32] = [(); std::mem::size_of::<GpuNode>()];
+
+fn z3_under_limit(observed: i64, maximum: i64) -> bool {
+    let mut cfg = Config::new();
+    cfg.set_timeout_msec(5_000);
+    let ctx = Context::new(&cfg);
+    let s = Solver::new(&ctx);
+    let reading = Int::new_const(&ctx, "reading");
+    s.assert(&reading._eq(&Int::from_i64(&ctx, observed)));
+    // Prove reading <= maximum by finding NO model with reading > maximum.
+    s.assert(&reading.gt(&Int::from_i64(&ctx, maximum)));
+    matches!(s.check(), SatResult::Unsat)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn z3_accepts_in_bound_observation() {
+        assert!(z3_under_limit(45_000, 50_000));
+        assert!(z3_under_limit(50_000, 50_000));
+    }
+    #[test]
+    fn z3_refutes_over_limit_observation() {
+        assert!(!z3_under_limit(500_000, 50_000));
+    }
+    #[test]
+    fn node_storage_layout_is_32_bytes() {
+        assert_eq!(std::mem::size_of::<GpuNode>(), 32);
+    }
+}
+
+async fn gpu_smoke() -> Result<(), Box<dyn Error>> {
+    let nodes: [GpuNode; 3] = [
+        GpuNode { pos: [0., 0.6, 0., 1.], local_ok: z3_under_limit(45_000, 50_000) as u32,
+            effective: 0, parent_index: -1, depth: 0 },
+        GpuNode { pos: [-0.4, -0.2, 0., 1.], local_ok: z3_under_limit(500_000, 50_000) as u32,
+            effective: 0, parent_index: 0, depth: 1 },
+        GpuNode { pos: [0.4, -0.7, 0., 1.], local_ok: z3_under_limit(30_000, 50_000) as u32,
+            effective: 0, parent_index: 1, depth: 2 },
+    ];
+    let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+        backends: wgpu::Backends::VULKAN,
+        ..Default::default()
+    });
+    let adapter = instance.request_adapter(&wgpu::RequestAdapterOptions {
+        power_preference: wgpu::PowerPreference::HighPerformance,
+        compatible_surface: None,
+        force_fallback_adapter: false,
+    }).await.ok_or("no Vulkan adapter detected")?;
+    let info = adapter.get_info();
+    // A software Vulkan implementation (llvmpipe) is not a physical GPU PASS.
+    if info.vendor != 0x1002 || !matches!(info.device_type,
+        wgpu::DeviceType::DiscreteGpu | wgpu::DeviceType::IntegratedGpu) {
+        return Err(format!(
+            "AMD GPU REQUIRED: Vulkan adapter name={:?} vendor={:#x} device_type={:?}",
+            info.name, info.vendor, info.device_type,
+        ).into());
+    }
+    let (device, queue) = adapter.request_device(
+        &wgpu::DeviceDescriptor {
+            label: Some("iNNOVULIS AMD DAGE"),
+            required_features: wgpu::Features::empty(),
+            required_limits: wgpu::Limits::downlevel_defaults(),
+        },
+        None,
+    ).await?;
+    let graph_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some("VRAM proof-node states"),
+        contents: bytemuck::cast_slice(&nodes),
+        usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
+    });
+    let out_buf = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("GPU readback"),
+        size: std::mem::size_of_val(&nodes) as u64,
+        usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+        mapped_at_creation: false,
+    });
+    let depth_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some("depth uniform"),
+        contents: bytemuck::cast_slice(&[0u32; 4]),
+        usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+    });
+    let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("DAGE propagation"),
+        source: wgpu::ShaderSource::Wgsl(include_str!("propagate.wgsl").into()),
+    });
+    let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: Some("DAGE bindings"),
+        entries: &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::COMPUTE,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Storage { read_only: false },
+                    has_dynamic_offset: false, min_binding_size: None,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 1,
+                visibility: wgpu::ShaderStages::COMPUTE,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false, min_binding_size: None,
+                },
+                count: None,
+            },
+        ],
+    });
+    let group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("DAGE group"), layout: &layout,
+        entries: &[
+            wgpu::BindGroupEntry { binding: 0, resource: graph_buf.as_entire_binding() },
+            wgpu::BindGroupEntry { binding: 1, resource: depth_buf.as_entire_binding() },
+        ],
+    });
+    let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        label: Some("DAGE compute pipeline layout"),
+        bind_group_layouts: &[&layout], push_constant_ranges: &[],
+    });
+    let pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+        label: Some("DAGE compute"),
+        layout: Some(&pipeline_layout),
+        module: &shader, entry_point: "main",
+    });
+    // DEPENDENCY ORDER: separate submissions, never race a parent and child.
+    for depth in 0u32..3u32 {
+        queue.write_buffer(&depth_buf, 0, bytemuck::cast_slice(&[depth, 0, 0, 0]));
+        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("DAGE depth iteration"),
+        });
+        {
+            let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                label: Some("dependency propagator"), timestamp_writes: None,
+            });
+            pass.set_pipeline(&pipeline);
+            pass.set_bind_group(0, &group, &[]);
+            pass.dispatch_workgroups(1, 1, 1);
+        }
+        queue.submit(Some(encoder.finish()));
+    }
+    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+        label: Some("DAGE readback"),
+    });
+    encoder.copy_buffer_to_buffer(&graph_buf, 0, &out_buf, 0, std::mem::size_of_val(&nodes) as u64);
+    queue.submit(Some(encoder.finish()));
+    let slice = out_buf.slice(..);
+    let (tx, rx) = mpsc::channel();
+    slice.map_async(wgpu::MapMode::Read, move |result| { let _ = tx.send(result); });
+    device.poll(wgpu::Maintain::Wait);
+    rx.recv()??;
+    let mapped = slice.get_mapped_range();
+    let result: Vec<GpuNode> = bytemuck::cast_slice::<u8, GpuNode>(&mapped).to_vec();
+    drop(mapped);
+    out_buf.unmap();
+    let observed: Vec<u32> = result.iter().map(|v| v.effective).collect();
+    if observed != [1, 2, 3] {
+        return Err(format!("GPU propagation mismatch: {observed:?}; expected [1,2,3]").into());
+    }
+    println!("DAGE_GPU_SMOKE=PASS vendor=AMD adapter={:?} states={observed:?} (signed/physical gates NOT proven)", info.name);
+    Ok(())
+}
+
+fn main() -> Result<(), Box<dyn Error>> {
+    if std::env::args().any(|x| x == "--gpu-smoke") {
+        pollster::block_on(gpu_smoke())
+    } else {
+        println!("DAGE_GPU_SMOKE=NOT_RUN; use --gpu-smoke on a physical AMD Vulkan GPU");
+        Ok(())
+    }
+}
