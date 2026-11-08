@@ -1,0 +1,53 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>i™ iNNOVULIS — Paper Console</title><style>
+:root{font-family:Inter,system-ui,sans-serif;color:#e5f9f4;background:#03140f}body{margin:0;background:radial-gradient(circle at 55% 15%,#134c3b55,transparent 45%),#03140f}header{padding:26px 5vw 12px;border-bottom:1px solid #2a726055;display:flex;justify-content:space-between;align-items:center}h1{margin:0;font-size:clamp(22px,4vw,38px);font-weight:680;letter-spacing:-.05em}header small{display:block;color:#7ed6b4;letter-spacing:.13em;text-transform:uppercase}main{max-width:1180px;margin:24px auto;padding:0 4vw}.badge{border:1px solid #37a78677;border-radius:999px;padding:8px 13px;color:#80d0b5;font-size:12px}.panel{border:1px solid #4ea58b4d;background:#183b304b;box-shadow:0 15px 40px #0005;backdrop-filter:blur(18px);border-radius:20px;margin-bottom:20px;overflow:hidden}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:0}.stat{padding:20px;border-right:1px solid #37664e45}.stat strong{display:block;font-size:30px;margin:4px 0;color:#fff}.stat span{font-size:12px;color:#abd7c8}h2{font-size:16px;letter-spacing:.05em;padding:20px;margin:0}.ticker{overflow:hidden;white-space:nowrap;color:#96f9d3;padding:13px;border-top:1px solid #37664e45;font-family:ui-monospace,monospace}.entry{display:grid;grid-template-columns:150px 1fr auto;gap:14px;align-items:start;padding:17px 22px;border-top:1px solid #37664e45}.entry small{color:#92b8a8}.status{font-family:ui-monospace,monospace;font-weight:700;font-size:12px}.bad{color:#ff8a8a}.good{color:#85e8b1}.muted{color:#aab8b2}.subject{font-weight:650;overflow-wrap:anywhere}.hash{font-size:11px;overflow-wrap:anywhere;color:#7fae9b;margin-top:6px}button{color:#c6eadd;background:#195c46;border:1px solid #438f72;border-radius:8px;padding:9px 14px;cursor:pointer}button:hover{background:#248564}.info{margin:18px 0;color:#c2d4cc;font-size:13px;line-height:1.6}#empty{padding:25px;color:#8db7a6}@media(max-width:650px){.entry{grid-template-columns:1fr auto;gap:8px}.entry small{grid-column:1/-1}}
+</style></head><body><header><div><small>POWERED BY THE i ECOSYSTEM</small><h1>i™ PAPER CONSOLE</h1></div><span class="badge" id="connection">LOCAL • CONNECTING</span></header>
+<main><div class="panel"><div class="grid"><div class="stat"><span>TOTAL RECEIPT EVENTS</span><strong id="total">0</strong></div><div class="stat"><span>VERIFIED DIGITAL RECEIPTS</span><strong id="verified">0</strong></div><div class="stat"><span>REFUTED CLAIM LABELS</span><strong id="refuted">0</strong></div><div class="stat"><span>INA226-METER-DERIVED (UNATTESTED) J</span><strong id="joules">0</strong></div></div><div class="ticker" id="ticker">LIVE AUDIT • NOT ALL EVENTS ARE VERIFIED • NO HARDWARE PRINTER CONNECTED</div></div>
+<div class="panel"><h2>LIVE TIMELINE · EVIDENCE LEVEL VISIBLE</h2><div id="items"><div id="empty">No events. Synthetic data generation is off by default.</div></div></div>
+<div class="panel" style="padding:18px 24px"><h2 style="padding:0 0 10px">OPERATOR-INITIATED PAPER / BLE PRINTER</h2>
+<p class="info">Use the "Print" button only for receipts already independently verified and containing the entire signed ipQR. The app generates ESC/POS bytes locally; Bluetooth support is device-specific. No printer connection occurs unless you click and approve a device.</p>
+<label style="display:inline-block;margin:8px">GATT service UUID <input id="bleService" autocomplete="off" placeholder="vendor service UUID" style="background:#102d24;color:#f1fff8;border:1px solid #37735b;padding:8px;min-width:220px"></label>
+<label style="display:inline-block;margin:8px">GATT write characteristic UUID <input id="bleChar" autocomplete="off" placeholder="vendor characteristic UUID" style="background:#102d24;color:#f1fff8;border:1px solid #37735b;padding:8px;min-width:220px"></label>
+<p class="info" id="bleStatus">No physical device connected. Signed receipt bytes are never sent without a user click.</p></div>
+<p class="info">The web timeline is an untrusted presentation surface. Proof comes from independently pinned keys, verified signatures, freshness/revocation policy, and evidence bytes. Joule telemetry is source-labeled; a measured current is not proof that a specific computation ran. Printer mode is disabled unless the operator explicitly configures it.</p></main>
+<script>
+const t=document.querySelector('#items');const $=(s)=>document.querySelector(s);let last=0;
+function el(tag,klass,txt){const e=document.createElement(tag);if(klass)e.className=klass;if(txt!==undefined)e.textContent=String(txt);return e;}
+function show(e){if(e.seq && e.seq<=last)return;last=Math.max(last,e.seq||0);$('#empty')?.remove();let row=el('div','entry');row.append(el('small','',new Date(e.occurred_at*1000).toISOString()));let middle=el('div');middle.append(el('div','subject',e.subject),el('div','hash',`${e.event_id}  •  ${e.source_tier}  •  ${e.receipt_sha256||'NO_SIGNED_RECEIPT'}`));row.append(middle);let badge=el('div','status '+(e.claim_verdict==='REFUTED_FALSE'?'bad':e.verification==='VERIFIED_DIGITAL_RECEIPT'?'good':'muted'),e.claim_verdict+'\n'+e.verification);row.append(badge);
+if(e.verification==='VERIFIED_DIGITAL_RECEIPT'){
+  let b=el('button','', 'Print / BLE');b.type='button';b.setAttribute('aria-label','Print specific digitally verified receipt');
+  b.addEventListener('click',()=>printSelected(e.event_id));row.append(b);
+}
+t.prepend(row);while(t.children.length>80)t.lastElementChild.remove();}
+async function refresh(){try{let [a,b]=await Promise.all([fetch('/api/stats'),fetch('/api/timeline?limit=50')]);let s=await a.json();$('#total').textContent=s.total_events;$('#verified').textContent=s.verified_digital_receipts;$('#refuted').textContent=s.refuted_claims;$('#joules').textContent=s.joules_meter_derived_unattested;$('#ticker').textContent=`TOTAL ${s.total_events}  •  DIGITAL VERIFIED ${s.verified_digital_receipts}  •  REFUTED LABELS ${s.refuted_claims}  •  METER J ${s.joules_meter_derived_unattested} (UNATTESTED)  •  PRINT QUEUE ${s.queued_prints}`;for(const e of (await b.json()).events.reverse())show(e);}catch(e){$('#connection').textContent='LOCAL • UNAVAILABLE';}}
+function link(){const ws=new WebSocket(`ws://${location.host}/ws/timeline`);ws.onopen=()=>{$('#connection').textContent='LOCAL • LIVE';};ws.onmessage=msg=>{let o=JSON.parse(msg.data);if(o.type==='EVENT'){show(o.event);refresh();}};ws.onclose=()=>{$('#connection').textContent='LOCAL • RECONNECTING';setTimeout(link,3000)};}
+async function printSelected(eventId){
+  try{
+    if(!confirm(`Prepare a thermal print of signed ipQR event ${eventId}? Paper is untrusted and may contain signed metadata.`))return;
+    const token=prompt('Operator ingestion token (required, never stored)');if(!token)return;
+    const response=await fetch('/api/print-preview/'+encodeURIComponent(eventId),{headers:{'X-i-Operator-Token':token},cache:'no-store'});
+    if(!response.ok)throw Error('Print blocked: '+response.status+' '+(await response.text()).slice(0,150));
+    const bytes=new Uint8Array(await response.arrayBuffer());
+    const service=$('#bleService').value.trim(); const characteristic=$('#bleChar').value.trim();
+    if(!service || !characteristic || !navigator.bluetooth){
+      const file=new Blob([bytes],{type:'application/octet-stream'});const url=URL.createObjectURL(file);
+      const a=el('a');a.href=url;a.download='iNNOVULIS-'+eventId+'.escpos';a.click();URL.revokeObjectURL(url);
+      $('#bleStatus').textContent='ESC/POS preview exported; NO physical printing occurred.';
+      return;
+    }
+    if(!confirm('You are about to send ESC/POS bytes to a manually selected Bluetooth device. Confirm it is your supported thermal printer.'))return;
+    // Browser GATT profiles vary. Only send if operator provided exact UUIDs.
+    const device=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:[service]});
+    const gatt=await device.gatt.connect();const svc=await gatt.getPrimaryService(service);const c=await svc.getCharacteristic(characteristic);
+    const chunkSize=20;for(let offset=0;offset<bytes.length;offset+=chunkSize){
+      const chunk=bytes.slice(offset,offset+chunkSize);
+      if(c.properties.writeWithoutResponse && c.writeValueWithoutResponse)await c.writeValueWithoutResponse(chunk);
+      else if(c.properties.write && c.writeValueWithResponse)await c.writeValueWithResponse(chunk);
+      else throw Error('BLE write characteristic is not writable');
+      await new Promise(resolve=>setTimeout(resolve,25));
+    }
+    gatt.disconnect();$('#bleStatus').textContent='BLE bytes sent, physical paper output NOT independently verified.';
+  }catch(err){$('#bleStatus').textContent=String(err);}
+}
+refresh();link();setInterval(refresh,10000);
+</script></body></html>
