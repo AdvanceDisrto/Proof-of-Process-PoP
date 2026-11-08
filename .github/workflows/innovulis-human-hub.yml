@@ -1,0 +1,70 @@
+name: iNNOVULIS Human-Centric Hub (synthetic end-to-end receipt)
+on:
+  pull_request:
+    paths:
+      - 'human-hub/**'
+      - 'paper-console/**'
+      - '.github/workflows/innovulis-human-hub.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  human-centered-trust-loop:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install native optical barcode scanner and reviewed Python dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libzbar0
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install 'cryptography>=41' 'fastapi>=0.97' 'uvicorn>=0.21' \
+            'qrcode>=7' 'Pillow>=9' 'numpy>=1.24' 'msgpack>=1' \
+            'pytest>=8' 'httpx>=0.25' 'pyzbar>=0.1.9' 'opencv-python-headless>=4.8'
+          python -m pip install --no-deps -e ./paper-console
+          python -m pip install --no-deps -e ./human-hub
+      - name: Actual synthetic signature, revocation, witness and optical/HTTP acceptance tests
+        env:
+          PYTHONPATH: ${{ github.workspace }}/paper-console/integrations
+        run: |
+          mkdir -p human-hub/evidence
+          python -m pytest -q human-hub/tests | tee human-hub/evidence/pytest.log
+      - name: End-to-end live localhost HTTP process smoke
+        env:
+          PYTHONPATH: ${{ github.workspace }}/paper-console/integrations
+        run: |
+          python human-hub/ci/smoke_http.py | tee human-hub/evidence/live_http_smoke.json
+      - name: Generate independently checked synthetic demo with QR + ESC/POS preview
+        env:
+          PYTHONPATH: ${{ github.workspace }}/paper-console/integrations
+        run: |
+          python -m human_hub demo --ack-synthetic --out human-hub/evidence/demo > human-hub/evidence/demo_stdout.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path("human-hub/evidence/demo")
+          run=json.loads((root/"run_receipt.json").read_text())
+          assert run["journal_integrity"]["chain_ok"] is True
+          assert run["digital_receipt_authentic_under_synthetic_anchor"] is True
+          assert run["independent_real_world_verification"] is False
+          assert (root/"ipqr_demo.png").read_bytes().startswith(b"\x89PNG")
+          assert b"SYNTHETIC DEMO ONLY" in (root/"ipqr_demo.escpos").read_bytes()
+          print("HUMAN_HUB_SYNTHETIC_E2E=PASS; PHYSICAL_ACCEPTANCE=PENDING")
+          PY
+      - name: Build installable reviewable Python wheel
+        working-directory: human-hub
+        run: python -m pip wheel --no-deps --no-build-isolation . -w dist/
+      - name: Upload nonsecret synthetic evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: innovulis-human-hub-synthetic-E2E-evidence
+          path: |
+            human-hub/evidence/
+            human-hub/dist/*.whl
+          retention-days: 14
+          if-no-files-found: ignore
