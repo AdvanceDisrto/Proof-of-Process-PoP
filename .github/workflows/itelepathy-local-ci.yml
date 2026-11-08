@@ -1,0 +1,36 @@
+name: iNNOVULIS iTP consent and encrypted typed intent (software-only)
+on:
+  pull_request:
+    paths:
+      - 'itelepathy/**'
+      - 'tests/test_itelepathy_ci.py'
+      - '.github/workflows/itelepathy-local-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-itp:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install real native Z3 and cryptography
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libz3-4 libz3-dev
+          python -m pip install 'cryptography>=41'
+      - name: Run real Z3 and secure-intent regression tests
+        run: python -m unittest discover -s tests -p test_itelepathy_ci.py -v
+      - name: Execute opt-in signed/encrypted localhost HTTP-free smoke
+        run: python -m itelepathy.demo | tee itp_demo_result.json
+      - name: Upload software-level evidence (never upload private intents)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: itp-software-only-evidence
+          path: itp_demo_result.json
+          if-no-files-found: ignore
+          retention-days: 14
