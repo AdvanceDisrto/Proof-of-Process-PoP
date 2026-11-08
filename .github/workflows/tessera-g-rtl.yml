@@ -39,5 +39,20 @@ jobs:
           sudo apt-get install -y libz3-dev pkg-config libclang-dev clang libvulkan-dev
       - name: Re-test the real CPU Z3 and DAGE GPU probe source
         run: cargo test --manifest-path tools/runpod_gpu_probe/Cargo.toml
+      - name: Generate typed verdict fixture from actual native Z3
+        run: |
+          mkdir -p tessera-g/evidence
+          cargo run --manifest-path tools/runpod_gpu_probe/Cargo.toml -- --tessera-vector | tee tessera-g/evidence/rust_z3_vectors.log
+          PYTHONPATH=tessera-g python3 tessera-g/ci/check_z3_vector.py tessera-g/evidence/rust_z3_vectors.log --out tessera-g/evidence/z3_tessera_bridge.json
+      - name: Upload Tessera formal-software integration evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tessera-g-z3-dage-interop
+          path: |
+            tessera-g/evidence/rust_z3_vectors.log
+            tessera-g/evidence/z3_tessera_bridge.json
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Explicitly state the GPU hardware gate
         run: echo 'Real AMD GPU, FPGA bitstream, and physical-sensor tests NOT performed by GitHub-hosted CPU runner.'
