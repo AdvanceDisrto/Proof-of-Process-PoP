@@ -64,15 +64,19 @@ class TesseraTests(unittest.TestCase):
                 if pa is not None and pa==pb:
                     self.assertEqual(result, State.INVALID_TOPOLOGY)
 
-    def test_visualizer_fails_closed_on_fan_in(self):
+    def test_visualizer_preserves_two_parents(self):
         m=TesseraModel();m.append(1);m.append(1,0);m.append(1,0,1)
-        with self.assertRaisesRegex(ValueError, "two-parent"):
-            m.export_visualizer()
+        nodes=m.export_visualizer()
+        self.assertEqual((nodes[2]['parent_a'], nodes[2]['parent_b']), (0,1))
+        self.assertEqual([x['depth'] for x in nodes], [0,1,2])
+        self.assertEqual(nodes[2]['effective'], State.ACCEPTED)
 
     def test_visualizer_single_parent_bridge(self):
         m=TesseraModel();m.append(1);m.append(2,0);m.append(1,1)
         data=m.export_visualizer()
         self.assertEqual([x['effective'] for x in data],[1,2,3])
-        self.assertEqual([x['parent_index'] for x in data],[-1,0,1])
+        self.assertEqual([x['parent_a'] for x in data],[-1,0,1])
+        self.assertEqual([x['parent_b'] for x in data],[-1,-1,-1])
+        self.assertEqual([x['depth'] for x in data],[0,1,2])
 
 if __name__ == '__main__':unittest.main()
