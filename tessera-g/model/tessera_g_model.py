@@ -56,9 +56,19 @@ class TesseraModel:
         self.overflow_seen = False
 
     def export_visualizer(self):
-        """Fail closed on unsupported fan-in; previous RunPod shader supports 1 parent only."""
-        if any(node.parent_b is not None for node in self.nodes):
-            raise ValueError("DAGE v1 visualization only models one parent; two-parent DAG needs shader upgrade")
-        return [dict(parent_index=(-1 if node.parent_a is None else node.parent_a),
-                     effective=int(node.effective), local_ok=int(node.local_verdict == 1))
-                for node in self.nodes]
+        """Two-parent DAGE shader representation. Visualizes statuses, not proof authenticity."""
+        result=[]
+        depths=[]
+        for i,node in enumerate(self.nodes):
+            parents=(node.parent_a,node.parent_b)
+            known_parents=[p for p in parents if p is not None and 0 <= p < i]
+            depth=1+max((depths[p] for p in known_parents), default=-1)
+            result.append(dict(
+                parent_a=-1 if node.parent_a is None else node.parent_a,
+                parent_b=-1 if node.parent_b is None else node.parent_b,
+                depth=depth,
+                local_verdict=node.local_verdict,
+                effective=int(node.effective),
+            ))
+            depths.append(depth)
+        return result
