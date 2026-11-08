@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+[project]
+name = "innovulis-paper-console"
+version = "0.1.0"
+description = "Opt-in localhost telemetry, open receipt adapter, thermal printer dry run, and PoPC gate"
+requires-python = ">=3.11"
+license = {text = "Apache-2.0"}
+dependencies = ["fastapi>=0.97", "uvicorn>=0.21", "numpy>=1.24", "qrcode>=7.4", "Pillow>=9"]
+[project.optional-dependencies]
+test = ["pytest>=7", "httpx>=0.25"]
+printer = ["python-escpos>=3"]
+[project.scripts]
+innovulis-paper-console = "paper_console.cli:main"
+[tool.setuptools]
+packages = ["paper_console"]
+[tool.setuptools.package-data]
+paper_console = ["dashboard.html"]

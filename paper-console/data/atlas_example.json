@@ -1,0 +1,14 @@
+{
+  "provenance": {
+    "url": "manual:illustrative-operator-supplied-not-authoritative",
+    "license": "CC0-1.0 (illustrative rows assembled for demo)",
+    "retrieved_at": "2026-11-08",
+    "source_title": "Illustrative unverified Atlas fixture; not the user's referenced images"
+  },
+  "entities": [
+    {"id":"US_TX","kind":"STATE","name":"Texas","attributes":{"capital":"Austin","country":"United States"},"as_of":"2026-11-08"},
+    {"id":"US_NY","kind":"STATE","name":"New York","attributes":{"capital":"Albany","country":"United States"},"as_of":"2026-11-08"},
+    {"id":"COUNTRY_CA","kind":"COUNTRY","name":"Canada","attributes":{"capital":"Ottawa"},"as_of":"2026-11-08"},
+    {"id":"COUNTRY_BR","kind":"COUNTRY","name":"Brazil","attributes":{"capital":"Brasilia"},"as_of":"2026-11-08"}
+  ]
+}
