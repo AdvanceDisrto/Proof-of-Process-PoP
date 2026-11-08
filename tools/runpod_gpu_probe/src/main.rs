@@ -11,12 +11,14 @@ use z3::{ast::{Ast, Int}, Config, Context, SatResult, Solver};
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
 struct GpuNode {
     pos: [f32; 4],
-    local_ok: u32,
+    local_verdict: u32,
     effective: u32,
-    parent_index: i32,
+    parent_a: i32,
+    parent_b: i32,
     depth: u32,
+    padding: [u32; 3],
 }
-const _: [(); 32] = [(); std::mem::size_of::<GpuNode>()];
+const _: [(); 48] = [(); std::mem::size_of::<GpuNode>()];
 
 fn z3_under_limit(observed: i64, maximum: i64) -> bool {
     let mut cfg = Config::new();
@@ -43,19 +45,37 @@ mod tests {
         assert!(!z3_under_limit(500_000, 50_000));
     }
     #[test]
-    fn node_storage_layout_is_32_bytes() {
-        assert_eq!(std::mem::size_of::<GpuNode>(), 32);
+    fn node_storage_layout_is_48_bytes() {
+        assert_eq!(std::mem::size_of::<GpuNode>(), 48);
+    }
+    #[test]
+    fn wgsl_shader_parses_and_validates_without_a_gpu() {
+        let shader = naga::front::wgsl::parse_str(include_str!("propagate.wgsl")).unwrap();
+        naga::valid::Validator::new(
+            naga::valid::ValidationFlags::all(),
+            naga::valid::Capabilities::all()
+        ).validate(&shader).unwrap();
     }
 }
 
 async fn gpu_smoke() -> Result<(), Box<dyn Error>> {
-    let nodes: [GpuNode; 3] = [
-        GpuNode { pos: [0., 0.6, 0., 1.], local_ok: z3_under_limit(45_000, 50_000) as u32,
-            effective: 0, parent_index: -1, depth: 0 },
-        GpuNode { pos: [-0.4, -0.2, 0., 1.], local_ok: z3_under_limit(500_000, 50_000) as u32,
-            effective: 0, parent_index: 0, depth: 1 },
-        GpuNode { pos: [0.4, -0.7, 0., 1.], local_ok: z3_under_limit(30_000, 50_000) as u32,
-            effective: 0, parent_index: 1, depth: 2 },
+    // CPU Z3 determines ONLY bounded integer claims; GPU displays lineage status.
+    // Two-parent joins, unknown inputs and future/cyclic references are distinct.
+    let as_local = |observed, limit| if z3_under_limit(observed, limit) { 1 } else { 2 };
+    let mk = |local_verdict, parent_a, parent_b, depth| GpuNode {
+        pos: [0.0, 0.0, 0.0, 1.0], local_verdict, effective: 0,
+        parent_a, parent_b, depth, padding: [0; 3],
+    };
+    let nodes: [GpuNode; 9] = [
+        mk(as_local(45_000, 50_000), -1, -1, 0), // 0 genesis pass
+        mk(as_local(500_000, 50_000), 0, -1, 1), // 1 local refuted
+        mk(as_local(30_000, 50_000), 1, -1, 2),  // 2 blocked descendant
+        mk(as_local(30_000, 50_000), 0, -1, 1),  // 3 passing sibling
+        mk(as_local(30_000, 50_000), 0, 3, 2),   // 4 two-parent valid join
+        mk(as_local(30_000, 50_000), 3, 1, 2),   // 5 two-parent blocked join
+        mk(as_local(30_000, 50_000), 7, -1, 1),  // 6 future parent invalid
+        mk(0, -1, -1, 0),                         // 7 undetermined
+        mk(as_local(30_000, 50_000), 7, -1, 1),  // 8 blocked by unknown
     ];
     let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
         backends: wgpu::Backends::VULKAN,
@@ -173,8 +193,9 @@ async fn gpu_smoke() -> Result<(), Box<dyn Error>> {
     drop(mapped);
     out_buf.unmap();
     let observed: Vec<u32> = result.iter().map(|v| v.effective).collect();
-    if observed != [1, 2, 3] {
-        return Err(format!("GPU propagation mismatch: {observed:?}; expected [1,2,3]").into());
+    let expected = [1, 2, 3, 1, 1, 3, 5, 4, 3];
+    if observed != expected {
+        return Err(format!("GPU propagation mismatch: {observed:?}; expected {expected:?}").into());
     }
     println!("DAGE_GPU_SMOKE=PASS vendor=AMD adapter={:?} states={observed:?} (signed/physical gates NOT proven)", info.name);
     Ok(())
