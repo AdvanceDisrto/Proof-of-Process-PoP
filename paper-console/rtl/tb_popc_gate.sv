@@ -47,6 +47,19 @@ module tb_popc_gate;
     reset_n=0;#1; checks=checks+1;
     if(sign_request!==0 || output_hash!==0 || fail_mask!==8'hff)failures=failures+1;
     reset_n=1;flags=8'hff;check(1,0);
+    // A held-high command must not repeat a crypto sign request every clock.
+    @(negedge clk);cmd_valid=1;
+    @(posedge clk);#1;
+    checks=checks+1;
+    if (sign_request!==1 || processed!==1) failures=failures+1;
+    repeat(3)begin
+       @(posedge clk);#1;
+       checks=checks+1;
+       if (sign_request!==0 || processed!==0)begin
+           failures=failures+1;$display("FAIL repeated request while cmd_valid held high");
+       end
+    end
+    @(negedge clk);cmd_valid=0;
     if(failures!=0)begin
        $display("POPC_GATE_SIM=FAIL checks=%0d errors=%0d",checks,failures);$fatal(1);
     end

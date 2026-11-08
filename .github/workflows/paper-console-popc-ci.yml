@@ -40,6 +40,7 @@ jobs:
           mkdir -p evidence
           PYTHONPATH=.:integrations python -m paper_console demo --out evidence/demo > evidence/demo_stdout.json
           PYTHONPATH=.:integrations python ci/smoke_signed_qr.py evidence/signed-optical
+          PYTHONPATH=.:integrations python ci/smoke_http.py | tee evidence/local_http_smoke.log
       - name: Upload software evidence (only ephemeral synthetic keys; no secrets)
         if: always()
         uses: actions/upload-artifact@v4

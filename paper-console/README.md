@@ -16,10 +16,16 @@ The PoPC-PU `rtl/popc_gate.sv` is a synthesizeable, fail-closed, eight-input sig
 cd iNNOVULIS_Paper_Console_PoPC_PU_v0.1
 python -m pip install -e '.[test]'
 python -m pip install cryptography msgpack opencv-python-headless
-python -m pip install integrations/innovulis_open_receipt_verifier-1.0.0-py3-none-any.whl
+# The downloadable ZIP includes an offline verifier wheel. GitHub source
+# contains the verifier's auditable Python source, loaded from integrations/.
+if test -f integrations/innovulis_open_receipt_verifier-1.0.0-py3-none-any.whl; then
+  python -m pip install integrations/innovulis_open_receipt_verifier-1.0.0-py3-none-any.whl
+fi
+export PYTHONPATH="$PWD:$PWD/integrations"
 python -m pytest -q tests
 python -m paper_console demo --out evidence/demo
 python ci/smoke_signed_qr.py evidence/signed-optical
+python ci/smoke_http.py
 python -m paper_console serve --db paper_console.sqlite3 --port 8780
 # open http://127.0.0.1:8780/ (demo stream OFF; token printed on startup)
 ```

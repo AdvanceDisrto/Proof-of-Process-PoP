@@ -3,6 +3,8 @@ import argparse
 import hashlib
 import json
 import time
+import secrets
+from dataclasses import replace
 from pathlib import Path
 import numpy as np
 from .codec import Event, canonical
@@ -16,28 +18,31 @@ def run_demo(out):
     out=Path(out);out.mkdir(parents=True,exist_ok=True)
     store=EventStore(out/"paper_console.sqlite3")
     now=int(time.time())
+    run_id=secrets.token_hex(6)  # New synthetic event IDs on each demo; no destruction.
     try:
         # Real math on a non-diagnostic deterministic synthetic array.
         image=np.random.default_rng(20261108).normal(size=(16,16))
         math=compute_covariance_svd(image,patch=4)
         (out/"covariance_svd.json").write_text(json.dumps(math,indent=2,sort_keys=True)+"\n")
-        store.append(Event(event_id="math-"+math["covariance_f64le_sha256"][:32],occurred_at=now,
+        store.append(Event(event_id="demo-"+run_id+"-math-"+math["covariance_f64le_sha256"][:16],occurred_at=now,
             track="covariance",subject="synthetic:matrix-16x16",claim_verdict="UNRESOLVED",
             verification="NOT_CHECKED",source_tier="MATH_COMPUTED",details=math))
         # Do not fabricate public data from screenshots not attached in this session.
         atlas=ingest_atlas(Path(__file__).resolve().parents[1]/"data/atlas_example.json")
         (out/"atlas_import.json").write_text(json.dumps(atlas,indent=2,sort_keys=True)+"\n")
-        for row in atlas["entities"]:store.append(atlas_event(row,atlas["source_sha256"],now))
+        for row in atlas["entities"]:
+            raw_event=atlas_event(row,atlas["source_sha256"],now)
+            store.append(replace(raw_event,event_id="demo-"+run_id+"-"+raw_event.event_id[:50]))
         route=cable_transit_observation(origin="New York",destination="London",declared_route="MAREA")
-        store.append(Event(event_id="transit-"+hashlib.sha256(canonical(route)).hexdigest()[:32],
+        store.append(Event(event_id="demo-"+run_id+"-transit-"+hashlib.sha256(canonical(route)).hexdigest()[:16],
             occurred_at=now,track="subsea",subject="operator-demo:NYC-to-London",
             claim_verdict="UNRESOLVED",verification="NOT_CHECKED",
             source_tier="DEMO",details=route))
         gate=popc_admission(GateInputs(False,False,False,False,True,False,True,False),"a"*64)
-        store.append(Event(event_id="popc-"+gate["gate_input_commitment_sha256"][:32],
+        store.append(Event(event_id="demo-"+run_id+"-popc-"+gate["gate_input_commitment_sha256"][:16],
             occurred_at=now,track="popc",subject="demo:host-supplied-physics-flags",
             claim_verdict="UNRESOLVED",verification="NOT_CHECKED",source_tier="DEMO",details=gate))
-        result={"scope":"SYNTHETIC_INPUTS_PLUS_REAL_NUMPY_MATH", "receipt_verification":"NOT_PERFORMED",
+        result={"demo_run_id":run_id,"scope":"SYNTHETIC_INPUTS_PLUS_REAL_NUMPY_MATH", "receipt_verification":"NOT_PERFORMED",
                 "hardware_energy":"NOT_CONNECTED", "printer":"DISABLED", "count":store.stats()["total_events"],
                 "stats":store.stats(),"integrity":store.integrity()}
         (out/"demo_result.json").write_text(json.dumps(result,indent=2,sort_keys=True)+"\n")

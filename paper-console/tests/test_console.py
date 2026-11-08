@@ -270,6 +270,28 @@ class TestWeb(unittest.TestCase):
         self.assertTrue(self.client.post('/api/ingest',headers=h,json=data).json()['duplicate'])
     def test_token_mismatch_denied(self):
         self.assertEqual(self.client.post('/api/ingest',headers={'x-i-operator-token':'Y'*40},json=evt().as_dict()).status_code,403)
+    def test_unverified_print_preview_denied(self):
+        e=evt();self.app.state.store.append(e)
+        r=self.client.get('/api/print-preview/'+e.event_id,headers={'x-i-operator-token':'Z'*40})
+        self.assertEqual(r.status_code,409)
+    def test_print_preview_requires_operator_token(self):
+        e=evt();self.app.state.store.append(e)
+        self.assertEqual(self.client.get('/api/print-preview/'+e.event_id).status_code,403)
+    def test_public_timeline_redacts_signed_carrier(self):
+        e=evt('67890',source_tier='SIGNED_DIGITAL',verification='VERIFIED_DIGITAL_RECEIPT',
+              claim_verdict='REFUTED_FALSE',receipt_sha256='a'*64,carrier='ipqr1:'+'A'*40)
+        self.app.state.store.append(e)
+        timeline=self.client.get('/api/timeline').json()['events']
+        self.assertEqual(timeline[0]['verification'],'VERIFIED_DIGITAL_RECEIPT')
+        self.assertNotIn('carrier',timeline[0])
+    def test_signed_operator_preview_contains_real_raster(self):
+        e=evt('67890',source_tier='SIGNED_DIGITAL',verification='VERIFIED_DIGITAL_RECEIPT',
+              claim_verdict='REFUTED_FALSE',receipt_sha256='a'*64,carrier='ipqr1:'+'A'*40)
+        self.app.state.store.append(e)
+        r=self.client.get('/api/print-preview/'+e.event_id,headers={'x-i-operator-token':'Z'*40})
+        self.assertEqual(r.status_code,200)
+        self.assertIn(b'\x1dv0\x00',r.content)
+        self.assertEqual(r.headers['x-print-is-physical'],'false')
     def test_future_time_denied(self):
         data=evt().as_dict();data['occurred_at']=NOW+100000
         self.assertEqual(self.client.post('/api/ingest',headers={'x-i-operator-token':'Z'*40},json=data).status_code,422)

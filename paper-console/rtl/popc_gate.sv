@@ -21,12 +21,14 @@ module popc_gate (
     output reg [7:0] fail_mask,
     output reg [255:0] permitted_claim_sha256
 );
+    reg cmd_armed;  // requires a low cmd_valid between sign requests
     wire [7:0] flags = {
        math_verified, meter_fresh, meter_calibrated, energy_in_range,
        thermal_ok, signer_ready, consent, source_attested
     };
     always @(posedge clk or negedge reset_n) begin
        if (!reset_n) begin
+          cmd_armed <= 1'b1;
           processed <= 1'b0;
           sign_request <= 1'b0;
           reject <= 1'b0;
@@ -36,7 +38,9 @@ module popc_gate (
           processed <= 1'b0;
           sign_request <= 1'b0;
           reject <= 1'b0;
-          if (cmd_valid) begin
+          if (!cmd_valid) cmd_armed <= 1'b1;
+          if (cmd_valid && cmd_armed) begin
+             cmd_armed <= 1'b0;
              processed <= 1'b1;
              fail_mask <= ~flags;
              // Nonzero digest guard is only a sentinel check, NOT SHA verification.
