@@ -4,6 +4,8 @@ import argparse,json,sys
 from .catalog import inventory
 from .policy import release_gate_report
 from .runner import task_plan,run,verify_disk
+from .aggregate import aggregate
+from .evidence import safe_atomic_json
 
 def main(argv=None):
     p=argparse.ArgumentParser(prog="ecosystem-release")
@@ -14,6 +16,10 @@ def main(argv=None):
     r.add_argument("--profile",choices=("core","integration","rtl","all"),default="core")
     r.add_argument("--out",default="ecosystem-release/evidence/ci");r.add_argument("--commit")
     v=sp.add_parser("verify");v.add_argument("evidence_dir")
+    ag=sp.add_parser("aggregate")
+    ag.add_argument("artifacts",nargs=3)
+    ag.add_argument("--expected-commit")
+    ag.add_argument("--out")
     sp.add_parser("policy")
     a=p.parse_args(argv)
     if a.cmd=="inventory":
@@ -33,6 +39,11 @@ def main(argv=None):
         return 0 if record["result"]=="PASS_SOFTWARE_ONLY" else 1
     if a.cmd=="verify":
         print(json.dumps(verify_disk(a.evidence_dir),indent=2));return 0
+    if a.cmd=="aggregate":
+        result=aggregate(a.artifacts,expected_source_commit=a.expected_commit)
+        if a.out:safe_atomic_json(a.out,result)
+        print(json.dumps(result,indent=2))
+        return 0
     if a.cmd=="policy":
         print(json.dumps(release_gate_report(),indent=2));return 0
     return 2
