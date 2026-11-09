@@ -1,0 +1,46 @@
+{
+  "schema": "i-istick-electrical-candidate/v1",
+  "title": "i™ iStick RP2040-native-USB candidate, NOT FAB-READY",
+  "manufacturing_state": "NOT_ROUTED_NOT_FAB_READY",
+  "pcb_dimensions_mm": [18, 45, 1.6],
+  "pcb_layers_target": 4,
+  "processor": {
+    "part_family": "RP2040",
+    "usb_controller": true,
+    "i2c_controller": true,
+    "package_and_references": "TBD via board-designer and approved reference schematic",
+    "boot_implementation": "NOT_DESIGNED",
+    "firmware": "NOT_BUILT"
+  },
+  "usb_connector": "USB-C USB2.0 DEVICE, with CC pull-downs, ESD clamp TBD",
+  "usb_pair_ohms": "90 nominal differential, MUST calculate for selected fab stackup",
+  "source_power": "5 V VBUS via current-limited protection",
+  "regulator": "3.3 V regulated, load/thermal calculations pending",
+  "vcc_sensor_volts": 3.3,
+  "vcc_secure_element_volts": 3.3,
+  "nets": {
+    "USB_VBUS_5V": ["USB_C.VBUS", "POWER_PROTECTION.INPUT"],
+    "USB_D_PLUS": ["USB_C.DP", "MCU.USB_DP", "ESD.DP"],
+    "USB_D_MINUS": ["USB_C.DM", "MCU.USB_DM", "ESD.DM"],
+    "GND": ["USB_C.GND", "MCU.GND", "REG.GND", "ATECC.GND", "MCP9808.GND", "ESD.GND"],
+    "PWR_3V3": ["REG.VOUT", "MCU.VDD", "ATECC.VCC", "MCP9808.VDD", "R_SDA.UPPER", "R_SCL.UPPER"],
+    "I2C_SDA_3V3": ["MCU.SDA", "ATECC.SDA", "MCP9808.SDA", "R_SDA.UPPER"],
+    "I2C_SCL_3V3": ["MCU.SCL", "ATECC.SCL", "MCP9808.SCL", "R_SCL.UPPER"]
+  },
+  "decoupling_caps": [
+    {"target": "MCU", "cap_nf": 100},
+    {"target": "REG", "cap_nf": 100},
+    {"target": "ATECC", "cap_nf": 100},
+    {"target": "MCP9808", "cap_nf": 100}
+  ],
+  "open_actions": [
+    "select exact MCU and orderable secure-element variant (ATECC608A NRND; evaluate B)",
+    "complete USB-C CC resistors, VBUS protection, regulator loading and crystal/flash (RP2040)",
+    "make full KiCad 4-layer schematic and pin-to-net assignments",
+    "run ERC, DRC and real stackup impedance calculation from chosen board house",
+    "evaluate ESD, EMI, brownout, temperature ratings, thermal, side-channel and enclosure",
+    "produce Gerbers, drills, BOM, CPL and signed factory release only after review",
+    "provision secure element with separate reviewed operator approval; NEVER auto-lock"
+  ],
+  "does_not_prove": ["a connected PCB", "measured impedance", "side-channel resistance", "FIPS approval", "physical unclonability", "manufacturability"]
+}
