@@ -4,6 +4,11 @@ on:
     paths:
       - 'twinions-legal/**'
       - '.github/workflows/twinions-legal-workflow-ci.yml'
+  push:
+    branches: ['review/istick-twinions-legal-evidence-dag-20261108']
+    paths:
+      - 'twinions-legal/**'
+      - '.github/workflows/twinions-legal-workflow-ci.yml'
   workflow_dispatch:
 permissions:
   contents: read
@@ -25,19 +30,20 @@ jobs:
       - name: Fail closed on legal test failures
         run: |
           cd twinions-legal
-          python -m pytest -q tests/test_legal.py | tee evidence/pytest.log
+          mkdir -p evidence
+          python -m pytest -q tests/ | tee evidence/pytest.log
       - name: Compile C++ iStick HOST workflow validator
         run: |
           cd twinions-legal
           g++ -std=c++17 -O2 -Wall -Wextra -Werror -pedantic hardware/innovulis_istick.cpp -o evidence/innovulis_istick_host
-      - name: Synthetic case smoke: signed software receipt / fail-closed Z3
+      - name: "Synthetic case smoke: signed software receipt / fail-closed Z3"
         run: |
           cd twinions-legal
           python -m twinions_legal demo --out evidence/github-demo | tee evidence/demo-summary.json
           python -m twinions_legal cpp-export --db evidence/github-demo/synthetic_case.db --case SYNTHETIC-001 --out evidence/github-demo/gates.tsv
           evidence/innovulis_istick_host evidence/github-demo/gates.tsv | tee evidence/istick-host-check.json
           python hardware/readiness.py | tee evidence/hardware-blocked.json
-          grep -q '"legal_merits": "NOT_DETERMINED"' evidence/istick-host-check.json
+          grep -q '"legal_merits":"NOT_DETERMINED"' evidence/istick-host-check.json
           grep -q 'BLOCKED_NO_FABRICABLE_PCB' evidence/hardware-blocked.json
       - name: Build installable wheel
         run: |
