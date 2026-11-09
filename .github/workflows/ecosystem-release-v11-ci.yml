@@ -75,8 +75,13 @@ jobs:
         run: |
           python -m pip install --upgrade pip setuptools wheel
           python -m pip install -e './ecosystem-release[test]' -e './unified-i[test]' \
-            -e './paper-console[test]' -e './human-hub' -e './twinions-legal[test]' \
+            -e './paper-console[test]' -e './twinions-legal[test]' \
             -e './ipcih-capsule' -e './rgpu-terminal[test,monitor]'
+          # The reviewed Open Receipt v1.0 exists in the checkout's vendored
+          # integration source, not on public PyPI. Installing human-hub with
+          # dependency resolution would incorrectly require a nonexistent
+          # PyPI distribution, so retain its auditable source without deps.
+          python -m pip install --no-deps -e ./human-hub
           python -m pip install 'opencv-python-headless>=4.8' 'pyzbar>=0.1.9' \
             'httpx>=0.25' 'msgpack>=1' 'uvicorn>=0.21' 'build>=1.2'
       - name: Run real signed optical/ESC-POS, human review, Twinions, browser crypto and 2-WebSocket smoke
