@@ -1,0 +1,58 @@
+name: iNNOVULIS rGPU Terminal v0.2 — pinned browser crypto + synthetic Genesis
+on:
+  pull_request:
+    paths:
+      - 'rgpu-terminal/**'
+      - '.github/workflows/innovulis-rgpu-terminal-v02.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  signed-genesis-software:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install optical QR decoder and Python dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libzbar0
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -e './rgpu-terminal[test,monitor]' 'pyzbar>=0.1.9' 'Pillow>=9'
+      - name: Python signed journal, websocket and optical tests
+        working-directory: rgpu-terminal
+        run: |
+          mkdir -p evidence
+          python -m pytest -q tests | tee evidence/python_tests.log
+      - name: Cross-language Python to browser WebCrypto verification tests
+        working-directory: rgpu-terminal
+        run: |
+          python ci/export_fixture.py evidence/browser_fixture.json
+          INNOVULIS_FIXTURE="$PWD/evidence/browser_fixture.json" node --test tests/webcrypto.test.mjs | tee evidence/node_webcrypto_tests.log
+      - name: Real HTTP multi-WebSocket and persistent identity smoke
+        working-directory: rgpu-terminal
+        run: python ci/smoke_live.py | tee evidence/real_live_http_websocket.log
+      - name: Generate signed-only synthetic Genesis and QR/ESC-POS preview
+        working-directory: rgpu-terminal
+        run: |
+          python ci/render_genesis.py evidence/genesis | tee evidence/signed_genesis_result.log
+          python ci/check_physical.py | tee evidence/read_only_physical_discovery.json
+      - name: Build standalone installable wheel
+        working-directory: rgpu-terminal
+        run: python -m pip wheel --no-deps --no-build-isolation . -w dist | tee evidence/wheel_build.log
+      - name: Publish non-secret software artifacts (no physical claim)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rgpu-v02-software-genesis-webcrypto-acceptance
+          path: |
+            rgpu-terminal/evidence/
+            rgpu-terminal/dist/*.whl
+          if-no-files-found: ignore
+          retention-days: 14

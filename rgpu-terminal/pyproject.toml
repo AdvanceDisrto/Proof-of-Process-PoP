@@ -1,0 +1,19 @@
+[build-system]
+requires=["setuptools>=68", "wheel"]
+build-backend="setuptools.build_meta"
+[project]
+name="innovulis-rgpu-terminal"
+version="0.2.0"
+description="Local multi-client Ed25519 signed telemetry terminal, independent browser verifier"
+requires-python=">=3.11"
+license="Apache-2.0"
+dependencies=["fastapi>=0.110", "uvicorn>=0.23", "cryptography>=41", "qrcode>=7"]
+[project.optional-dependencies]
+test=["pytest>=8", "httpx>=0.25", "websockets>=12", "rich>=13"]
+monitor=["rich>=13", "httpx>=0.25"]
+[project.scripts]
+innovulis-rgpu-terminal="rgpu_terminal.__main__:main"
+[tool.setuptools]
+packages=["rgpu_terminal"]
+[tool.setuptools.package-data]
+rgpu_terminal=["static/*"]
