@@ -6,6 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "innovulis-twinions-legal"
 version = "0.1.0"
 description = "Local 18-gate evidence organization and bounded Twinions claim conflict audit"
+license = "Apache-2.0"
 requires-python = ">=3.11"
 dependencies = ["cryptography>=41", "fastapi>=0.100", "uvicorn>=0.23"]
 
