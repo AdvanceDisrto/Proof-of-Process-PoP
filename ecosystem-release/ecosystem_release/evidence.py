@@ -3,8 +3,8 @@ from __future__ import annotations
 import hashlib,json,os,re,tempfile
 from pathlib import Path
 
-SHA256=re.compile(r"[0-9a-f]{64}\\Z")
-SHA1=re.compile(r"[0-9a-f]{40}\\Z")
+SHA256=re.compile(r"[0-9a-f]{64}\Z")
+SHA1=re.compile(r"[0-9a-f]{40}\Z")
 class EvidenceRejected(ValueError):pass
 
 def canonical(obj):
