@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "innovulis-twinions-legal"
+version = "0.1.0"
+description = "Local 18-gate evidence organization and bounded Twinions claim conflict audit"
+requires-python = ">=3.11"
+dependencies = ["cryptography>=41", "fastapi>=0.100", "uvicorn>=0.23"]
+
+[project.optional-dependencies]
+test = ["pytest>=7", "httpx>=0.24"]
+
+[project.scripts]
+twinions-legal = "twinions_legal.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["twinions_legal*"]

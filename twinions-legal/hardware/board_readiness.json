@@ -1,0 +1,22 @@
+{
+  "design": "iNNOVULIS iStick physical feasibility preflight v0.1",
+  "layer_stackup_proposed": ["F.Cu", "In1.GND", "In2.3V3", "B.Cu"],
+  "size_mm": [18, 45, 1.6],
+  "components": {
+    "CH340E": "USB-to-UART bridge; NOT an MCU, cannot run C++/host I2C by itself",
+    "AP2112K": "3.3V linear regulator; electrical sizing unverified",
+    "MCP9808": "I2C temperature sensor; not a power meter",
+    "ATECC608A": "ECDSA P-256 secure element; not an Ed25519 signing MCU"
+  },
+  "mcu_or_i2c_host": null,
+  "usb_connector_and_esd": "schematic not provided",
+  "i2c_pullups": "schematic not provided",
+  "usb_impedance_stackup_from_fabricator": null,
+  "schematic_netlist": null,
+  "board_routed_pcb": null,
+  "gerbers_excellon": null,
+  "pick_place": null,
+  "atecc_key_slot_provisioning_plan": null,
+  "security_review": "not performed",
+  "does_not_prove": ["electrical rule checks", "design rule checks", "90-ohm impedance", "DPA immunity", "factory readiness"]
+}
