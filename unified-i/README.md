@@ -45,7 +45,7 @@ The architecture is composed of independently scoped components:
 
 ```bash
 # prerequisites on Ubuntu 24.04: python3-dev, build tools, libzbar0, libz3-4, node 22
-python -m pip install -e 'unified-i[test]' -e ./ipcih
+python -m pip install -e 'unified-i[test]' -e ./ipcih-capsule
 bash unified-i/ci/run_all.sh
 ```
 
@@ -62,7 +62,7 @@ python ci/smoke_http_live.py
 bash ci/smoke_hardware.sh
 ```
 
-For the `smoke-synthetic` command supply the existing sibling package paths via `PYTHONPATH` or install those repositories separately. `ipcih/` source and tests are included in this PR because the earlier module had been verified locally but was not on `main`.
+For the `smoke-synthetic` command supply the existing sibling package paths via `PYTHONPATH` or install those repositories separately. `ipcih-capsule/` source and tests are included in this PR because the earlier module had been verified locally but was not on `main`.
 
 ### Start the local operator console
 
