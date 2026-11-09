@@ -44,7 +44,7 @@ int main(int argc,char**argv) {
         auto c=split_tabs(line);
         if(c.size()!=4) {std::cerr<<"invalid field count\n";return 3;}
         int id=0;
-        try { id=std::stoi(c[0]); }catch(...) {std::cerr<<"invalid ID\n";return 3;}
+        try { std::size_t parsed=0; id=std::stoi(c[0],&parsed); if(parsed!=c[0].size()) throw std::invalid_argument("suffix"); }catch(...) {std::cerr<<"invalid ID\n";return 3;}
         if (id!=GATES.at(seen).id) {std::cerr<<"gate order mismatch\n";return 3;}
         if(c[2]!="supplied" && c[2]!="undefined") return 3;
         // No user-supplied definitions for slots 3/4/6/etc were provided.
