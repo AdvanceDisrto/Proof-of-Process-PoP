@@ -1,0 +1,20 @@
+import { test } from 'node:test';import assert from 'node:assert/strict';import {webcrypto} from 'node:crypto';import fs from 'node:fs';
+globalThis.atob=s=>Buffer.from(s,'base64').toString('binary');
+globalThis.btoa=s=>Buffer.from(s,'binary').toString('base64');
+import {verifyPacket,decodeWire,canonical,bytesFromHex} from '../web/verifier.mjs';
+const fixture=JSON.parse(fs.readFileSync(new URL('./browser_fixture.json',import.meta.url),'utf8'));
+async function accepted(p=fixture.packet,pub=fixture.pub){return verifyPacket(p,pub,{now:1800000001})}
+test('Python Ed25519 checked by Node native WebCrypto',async()=>{const r=await accepted();assert.equal(r.status,'SIGNED_SOFTWARE_CAPSULE');assert.equal(r.truth,'NOT_EVALUATED')});
+test('Python compressed wire decoded by JS',async()=>{assert.deepEqual(await decodeWire(fixture.wire),fixture.packet)});
+test('canonical JSON same across languages',()=>assert.equal(canonical(fixture.packet.body),fixture.canonicalBody));
+test('signed body tampering rejected',async()=>{let x=structuredClone(fixture.packet);x.body.claim='forgery';await assert.rejects(accepted(x))});
+test('rehashed body cannot forge signature',async()=>{let x=structuredClone(fixture.packet);x.body.app_sha256='0'.repeat(64);await assert.rejects(accepted(x))});
+test('wrong independently-pinned key rejected',async()=>await assert.rejects(accepted(fixture.packet,'10'.repeat(32))));
+test('signature tampering rejected',async()=>{let x=structuredClone(fixture.packet);x.signature='a'.repeat(86);await assert.rejects(accepted(x))});
+test('expired capsule rejected',async()=>await assert.rejects(verifyPacket(fixture.packet,fixture.pub,{now:1800004000})));
+test('future capsule rejected',async()=>await assert.rejects(verifyPacket(fixture.packet,fixture.pub,{now:1799999000})));
+test('unknown schema rejected',async()=>{let x=structuredClone(fixture.packet);x.body.extra=1;await assert.rejects(accepted(x))});
+test('unsupported tier rejected',async()=>{let x=structuredClone(fixture.packet);x.body.evidence_tier='HARDWARE_VERIFIED';await assert.rejects(accepted(x))});
+test('malformed pubkey rejected',()=>assert.throws(()=>bytesFromHex('bogus')));
+test('bad QR carrier rejected',async()=>await assert.rejects(decodeWire('https://evil.test')));
+test('base64url tampering rejected',async()=>await assert.rejects(decodeWire(fixture.wire.slice(0,-30)+'**')));

@@ -1,0 +1,15 @@
+[build-system]
+requires=["setuptools>=68","wheel"]
+build-backend="setuptools.build_meta"
+[project]
+name="innovulis-ipcih"
+version="0.1.0"
+description="Bounded signed iP.CiH executable canvas capsule, open verifier and experimental iMorphus carrier"
+requires-python=">=3.11"
+dependencies=["cryptography>=41","qrcode[pil]>=7.4","Pillow>=10"]
+[tool.setuptools.packages.find]
+where=["."]
+include=["ipcih*"]
+
+[tool.setuptools.package-data]
+ipcih=["web/*"]

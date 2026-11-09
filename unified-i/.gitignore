@@ -1,0 +1,14 @@
+__pycache__/
+.pytest_cache/
+*.pyc
+*.egg-info/
+build/
+dist/
+evidence/
+*.sqlite3
+*.pem
+*.key
+*.bit
+*.fs
+*.ger
+*.gbr
