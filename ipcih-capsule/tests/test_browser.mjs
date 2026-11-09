@@ -1,7 +1,7 @@
 import { test } from 'node:test';import assert from 'node:assert/strict';import {webcrypto} from 'node:crypto';import fs from 'node:fs';
 globalThis.atob=s=>Buffer.from(s,'base64').toString('binary');
 globalThis.btoa=s=>Buffer.from(s,'binary').toString('base64');
-import {verifyPacket,decodeWire,canonical,bytesFromHex} from '../web/verifier.mjs';
+import {verifyPacket,decodeWire,canonical,bytesFromHex} from '../ipcih/web/verifier.mjs';
 const fixture=JSON.parse(fs.readFileSync(new URL('./browser_fixture.json',import.meta.url),'utf8'));
 async function accepted(p=fixture.packet,pub=fixture.pub){return verifyPacket(p,pub,{now:1800000001})}
 test('Python Ed25519 checked by Node native WebCrypto',async()=>{const r=await accepted();assert.equal(r.status,'SIGNED_SOFTWARE_CAPSULE');assert.equal(r.truth,'NOT_EVALUATED')});
