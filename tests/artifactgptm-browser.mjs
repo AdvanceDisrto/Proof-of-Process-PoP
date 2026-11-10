@@ -49,6 +49,7 @@ try{
  console.log("AUTH0 SIGNED-RECEIPT GATE FAILS CLOSED PASS");
 
 
+ await page.locator('nav[aria-label="Main workspace"] button').filter({hasText:"Buddy"}).first().click();
  const mainVoice=page.getByRole("button",{name:/ENABLE SPOKEN REPLIES/i});
  assert.ok(await mainVoice.isVisible());
  await page.setViewportSize({width:390,height:844});
