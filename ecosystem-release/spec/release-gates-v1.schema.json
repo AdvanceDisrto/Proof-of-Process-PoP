@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "iNNOVULIS Release Gates — Software Cannot Promote Physical",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "gates",
+    "software_only_release_candidate",
+    "physical_acceptance",
+    "production_ready",
+    "clinical_approval",
+    "legal_certification",
+    "does_not_prove"
+  ],
+  "properties": {
+    "schema": {
+      "const": "i-release-gates/v1"
+    },
+    "gates": {
+      "type": "object",
+      "minProperties": 30
+    },
+    "software_only_release_candidate": {
+      "type": "boolean"
+    },
+    "physical_acceptance": {
+      "const": false
+    },
+    "production_ready": {
+      "const": false
+    },
+    "clinical_approval": {
+      "const": false
+    },
+    "legal_certification": {
+      "const": false
+    },
+    "does_not_prove": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

@@ -1,0 +1,133 @@
+name: iNNOVULIS Ecosystem Release v1.1 — cross-component verified software and RTL evidence
+on:
+  pull_request:
+    paths:
+      - 'ecosystem-release/**'
+      - 'unified-i/**'
+      - 'paper-console/**'
+      - 'rgpu-terminal/**'
+      - 'human-hub/**'
+      - 'ipcih-capsule/**'
+      - 'twinions-legal/**'
+      - 'itelepathy/**'
+      - 'tessera-g/**'
+      - '.github/workflows/ecosystem-release-v11-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  release-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install open source runner and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e './ecosystem-release[test]' build
+      - name: Build installable wheel
+        run: python -m build --wheel ecosystem-release --outdir ecosystem-release/dist
+      - name: Run adversarial tests, strict source catalog and pinned log integrity
+        run: |
+          python -m ecosystem_release run --repo . --profile core --out ecosystem-release/evidence/core --commit "$GITHUB_SHA"
+          python -m ecosystem_release verify ecosystem-release/evidence/core
+          python -m ecosystem_release inventory --repo . --strict > ecosystem-release/evidence/core/component_inventory.json
+          python -m ecosystem_release policy > ecosystem-release/evidence/core/pending_physical_gates.json
+          python - <<'PY'
+          import json
+          x=json.load(open('ecosystem-release/evidence/core/pending_physical_gates.json'))
+          assert x['physical_acceptance'] is False
+          assert x['production_ready'] is False
+          assert x['clinical_approval'] is False
+          assert x['legal_certification'] is False
+          print('PRODUCTION_AND_PHYSICAL_CLAIMS=BLOCKED')
+          PY
+      - name: Publish software-only evidence and reviewable wheel
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ecosystem-v11-core-software-evidence
+          path: |
+            ecosystem-release/evidence/core/*.json
+            ecosystem-release/evidence/core/*.log
+            ecosystem-release/dist/*.whl
+          if-no-files-found: ignore
+          retention-days: 30
+  cross-component-loop:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install native Z3, optical decoder and C++ host tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libzbar0 libz3-4 g++
+      - name: Install existing reviewed independent subsystem packages
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -e './ecosystem-release[test]' -e './unified-i[test]' \
+            -e './paper-console[test]' -e './twinions-legal[test]' \
+            -e './ipcih-capsule' -e './rgpu-terminal[test,monitor]'
+          # The reviewed Open Receipt v1.0 exists in the checkout's vendored
+          # integration source, not on public PyPI. Installing human-hub with
+          # dependency resolution would incorrectly require a nonexistent
+          # PyPI distribution, so retain its auditable source without deps.
+          python -m pip install --no-deps -e ./human-hub
+          python -m pip install 'opencv-python-headless>=4.8' 'pyzbar>=0.1.9' \
+            'httpx>=0.25' 'msgpack>=1' 'uvicorn>=0.21' 'build>=1.2'
+      - name: Run real signed optical/ESC-POS, human review, Twinions, browser crypto and 2-WebSocket smoke
+        run: |
+          python -m ecosystem_release run --repo . --profile integration \
+            --out ecosystem-release/evidence/integration --commit "$GITHUB_SHA"
+          python -m ecosystem_release verify ecosystem-release/evidence/integration
+      - name: Publish synthetic software acceptance evidence only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ecosystem-v11-crypto-optical-websocket-evidence
+          path: |
+            ecosystem-release/evidence/integration/*.json
+            ecosystem-release/evidence/integration/*.log
+            unified-i/evidence/*.json
+            unified-i/evidence/synthetic-smoke/acceptance.json
+          if-no-files-found: ignore
+          retention-days: 30
+  headless-rtl:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install RTL simulation, strict lint, generic synthesis
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y iverilog verilator yosys
+          python -m pip install -e './ecosystem-release[test]'
+      - name: Actual Tessera-G and PoPC RTL gates with linked log evidence
+        run: |
+          python -m ecosystem_release run --repo . --profile rtl \
+            --out ecosystem-release/evidence/rtl --commit "$GITHUB_SHA"
+          python -m ecosystem_release verify ecosystem-release/evidence/rtl
+      - name: Upload headless gate reports, not a physical FPGA claim
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ecosystem-v11-tessera-popc-headless-rtl-evidence
+          path: |
+            ecosystem-release/evidence/rtl/*.json
+            ecosystem-release/evidence/rtl/*.log
+            tessera-g/evidence/*.log
+            paper-console/evidence/rtl/*.log
+          if-no-files-found: ignore
+          retention-days: 30
