@@ -28,6 +28,21 @@ try{
  await mic.waitFor();assert.equal(await mic.getAttribute("aria-pressed"),"false");
  await page.getByRole("button",{name:/ENABLE SPOKEN REPLIES/i}).waitFor();
  console.log("PERMISSION-GATED MIC + SPOKEN REPLIES CONTROLS PRESENT PASS");
+ const buddyInput=page.getByRole("textbox",{name:"Message to Buddy"});
+ await buddyInput.fill("whats the date");
+ await page.getByRole("button",{name:/ASK BUDDY/i}).click();
+ await page.getByText("DETERMINISTIC · EDGE SYSTEM CLOCK").first().waitFor({timeout:15000});
+ assert.ok(await page.getByText(/The edge runtime reports/).first().isVisible(),
+   "Date response must come from live worker clock, not LLM refusal");
+ assert.equal((await page.locator(".matrix-receipt h3").textContent())?.trim(),"AWAITING EVIDENCE",
+   "Time/chat must never issue or auto-label a receipt");
+ console.log("BUDDY UI LIVE DATE + NO FAKE RECEIPT PASS");
+ await buddyInput.fill("in new york");
+ await page.getByRole("button",{name:/ASK BUDDY/i}).click();
+ await page.getByText(/In New York, the current system date and time is/).last().waitFor({timeout:15000});
+ assert.equal((await page.locator(".matrix-receipt h3").textContent())?.trim(),"AWAITING EVIDENCE");
+ console.log("BUDDY NEW YORK FOLLOW-UP CLOCK PASS");
+
 
  const news=page.getByRole("region",{name:"Global Intel Feed"});
  await news.waitFor();
