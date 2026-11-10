@@ -1,0 +1,49 @@
+name: CIH portal / evidence API checks
+on:
+  push:
+    branches:
+      - feature/innovulis-cih-sovereign-portal-20261110
+  pull_request:
+    paths:
+      - 'site/**'
+      - 'cih_api/**'
+      - '.github/workflows/cih-portal-test.yml'
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: python -m pip install -r cih_api/requirements-dev.txt
+      - run: python -m pytest -q cih_api/test_app.py
+      - name: Static website smoke and inline JS syntax
+        run: |
+          python - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          import re
+          html=Path('site/index.html').read_text()
+          assert 'CIH' in html and 'PATENT PENDING' in html
+          scripts=re.findall(r'<script[^>]*>(.*?)</script>',html,flags=re.S)
+          assert len(scripts)==1
+          Path('/tmp/innovulis-inline.js').write_text(scripts[0])
+          p=HTMLParser();p.feed(html)
+          print('HTML parsed; JS extracted')
+          PY
+          node --check /tmp/innovulis-inline.js
+      - name: Fail if fake truth claims are introduced
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          code=Path('cih_api/app.py').read_text()
+          assert '"fail" not in' not in code
+          assert 'PROVEN_TRUE' not in code
+          assert 'SIGNING_KEY_UNAVAILABLE' in code
+          assert 'AUTH_PROVIDER_UNCONFIGURED' in code
+          print('No simulated truth/certification shortcut detected')
+          PY
