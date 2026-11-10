@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { chromium } from "playwright";
 
 const FRONT = "https://igptm-matrix-artifact-preview.onrender.com/";
-const browser = await chromium.launch({ channel: "chrome", headless: true, args: ["--disable-gpu", "--no-sandbox"] });
+const browser = await chromium.launch({ headless: true, args: ["--disable-gpu", "--no-sandbox"] });
 
 function getSnapshot(page) {
   return page.locator("canvas.matrix-tunnel-canvas").evaluate((canvas) => {
