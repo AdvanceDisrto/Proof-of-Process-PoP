@@ -49,6 +49,18 @@ jobs:
           const invalid=await check(api+"/api/receipts/verify",{method:"POST",headers:{"origin":base,"content-type":"application/json"},body:"{}"});
           assert.equal(invalid.status,422);
           console.log("BAD SIGNED RECEIPT BLOCK PASS 422");
+          const preflight=await check(api+"/api/cih/receipts",{method:"OPTIONS",headers:{"origin":base,"access-control-request-method":"POST","access-control-request-headers":"content-type,authorization"}});
+          assert.equal(preflight.status,204,"CIH CORS preflight must pass");
+          assert.ok((preflight.headers.get("access-control-allow-headers")||"").includes("authorization"));
+          console.log("AUTH0 BEARER CORS PREFLIGHT PASS");
+          const unauthorized=await check(api+"/api/cih/receipts",{method:"POST",headers:{"origin":base,"content-type":"application/json"},body:"{}"});
+          assert.equal(unauthorized.status,401,"Unauthenticated CIH issuance must be blocked");
+          assert.equal(JSON.parse(unauthorized.text).error,"AUTH0_ACCESS_TOKEN_REQUIRED");
+          console.log("CIH SIGNED RECEIPT ISSUANCE FAILS CLOSED 401");
+          const cih=await check(api+"/api/cih/health",{headers:{"origin":base}});
+          assert.equal(cih.status,200,"Public CIH health adapter should reach configured upstream");
+          const state=JSON.parse(cih.text);assert.equal(state.service,"cih-evidence-api");
+          console.log("CIH BACKEND HEALTH BRIDGE PASS",state.status,"auth:",state.auth_configured,"signer:",state.signer_configured,"db:",state.storage_configured);
           const news=await check(api+"/api/news",{headers:{"origin":base}});
           assert.equal(news.status,200,"News sources down (must show unavailable rather than fabricate): "+news.status+" "+news.text.slice(0,150));
           const n=JSON.parse(news.text);assert.ok(n.live_source&&n.headlines.length>0);
