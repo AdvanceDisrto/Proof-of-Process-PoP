@@ -19,7 +19,7 @@ jobs:
           node-version: '22'
       - name: Install browser testing runtime
         run: npm install --no-save --no-package-lock playwright@1.56.1
-      - name: Install Chromium for a real rendered browser check
-        run: npx playwright install --with-deps chromium
+      - name: Verify preinstalled stable Chrome
+        run: command -v google-chrome || command -v google-chrome-stable
       - name: Test live canvas movement, pause, resume and mobile viewport
         run: node tests/igptm-matrix-motion.mjs
