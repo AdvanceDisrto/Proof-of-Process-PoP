@@ -22,8 +22,9 @@ jobs:
           mkdir -p /tmp/cih-artifactgptm-auth
           cp .github/fixtures/artifactgptm-auth0-lock-source.json /tmp/cih-artifactgptm-auth/package.json
           cd /tmp/cih-artifactgptm-auth
-          npm install --save-exact --ignore-scripts @auth0/auth0-react@2.30.0
-          npm ci --ignore-scripts
+          npm install --global npm@11.6.0
+          npm install --package-lock-only --ignore-scripts --save-exact --legacy-peer-deps @auth0/auth0-react@2.30.0
+          npm ci --ignore-scripts --legacy-peer-deps
           node - <<'JS'
           const fs = require('fs');
           for (const [name,path] of [['LOCK','package-lock.json'], ['PKG','package.json']]) {
