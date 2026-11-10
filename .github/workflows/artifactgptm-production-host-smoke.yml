@@ -50,11 +50,8 @@ jobs:
           assert.equal(invalid.status,422);
           console.log("BAD SIGNED RECEIPT BLOCK PASS 422");
           const news=await check(api+"/api/news",{headers:{"origin":base}});
-          assert.ok(news.status===200||news.status===503);
-          if(news.status===200){
-            const n=JSON.parse(news.text);assert.ok(n.live_source && n.headlines.length>0);
-            console.log("SOURCE-BOUND NEWS PASS",n.headlines[0].source);
-          } else {
-            console.log("NEWS PROVIDER UNAVAILABLE — FAILS HONESTLY 503");
-          }
+          assert.equal(news.status,200,"News sources down (must show unavailable rather than fabricate): "+news.status+" "+news.text.slice(0,150));
+          const n=JSON.parse(news.text);assert.ok(n.live_source&&n.headlines.length>0);
+          assert.ok(n.headlines.every(x=>/^https:\/\//.test(x.url)&&x.title&&x.source));
+          console.log("REAL ATTRIBUTED NEWS PASS",n.source,n.headlines[0].title.slice(0,70));
           EOF
