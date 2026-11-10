@@ -47,6 +47,10 @@ jobs:
             if(!src)continue;
             const asset=await check(new URL(src,host).href);
             console.log("CIH BUNDLE CONTENT",host,"authenticated-view:",asset.text.includes("Authenticated Evidence Index"),"auth-sdk:",asset.text.includes("AUTH0_NOT_CONFIGURED"));
+            const built=await check(host+"/assets/index-CilaPdjb.js",{headers:{"cache-control":"no-cache"}});
+            console.log("LATEST BUILD ASSET",host,"status:",built.status,"hasNewUI:",built.text.includes("Authenticated Evidence Index"),"cache:",built.headers.get("cf-cache-status")||built.headers.get("age")||"unknown");
+            console.log("INDEX HEADERS",host,"cache:",homepage.headers.get("cache-control"),"age:",homepage.headers.get("age"),"etag:",homepage.headers.get("etag"));
+
           }
           const api="https://igptm-matrix-api.innovulis-i-edge.workers.dev";
           const cors=await check(api+"/api/status",{headers:{"origin":base}});
