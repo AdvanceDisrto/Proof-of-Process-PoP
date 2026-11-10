@@ -36,6 +36,8 @@ jobs:
           print('HTML parsed; JS extracted')
           PY
           node --check /tmp/innovulis-inline.js
+          node --check cloudflare/innovulis-public-router-20261110.js
+          node --check cloudflare/innovulis-cih-api-gateway-20261110.js
       - name: Fail if fake truth claims are introduced
         run: |
           python - <<'PY'
