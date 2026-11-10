@@ -1,0 +1,1 @@
+One-shot live smoke requested by owner on 2026-11-10 after CIH portal production cutover. Test apex, www, scoped API, and existing Buddy Edge AI. No payment calls, no receipt signing secrets.
