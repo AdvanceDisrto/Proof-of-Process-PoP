@@ -1,0 +1,60 @@
+name: artifactgptm.com production host smoke
+on:
+  push:
+    branches: [feature/innovulis-cih-sovereign-portal-20261110]
+    paths:
+      - ".github/workflows/artifactgptm-production-host-smoke.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  public-host:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - name: Check authoritative public host, SSL, assets, API CORS and integrity
+        run: |
+          node --input-type=module <<'EOF'
+          import assert from "node:assert/strict";
+          const base = "https://artifactgptm.com";
+          const hosts = [base, "https://www.artifactgptm.com"];
+          async function check(url, init={}) {
+            let error;
+            for(let i=0;i<4;i++){
+              try {
+                const response = await fetch(url,{redirect:"manual",signal:AbortSignal.timeout(15000),...init});
+                return {status:response.status,headers:response.headers,text:await response.text()};
+              } catch(e) { error=e; await new Promise(r=>setTimeout(r,5000)); }
+            }
+            throw error;
+          }
+          for(const host of hosts) {
+            const r=await check(host+"/__artifactgptm_release_status");
+            assert.equal(r.status,200,host+" release status: "+r.status+" "+r.text.slice(0,160));
+            const state=JSON.parse(r.text);
+            assert.equal(state.release,"i-ARTIFACTGPTm-SOVEREIGN-MATRIX-20261110");
+            assert.equal(state.certified_live,false);
+            console.log("DOMAIN ROUTING PASS",host);
+            const home=await check(host+"/");
+            assert.equal(home.status,200,host+" HTML: "+home.status+" "+home.text.slice(0,160));
+            assert.match(home.text,/ARTIFACTGPTm/i);
+            console.log("DOMAIN HTML PASS",host);
+          }
+          const api="https://igptm-matrix-api.innovulis-i-edge.workers.dev";
+          const cors=await check(api+"/api/status",{headers:{"origin":base}});
+          assert.equal(cors.status,200);
+          assert.equal(cors.headers.get("access-control-allow-origin"),base);
+          assert.equal(JSON.parse(cors.text).certified_live,false);
+          console.log("MAIN DOMAIN CORS PASS");
+          const invalid=await check(api+"/api/receipts/verify",{method:"POST",headers:{"origin":base,"content-type":"application/json"},body:"{}"});
+          assert.equal(invalid.status,422);
+          console.log("BAD SIGNED RECEIPT BLOCK PASS 422");
+          const news=await check(api+"/api/news",{headers:{"origin":base}});
+          assert.ok(news.status===200||news.status===503);
+          if(news.status===200){
+            const n=JSON.parse(news.text);assert.ok(n.live_source && n.headlines.length>0);
+            console.log("SOURCE-BOUND NEWS PASS",n.headlines[0].source);
+          } else {
+            console.log("NEWS PROVIDER UNAVAILABLE — FAILS HONESTLY 503");
+          }
+          EOF
