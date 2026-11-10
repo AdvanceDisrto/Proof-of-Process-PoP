@@ -6,6 +6,9 @@ on:
   pull_request:
     paths:
       - 'site/**'
+      - 'cloudflare/**'
+      - 'scripts/setup-cih-*.sh'
+      - 'scripts/setup-cih-*.ps1'
       - 'cih_api/**'
       - '.github/workflows/cih-portal-test.yml'
 jobs:
