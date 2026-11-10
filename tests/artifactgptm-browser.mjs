@@ -6,7 +6,7 @@ try{
  const page=await browser.newPage({viewport:{width:1365,height:900}});
  const errors=[];
  page.on("pageerror",e=>errors.push(e.message));
- const response=await page.goto("https://artifactgptm.com/",{waitUntil:"domcontentloaded",timeout:45000});
+ const response=await page.goto("https://artifactgptm.com/?cih_integration_acceptance=20261110",{waitUntil:"domcontentloaded",timeout:45000});
  assert.equal(response.status(),200,"Production HTML must be served over HTTPS");
  await page.locator("canvas.matrix-tunnel-canvas").waitFor();
  await page.getByRole("heading",{name:/Just Ask Buddy/i}).waitFor();
@@ -40,7 +40,6 @@ try{
  console.log("REAL SOURCE-LINKED INTEL UI PASS",items);
  const verifyNav=page.locator('nav[aria-label="Main workspace"] button').filter({hasText:"Verify"}).first();
  await verifyNav.click();
- console.log("AFTER VERIFY CLICK", await page.evaluate(() => ({url:location.href, selected:[...document.querySelectorAll('button.selected')].map(x=>x.textContent),text:document.querySelector('.matrix-center')?.innerText?.slice(0,1800),scripts:[...document.scripts].map(x=>x.src).filter(Boolean)})));
  await page.getByRole("heading",{name:"Authenticated Evidence Index"}).waitFor({timeout:7000});
  const gate=page.getByRole("region",{name:"Authenticated CIH receipt integration"});
  await gate.waitFor();
