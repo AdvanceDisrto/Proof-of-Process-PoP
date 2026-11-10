@@ -22,7 +22,7 @@ try {
     }
     & $python -m pip install -r cih_api\requirements-dev.txt
     if ($LASTEXITCODE -ne 0) { throw "Installing dependencies failed." }
-    & $python -m pytest -q cih_api\test_app.py
+    & $python -m pytest -q cih_api
     if ($LASTEXITCODE -ne 0) { throw "CIH tests failed; refusing to start server." }
     if ($TestOnly) {
         Write-Host "CIH Windows setup verified successfully." -ForegroundColor Green
