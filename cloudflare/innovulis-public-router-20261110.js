@@ -67,7 +67,7 @@ async function route(request) {
   }
   const url = new URL(incoming.pathname + incoming.search, origin);
   try {
-    if (legacy) return fetch(request);
+    if (legacy) return fetch(new Request(url.toString(), request));
     const headers = new Headers();
     for (const key of ["accept","if-none-match","content-type"]) {
       if (request.headers.has(key)) headers.set(key, request.headers.get(key));
