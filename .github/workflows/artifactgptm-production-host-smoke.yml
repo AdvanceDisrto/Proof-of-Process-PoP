@@ -40,6 +40,14 @@ jobs:
             assert.match(home.text,/ARTIFACTGPTm/i);
             console.log("DOMAIN HTML PASS",host);
           }
+          for(const host of ["https://igptm-matrix-artifact-preview.onrender.com","https://artifactgptm.com"]){
+            const homepage=await check(host+"/?cih_status_probe=20261110");
+            const src=homepage.text.match(/src="([^"]+\\.js)"/)?.[1];
+            console.log("CIH BUNDLE DIAGNOSTIC",host,"index JS:",src);
+            if(!src)continue;
+            const asset=await check(new URL(src,host).href);
+            console.log("CIH BUNDLE CONTENT",host,"authenticated-view:",asset.text.includes("Authenticated Evidence Index"),"auth-sdk:",asset.text.includes("AUTH0_NOT_CONFIGURED"));
+          }
           const api="https://igptm-matrix-api.innovulis-i-edge.workers.dev";
           const cors=await check(api+"/api/status",{headers:{"origin":base}});
           assert.equal(cors.status,200);
