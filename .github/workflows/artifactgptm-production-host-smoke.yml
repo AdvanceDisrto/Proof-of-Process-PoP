@@ -84,7 +84,7 @@ jobs:
           assert.equal(dateAnswer.llm_called,false);
           assert.equal(dateAnswer.receipt_issued,false);
           assert.equal(dateAnswer.clock_synchronization_attested,false);
-          assert.match(dateAnswer.observed_at_utc,/^\\d{4}-\\d\\d-\\d\\dT/);
+          assert.match(dateAnswer.observed_at_utc,/^\d{4}-\d\d-\d\dT/);
           assert.ok(dateAnswer.reply.includes("New York")&&dateAnswer.reply.includes("UTC"));
           const nyFollowup=await check(api+"/api/buddy/chat",{
             method:"POST",headers:{"origin":base,"content-type":"application/json"},
