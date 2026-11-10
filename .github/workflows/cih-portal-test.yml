@@ -52,3 +52,15 @@ jobs:
           assert 'AUTH_PROVIDER_UNCONFIGURED' in code
           print('No simulated truth/certification shortcut detected')
           PY
+
+  windows-setup:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run the actual Windows CIH setup with tests
+        shell: pwsh
+        run: .\scripts\setup-cih-windows.ps1 -TestOnly
