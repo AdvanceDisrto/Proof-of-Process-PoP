@@ -73,6 +73,47 @@ jobs:
           assert.equal(cih.status,200,"Public CIH health adapter should reach configured upstream");
           const state=JSON.parse(cih.text);assert.equal(state.service,"cih-evidence-api");
           console.log("CIH BACKEND HEALTH BRIDGE PASS",state.status,"auth:",state.auth_configured,"signer:",state.signer_configured,"db:",state.storage_configured);
+          // Deterministic time must bypass model inference and never issue a receipt.
+          const dateRequest=await check(api+"/api/buddy/chat",{
+            method:"POST",headers:{"origin":base,"content-type":"application/json"},
+            body:JSON.stringify({message:"whats the date",history:[]})
+          });
+          assert.equal(dateRequest.status,200,"Date request must be answered from live runtime");
+          const dateAnswer=JSON.parse(dateRequest.text);
+          assert.equal(dateAnswer.source,"EDGE_SYSTEM_CLOCK");
+          assert.equal(dateAnswer.llm_called,false);
+          assert.equal(dateAnswer.receipt_issued,false);
+          assert.equal(dateAnswer.clock_synchronization_attested,false);
+          assert.match(dateAnswer.observed_at_utc,/^\\d{4}-\\d\\d-\\d\\dT/);
+          assert.ok(dateAnswer.reply.includes("New York")&&dateAnswer.reply.includes("UTC"));
+          const nyFollowup=await check(api+"/api/buddy/chat",{
+            method:"POST",headers:{"origin":base,"content-type":"application/json"},
+            body:JSON.stringify({message:"in new york",history:[
+              {role:"user",content:"whats the date"},
+              {role:"assistant",content:dateAnswer.reply}
+            ]})
+          });
+          assert.equal(nyFollowup.status,200);
+          const ny=JSON.parse(nyFollowup.text);
+          assert.equal(ny.llm_called,false);
+          assert.ok(ny.reply.startsWith("In New York"));
+          console.log("BUDDY DETERMINISTIC UTC / NY CLOCK PASS; NO LLM OR RECEIPT");
+          const health=await check("https://innovulis-cih-evidence-preview.onrender.com/api/v1/health");
+          assert.equal(health.status,200);
+          const signals=JSON.parse(health.text);
+          assert.equal(signals.independent_truth_engine,"NOT_CONNECTED");
+          assert.equal(signals.hardware_attestation,"NOT_CONNECTED");
+          assert.equal(signals.auth_configured,false);
+          console.log("CIH HEALTH FAIL-CLOSED MISSING TRUST CONNECTIONS PASS");
+          const blocked=await check("https://innovulis-cih-evidence-preview.onrender.com/api/v1/receipts",{
+            method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({
+              claim:"The bioreactor is operating within safe parameters.",
+              evidence:{temperature_celsius:36.5,sensor_id:"MCP9808-01"},
+              expected_evidence_sha256:"",source_id:"hospital-node-01",parent_receipt_hashes:[]
+            })
+          });
+          assert.equal(blocked.status,422,"A blank evidence digest cannot produce signed receipt");
+          console.log("CIH BLANK DIGEST FAIL-CLOSED 422 PASS");
           const news=await check(api+"/api/news",{headers:{"origin":base}});
           assert.equal(news.status,200,"News sources down (must show unavailable rather than fabricate): "+news.status+" "+news.text.slice(0,150));
           const n=JSON.parse(news.text);assert.ok(n.live_source&&n.headlines.length>0);
