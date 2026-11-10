@@ -103,8 +103,7 @@ jobs:
           const signals=JSON.parse(health.text);
           assert.equal(signals.independent_truth_engine,"NOT_CONNECTED");
           assert.equal(signals.hardware_attestation,"NOT_CONNECTED");
-          assert.equal(signals.auth_configured,false);
-          console.log("CIH HEALTH FAIL-CLOSED MISSING TRUST CONNECTIONS PASS");
+          console.log("CIH HEALTH EVIDENCE BOUNDARY PASS; AUTH0:",signals.auth_configured,"SIGNER:",signals.signer_configured);
           const blocked=await check("https://innovulis-cih-evidence-preview.onrender.com/api/v1/receipts",{
             method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({
               claim:"The bioreactor is operating within safe parameters.",
@@ -112,8 +111,10 @@ jobs:
               expected_evidence_sha256:"",source_id:"hospital-node-01",parent_receipt_hashes:[]
             })
           });
-          assert.equal(blocked.status,422,"A blank evidence digest cannot produce signed receipt");
-          console.log("CIH BLANK DIGEST FAIL-CLOSED 422 PASS");
+          assert.equal(blocked.status,signals.auth_configured ? 401 : 503,"Without valid Auth0 token CIH must block receipt issuance before payload validation");
+          if(!signals.auth_configured)assert.equal(JSON.parse(blocked.text).detail,"AUTH_PROVIDER_UNCONFIGURED");
+          console.log("CIH UNAUTHENTICATED RECEIPT REQUEST FAILS CLOSED PASS",blocked.status);
+          // The isolated FastAPI unit tests with authenticated test fixture establish invalid digest -> 422.
           const news=await check(api+"/api/news",{headers:{"origin":base}});
           assert.equal(news.status,200,"News sources down (must show unavailable rather than fabricate): "+news.status+" "+news.text.slice(0,150));
           const n=JSON.parse(news.text);assert.ok(n.live_source&&n.headlines.length>0);
