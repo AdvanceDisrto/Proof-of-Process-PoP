@@ -6,6 +6,9 @@ on:
   pull_request:
     paths:
       - 'site/**'
+      - 'cloudflare/**'
+      - 'scripts/setup-cih-*.sh'
+      - 'scripts/setup-cih-*.ps1'
       - 'cih_api/**'
       - '.github/workflows/cih-portal-test.yml'
 jobs:
@@ -36,6 +39,8 @@ jobs:
           print('HTML parsed; JS extracted')
           PY
           node --check /tmp/innovulis-inline.js
+          node --check cloudflare/innovulis-public-router-20261110.js
+          node --check cloudflare/innovulis-cih-api-gateway-20261110.js
       - name: Fail if fake truth claims are introduced
         run: |
           python - <<'PY'
@@ -47,3 +52,15 @@ jobs:
           assert 'AUTH_PROVIDER_UNCONFIGURED' in code
           print('No simulated truth/certification shortcut detected')
           PY
+
+  windows-setup:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run the actual Windows CIH setup with tests
+        shell: pwsh
+        run: .\scripts\setup-cih-windows.ps1 -TestOnly

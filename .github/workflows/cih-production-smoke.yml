@@ -1,0 +1,51 @@
+name: iNNOVULIS CIH one-shot production smoke
+on:
+  push:
+    branches:
+      - feature/innovulis-cih-sovereign-portal-20261110
+    paths:
+      - 'docs/cih-production-smoke-trigger.txt'
+jobs:
+  live-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Live apex / www / API / Buddy smoke
+        run: |
+          python - <<'PY'
+          import json, urllib.request, urllib.error, time
+          def req(url, method="GET", obj=None, timeout=40):
+              data = None if obj is None else json.dumps(obj).encode()
+              headers = {"User-Agent":"iNNOVULIS-release-smoke/1.0","Accept":"application/json" if obj else "text/html"}
+              if data is not None: headers["Content-Type"]="application/json"
+              for attempt in range(4):
+                  try:
+                      with urllib.request.urlopen(urllib.request.Request(url,method=method,data=data,headers=headers),timeout=timeout) as r:
+                          return r.status,r.read(150000).decode("utf-8","replace")
+                  except urllib.error.HTTPError as exc:
+                      return exc.code,exc.read(20000).decode("utf-8","replace")
+                  except (TimeoutError,urllib.error.URLError) as exc:
+                      if attempt==3: raise
+                      time.sleep(6)
+          for host in ["https://innovulis.com","https://www.innovulis.com"]:
+              code, html = req(host+"/?cih-smoke=20261110")
+              assert code==200 and "One fabric" in html and "SIGNED" in html, (host,code,html[:200])
+              print(host, "CIH SITE PASS")
+          code, raw = req("https://api.innovulis.com/api/v1/health")
+          assert code==200, (code,raw[:500])
+          status=json.loads(raw)
+          assert status["status"]=="RUNNING",status
+          print("CIH API HEALTH PASS, signer:",status["signer_configured"],"auth:",status["auth_configured"])
+          code, raw = req("https://api.innovulis.com/api/v1/architecture")
+          assert code==200 and json.loads(raw)["framework"]=="iNNOVULIS CIH",(code,raw[:400])
+          print("CIH ARCHITECTURE PASS")
+          code, raw = req("https://api.innovulis.com/api/v1/verify",method="POST",obj={})
+          assert code==422,(code,raw[:400])
+          print("MALFORMED RECEIPT FAILS CLOSED")
+          code, raw = req("https://www.innovulis.com/api/buddy",method="POST",obj={"message":"In one sentence, what does the CIH coordinate?","history":[]},timeout=50)
+          assert code==200,(code,raw[:500])
+          buddy=json.loads(raw)
+          assert isinstance(buddy.get("reply"),str) and buddy.get("external_action")=="NOT_EXECUTED",buddy
+          print("BUDDY EDGE LIVE INFERENCE PASS",buddy.get("model"))
+          PY
