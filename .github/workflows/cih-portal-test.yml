@@ -31,6 +31,13 @@ jobs:
           deno test --allow-env tests/cih_edge_mirror_test.ts
       - run: python -m pip install -r cih_api/requirements-dev.txt
       - run: python -m pytest -q cih_api
+      - name: Brain Registry 21 brain unit acceptance
+        run: |
+          python brain_registry.py --tests
+          python brain_registry.py --coverage
+      - name: Run 3 real BrainGate dispatches and inspect evidence chain
+        run: |
+          python test_brain_gate.py
       - name: Real local .krdid signed HTTP issuance + verification
         shell: bash
         run: |
