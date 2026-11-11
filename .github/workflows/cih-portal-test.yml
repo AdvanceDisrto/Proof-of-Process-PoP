@@ -24,6 +24,32 @@ jobs:
           node-version: '22'
       - run: python -m pip install -r cih_api/requirements-dev.txt
       - run: python -m pytest -q cih_api
+      - name: Real local .krdid signed HTTP issuance + verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          export XDG_DATA_HOME="$RUNNER_TEMP/krdid-software-proof"
+          export CIH_LOCAL_DB_PATH="$RUNNER_TEMP/krdid-software-proof/cih.sqlite3"
+          python -m cih_api.krdid init-local
+          python -m cih_api.provision_keys
+          export CIH_ED25519_PRIVATE_KEY_B64="$(python -c 'import json; from cih_api.provision_keys import default_destination; print(json.loads(default_destination().read_text())["CIH_ED25519_PRIVATE_KEY_B64"])')"
+          export CIH_ED25519_PUBLIC_KEY_B64="$(python -c 'import json; from cih_api.provision_keys import default_destination; print(json.loads(default_destination().read_text())["CIH_ED25519_PUBLIC_KEY_B64"])')"
+          python -m uvicorn cih_api.app:app --host 127.0.0.1 --port 18000 > "$RUNNER_TEMP/cih-http.log" 2>&1 &
+          cih_pid=$!
+          trap 'kill "$cih_pid" 2>/dev/null || true' EXIT
+          python - <<'PY'
+          import time, urllib.request
+          for retry in range(40):
+              try:
+                  with urllib.request.urlopen("http://127.0.0.1:18000/api/v1/health", timeout=1) as response:
+                      assert response.status == 200
+                  break
+              except Exception:
+                  time.sleep(0.2)
+          else:
+              raise SystemExit("CIH HTTP server never became healthy")
+          PY
+          python -m cih_api.krdid smoke --url http://127.0.0.1:18000
       - name: Static website smoke and inline JS syntax
         run: |
           python - <<'PY'
