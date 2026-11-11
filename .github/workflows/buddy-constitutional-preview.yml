@@ -7,6 +7,7 @@ on:
       - 'tests/buddy-constitutional.node.test.mjs'
       - 'tests/buddy-preview-live.mjs'
       - 'tests/fixtures/buddy-constitutional.mjs'
+      - 'tests/fixtures/MatrixWorkspace.voice.tsx'
       - '.github/workflows/buddy-constitutional-preview.yml'
   workflow_dispatch:
 permissions:
@@ -22,5 +23,10 @@ jobs:
           node-version: '22'
       - name: Run deterministic and simulated upstream regression tests
         run: node --test tests/buddy-constitutional.node.test.mjs
+      - name: Independent Matrix TSX syntax compilation (not full project typecheck)
+        run: |
+          npx --yes esbuild@0.25.12 tests/fixtures/MatrixWorkspace.voice.tsx --bundle --external:* --platform=browser --format=esm --loader:.tsx=tsx --outfile="$RUNNER_TEMP/matrix-voice-parse.mjs"
+          node --check "$RUNNER_TEMP/matrix-voice-parse.mjs"
+          echo "MATRIX_TSX_PARSE_PASS · full React project typecheck still required"
       - name: Probe isolated live Cloudflare preview (no production mutation)
         run: node tests/buddy-preview-live.mjs
