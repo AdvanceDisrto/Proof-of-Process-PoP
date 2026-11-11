@@ -22,6 +22,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Deno compile and Edge Ed25519 mirror security tests
+        run: |
+          deno check supabase/functions/strmkrd-signing/index.ts tests/cih_edge_mirror_test.ts
+          deno test --allow-env tests/cih_edge_mirror_test.ts
       - run: python -m pip install -r cih_api/requirements-dev.txt
       - run: python -m pytest -q cih_api
       - name: Real local .krdid signed HTTP issuance + verification
