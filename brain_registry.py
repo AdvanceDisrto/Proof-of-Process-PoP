@@ -611,6 +611,19 @@ class BrainDispatcher:
     def _prev(self) -> str:
         return self.chain[-1].receipt_hash if self.chain else GENESIS
 
+    def _append_validated(self, r: BrainReceipt) -> BrainReceipt:
+        """Fail closed before a v1 append without changing legacy serialized bytes.
+
+        v1 is UNSIGNED. This is a chain consistency guard, not signer identity.
+        """
+        if self.chain and not self.verify_chain()["ok"]:
+            raise ValueError("EXISTING_BRAIN_CHAIN_REFUTED_BEFORE_APPEND")
+        if r.prev_hash != self._prev() or r.genesis != (len(self.chain) == 0):
+            raise ValueError("BRAIN_CHAIN_PARENT_OR_GENESIS_MISMATCH")
+        r.seal()
+        self.chain.append(r)
+        return r
+
     def route(self, text: str) -> str | None:
         b = self.brains.get("Buddy")
         if b is None:
@@ -660,9 +673,7 @@ class BrainDispatcher:
             prev_hash=self._prev(),
             genesis=(len(self.chain) == 0),
         )
-        r.seal()
-        self.chain.append(r)
-        return r
+        return self._append_validated(r)
 
     def _refusal(self, brain: str, text: str, reason: str) -> BrainReceipt:
         r = BrainReceipt(
@@ -676,9 +687,7 @@ class BrainDispatcher:
             prev_hash=self._prev(),
             genesis=(len(self.chain) == 0),
         )
-        r.seal()
-        self.chain.append(r)
-        return r
+        return self._append_validated(r)
 
     def verify_chain(self) -> dict:
         prev = GENESIS

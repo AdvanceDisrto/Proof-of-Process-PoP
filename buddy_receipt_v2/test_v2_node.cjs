@@ -1,0 +1,80 @@
+#!/usr/bin/env node
+"use strict";
+const fs=require('node:fs');
+const assert=require('node:assert/strict');
+const path=require('node:path');
+const cryptoModule=require('node:crypto');
+const here=__dirname;
+if (!globalThis.crypto) Object.defineProperty(globalThis, "crypto", {value:cryptoModule.webcrypto});
+require(path.join(here,'verifier-core.js'));
+const V=globalThis.BuddyReceiptVerifier;
+let count=0;
+function pass(name){count++;console.log('PASS',name);}
+(async()=>{
+ const fixtures=JSON.parse(fs.readFileSync(path.join(here,'signed-receipt-chain-v2.json'),'utf8'));
+ const anchor=JSON.parse(fs.readFileSync(path.join(here,'demo-public-trust-anchor.json'),'utf8'));
+ const pub=anchor.public_key_b64;
+ for(const r of fixtures.receipts){
+   const v=await V.verifyReceipt(r,pub);
+   assert.equal(v.valid,true,JSON.stringify(v));
+   assert.equal(v.signature,'ED25519_VALID');
+ }
+ pass('three Python Ed25519 receipts verified using independent JavaScript WebCrypto');
+ assert.equal(fixtures.verification.count,3);
+ assert.equal(fixtures.receipts[1].prev_hash,fixtures.receipts[0].receipt_hash);
+ assert.equal(fixtures.receipts[2].prev_hash,fixtures.receipts[1].receipt_hash);
+ pass('three receipts chain by signed parent references');
+ const source=fixtures.receipts[0];
+ const copy=()=>JSON.parse(JSON.stringify(source));
+ let bad=copy();bad.claims=['the signer proved a patient was cured'];
+ assert.equal((await V.verifyReceipt(bad,pub)).valid,false);
+ pass('tampered claim is refused');
+ bad=copy();bad.signature='A'.repeat(86)+'==';
+ assert.equal((await V.verifyReceipt(bad,pub)).valid,false);
+ pass('forged signature refused');
+ bad=copy();bad.signer_pubkey=Buffer.alloc(32,7).toString('base64');
+ assert.equal((await V.verifyReceipt(bad,pub)).valid,false);
+ pass('attacker public key cannot replace independently trusted anchor');
+ assert.equal((await V.verifyReceipt(source,'' )).valid,false);
+ pass('without an independent key, fail closed');
+ bad=copy();bad.schema='bitwitness/brain/receipt/v1';
+ assert.equal((await V.verifyReceipt(bad,pub)).valid,false);
+ pass('unsigned legacy protocol not relabelled as v2');
+ bad=copy();bad.confidence=1.0;
+ assert.equal((await V.verifyReceipt(bad,pub)).valid,false);
+ pass('extra schema property rejected');
+ bad=copy();bad.ts='2026-11-11 01:00:00';
+ assert.equal((await V.verifyReceipt(bad,pub)).valid,false);
+ pass('non UTC millisecond timestamp rejected');
+ assert.throws(()=>V.canonicalString({confidence:0.5}),/PROHIBITS_NUMBERS/);
+ assert.throws(()=>V.canonicalString({bad:'\ud800'}),/SURROGATE/);
+ pass('number drift and unpaired UTF16 blocked');
+ const vectors=JSON.parse(fs.readFileSync(path.join(here,'canonical-vectors.json'),'utf8'));
+ const cv=Buffer.from(V.bytes(vectors.unicode_data));
+ assert.equal(cv.toString('base64'),vectors.unicode_canon_b64);
+ assert.equal(cryptoModule.createHash('sha256').update(cv).digest('hex'),vectors.unicode_canon_sha256);
+ pass('RFC8785 limited profile matches Python including café, 日本語, emoji, U+2028, U+2029 and non-BMP key order');
+ assert.equal(cryptoModule.createHash('sha256').update(Buffer.from(V.bytes({long:'x'.repeat(1_000_000)}))).digest('hex'),vectors.million_char_sha256);
+ pass('one-million-character canonical bytes agree cross-language (not QR-sized)');
+ const store=new Map();const storage={getItem:key=>store.get(key)||null,setItem:(key,value)=>store.set(key,value)};
+ assert.equal(V.keyContinuity(storage,source.brain,pub).status,'PINNED_KEY_FIRST_SEEN');
+ assert.equal(V.keyContinuity(storage,source.brain,pub).status,'KEY_MATCH');
+ assert.equal(V.keyContinuity(storage,source.brain,Buffer.alloc(32,9).toString('base64')).status,'KEY_CHANGED_BLOCK');
+ pass('TOFU pin continuity and key rotation warning');
+ assert.match(V.formatAge(7200),/hours/);
+ assert.match(V.formatAge(-180),/FUTURE/);
+ pass('freshness and future clock warnings');
+ const scanner=fs.readFileSync(path.join(here,'scanner.html'),'utf8');
+ const offline=fs.readFileSync(path.join(here,'verifier.html'),'utf8');
+ for(const page of [scanner,offline]){
+   assert.match(page,/Gate checks:/);
+   assert.match(page,/Full chain continuity: NOT PROVEN/);
+   assert.match(page,/DEMO_PINNED_PUBLIC_KEY_B64/);
+   assert.doesNotMatch(page,/<script\s+src=/i);
+   assert.doesNotMatch(page,/allow-scripts|srcdoc|eval\(/);
+ }
+ assert.match(scanner,/START CAMERA/);
+ assert.doesNotMatch(offline,/START CAMERA/);
+ pass('offline paste viewer and native BarcodeDetector scanner contain no CDN, no iframe app boot');
+ console.log(`BUDDY_V2_CROSS_LANGUAGE_PASS: ${count} assertions`);
+})().catch(e=>{console.error(e);process.exitCode=1});
