@@ -11,6 +11,9 @@ try {
         throw 'brain_registry.py not found in demo folder or its parent.'
     }
     $env:PYTHONPATH = $registryRoot + ';' + $base
+    # PowerShell 5.1 can default to cp1252; Python emits Unicode test checkmarks.
+    $env:PYTHONIOENCODING = 'utf-8'
+    $env:PYTHONUTF8 = '1'
     Write-Host 'BUDDY SIGNED RECEIPTS V2 - SOFTWARE DEMO TESTS' -ForegroundColor Cyan
     Write-Host ('Working directory: ' + $base)
     $cihPython = Join-Path $env:USERPROFILE 'Proof-of-Process-PoP\.venv\Scripts\python.exe'
