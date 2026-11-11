@@ -20,6 +20,7 @@ from cih_api.krdid import database
 
 PROJECT_HOST = "tkrxmdonmxpeockpbazl.supabase.co"
 TABLE_PATH = "/rest/v1/cih_receipts"
+EDGE_PATH = "/functions/v1/strmkrd-signing/cih-mirror"
 REMOTE_ACKNOWLEDGED = "REPLICA_ACKNOWLEDGED"
 NOT_CONFIGURED = "NOT_CONFIGURED"
 PENDING_RETRY = "PENDING_RETRY"
@@ -46,10 +47,17 @@ def replica_config() -> tuple[str, str] | None:
     return None
 
 
+
+def edge_selected() -> bool:
+    """Off by default for backwards compatibility; no cloud key on local node."""
+    return os.getenv("CIH_REPLICA_TRANSPORT", "").casefold() == "edge"
+
+
 def replica_readiness() -> dict:
     key = os.getenv("SUPABASE_SECRET_KEY", "") or os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
     url = os.getenv("SUPABASE_URL", "")
     config = replica_config()
+    edge = edge_selected()
     try:
         with database() as db:
             pending = db.execute("SELECT COUNT(*) FROM mirror_queue WHERE state != 'ACKNOWLEDGED'").fetchone()[0]
@@ -57,8 +65,10 @@ def replica_readiness() -> dict:
     except Exception:
         pending, acknowledged = -1, -1
     return {
-        "configured": config is not None,
-        "configuration_invalid": bool(url and key) and config is None,
+        "configured": edge or config is not None,
+        "configuration_invalid": not edge and bool(url and key) and config is None,
+        "transport": "SIGNED_CIH_EDGE_NO_LOCAL_SECRET" if edge else "SERVER_KEY_DIRECT_POSTGREST",
+        "node_trust_enrollment": "NOT_CHECKED",
         "pending_count": pending,
         "acknowledged_count": acknowledged,
         "provider": "SUPABASE_POSTGRES_OPTIONAL",
@@ -97,8 +107,58 @@ def _pending(receipt_hash: str, reason: str) -> None:
         db.commit()
 
 
+def mirror_via_edge(receipt_hash: str) -> str:
+    """Send a REAL node-signed receipt to the protected Edge mirror.
+
+    The Edge runtime alone holds the database service secret and verifies the
+    pinned node public key before accepting a row. Local identity remains .krdid.
+    """
+    with database() as db:
+        row = db.execute(
+            "SELECT r.receipt_json, q.state FROM receipts r JOIN mirror_queue q"
+            " ON r.receipt_sha256=q.receipt_sha256 WHERE r.receipt_sha256=?",
+            (receipt_hash,),
+        ).fetchone()
+    if row is None:
+        return PENDING_RETRY
+    if row[1] == "ACKNOWLEDGED":
+        return REMOTE_ACKNOWLEDGED
+    stored = json.loads(row[0])
+    if stored.get("body_sha256") != receipt_hash or stored.get("storage_status") != "LOCAL_SQLITE_COMMITTED":
+        _pending(receipt_hash, "INVALID_LOCAL_RECEIPT")
+        return PENDING_RETRY
+    endpoint = "https://" + PROJECT_HOST + EDGE_PATH
+    request = Request(
+        endpoint,
+        data=json.dumps(stored, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8"),
+        headers={"Content-Type": "application/json", "User-Agent": "iNNOVULIS-CIH-EdgeMirror/0.3"},
+        method="POST",
+    )
+    try:
+        with urlopen(request, timeout=8) as response:
+            if response.status != 200:
+                _pending(receipt_hash, "EDGE_UNEXPECTED_RESPONSE")
+                return PENDING_RETRY
+            accepted = json.load(response)
+    except HTTPError as exc:
+        _pending(receipt_hash, "EDGE_HTTP_" + str(exc.code))
+        return PENDING_RETRY
+    except (URLError, OSError, TimeoutError, ValueError, TypeError):
+        _pending(receipt_hash, "EDGE_NETWORK_OR_INVALID_RESPONSE")
+        return PENDING_RETRY
+    if (not isinstance(accepted, dict)
+            or accepted.get("receipt_hash") != receipt_hash
+            or accepted.get("status") not in ("REPLICA_ACKNOWLEDGED", "REPLICA_ALREADY_PRESENT")):
+        _pending(receipt_hash, "EDGE_ACK_MISMATCH")
+        return PENDING_RETRY
+    _acknowledge(receipt_hash)
+    return REMOTE_ACKNOWLEDGED
+
+
 def mirror_receipt(receipt_hash: str) -> str:
     """Attempt one mirror write. Failures preserve the committed local receipt."""
+    if edge_selected():
+        return mirror_via_edge(receipt_hash)
     key_config = replica_config()
     if key_config is None:
         key = os.getenv("SUPABASE_SECRET_KEY", "") or os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
