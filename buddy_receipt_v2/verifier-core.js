@@ -113,6 +113,34 @@
         signature:'NOT_VERIFIED',signer_identity:'NOT_VERIFIED',chain:'NOT_VERIFIED'};
     }
   }
+  async function verifyChain(receipts, independentlyPinnedKeyB64, expectedCount = 3) {
+    // Verifies an internally supplied signed chain, not an externally pinned ledger.
+    if(!Array.isArray(receipts) || receipts.length!==expectedCount ||
+       !Number.isInteger(expectedCount) || expectedCount<2 || expectedCount>32)
+      return {valid:false,error:'EXPECTED_SIGNED_CHAIN_COUNT_MISMATCH',chain:'NOT_VERIFIED'};
+    let prev=ZERO;
+    const seen=new Set(),details=[];
+    for(let i=0;i<receipts.length;i++) {
+      const rec=receipts[i];
+      const result=await verifyReceipt(rec,independentlyPinnedKeyB64);
+      if(!result.valid)return {valid:false,index:i+1,error:'RECEIPT_'+(i+1)+'_'+result.error,chain:'NOT_VERIFIED'};
+      if(rec.genesis !== (i===0) || rec.prev_hash!==prev)
+        return {valid:false,index:i+1,error:'CHAIN_PARENT_OR_GENESIS_MISMATCH',chain:'NOT_VERIFIED'};
+      if(seen.has(rec.receipt_hash))
+        return {valid:false,index:i+1,error:'DUPLICATE_SIGNED_RECEIPT',chain:'NOT_VERIFIED'};
+      seen.add(rec.receipt_hash);
+      details.push({index:i+1,brain:rec.brain,gate_verdict:rec.gate_verdict,
+        gate_checks:rec.gate_checks,claims:rec.claims,refusals:rec.refusals,
+        prev_hash:rec.prev_hash,receipt_hash:rec.receipt_hash,ts:rec.ts,
+        age_seconds:result.age_seconds});
+      prev=rec.receipt_hash;
+    }
+    return {valid:true,count:receipts.length,first_hash:receipts[0].receipt_hash,tip:prev,
+      chain:'INTERNAL_SIGNED_LINKAGE_VERIFIED',external_genesis_pinned:false,
+      signed_receipts:details,
+      does_not_prove:['external genesis or ledger anchoring','legal signer identity',
+        'source factual truth','hardware computation','independent source verification']};
+  }
   function keyContinuity(storage,brain,pubkey) {
     // Continuity only: authority must have been established independently first.
     if(!storage)return {status:'STORAGE_UNAVAILABLE'};
@@ -138,5 +166,5 @@
     if(seconds<86400)return `${Math.floor(seconds/3600)} hours ago`;
     return `${Math.floor(seconds/86400)} days ago`;
   }
-  global.BuddyReceiptVerifier=Object.freeze({canonicalString,bytes,digest,verifyReceipt,keyContinuity,formatAge});
+  global.BuddyReceiptVerifier=Object.freeze({canonicalString,bytes,digest,verifyReceipt,verifyChain,keyContinuity,formatAge});
 })(globalThis);
