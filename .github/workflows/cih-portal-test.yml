@@ -93,3 +93,18 @@ jobs:
       - name: Run the actual Windows CIH setup with tests
         shell: pwsh
         run: .\scripts\setup-cih-windows.ps1 -TestOnly
+      - name: Parse sovereign Windows setup without executing host changes
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $parseErrors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path ".\scripts\setup-cih-sovereign-windows.ps1"),
+            [ref]$tokens, [ref]$parseErrors
+          ) | Out-Null
+          if ($parseErrors.Count -ne 0) {
+            $parseErrors | ForEach-Object { Write-Host $_ }
+            throw "SOVEREIGN_WINDOWS_SETUP_PARSE_FAILED"
+          }
+          Write-Host "SOVEREIGN_WINDOWS_SETUP_SYNTAX_PASS"
+
