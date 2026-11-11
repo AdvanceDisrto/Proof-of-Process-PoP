@@ -21,6 +21,7 @@ from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
 from cih_api.krdid import authenticate, commit_receipt, readiness, consume_nonce
+from cih_api.replica import mirror_receipt, replica_readiness
 
 app = FastAPI(title="iNNOVULIS CIH ΔiΔ", version="0.2.0",
               description="Evidence-integrity operations; no automatic truth or hardware certification.")
@@ -107,6 +108,7 @@ class SignedReceipt(BaseModel):
     signature_b64: str
     key_id: str
     storage_status: str = "NOT_RECORDED"
+    remote_replication_status: str = "NOT_CONFIGURED"
 
 
 class ReconciliationRequest(BaseModel):
@@ -132,6 +134,7 @@ def check_signed_receipt(receipt: SignedReceipt) -> bool:
 @app.get("/api/v1/health")
 def health() -> dict[str, Any]:
     state = readiness()
+    replica = replica_readiness()
     return {
         "service": "cih-evidence-api", "version": "0.2.0", "status": "RUNNING",
         "auth_provider": "LOCAL_KRDID_ED25519",
@@ -142,6 +145,11 @@ def health() -> dict[str, Any]:
         "trusted_key_configured": bool(os.getenv("CIH_ED25519_PUBLIC_KEY_B64")),
         "storage_configured": state["ready"],
         "storage_provider": "LOCAL_SQLITE",
+        "remote_replica_provider": replica["provider"],
+        "remote_replica_configured": replica["configured"],
+        "remote_replica_configuration_invalid": replica["configuration_invalid"],
+        "remote_replica_pending_count": replica["pending_count"],
+        "remote_replica_acknowledged_count": replica["acknowledged_count"],
         "hardware_backed_identity": "NOT_ATTESTED",
         "independent_truth_engine": "NOT_CONNECTED",
         "hardware_attestation": "NOT_CONNECTED"
@@ -205,6 +213,9 @@ def issue_receipt(
     record = receipt.model_dump(mode="json")
     record["storage_status"] = "LOCAL_SQLITE_COMMITTED"
     receipt.storage_status = commit_receipt(auth, record)
+    # Secondary network storage is never required to mint a local cryptographic receipt.
+    # Failures remain visibly pending in the durable SQLite mirror queue.
+    receipt.remote_replication_status = mirror_receipt(receipt.body_sha256)
     return receipt
 
 
