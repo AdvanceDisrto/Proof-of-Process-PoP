@@ -33,7 +33,9 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'BUDDY_V2_CROSS_LANGUAGE_TESTS_FAILED' }
     & $nodeCmd.Source test_verifier_ui.cjs
     if ($LASTEXITCODE -ne 0) { throw 'BUDDY_V2_HTML_UI_TESTS_FAILED' }
-    Write-Host 'BUDDY_V2_SOFTWARE_TESTS_PASS' -ForegroundColor Green
+    & $nodeCmd.Source verify_signed_chain.cjs
+    if ($LASTEXITCODE -ne 0) { throw 'BUDDY_V2_SIGNED_CHAIN_VERIFICATION_FAILED' }
+    Write-Host 'BUDDY_V2_SOFTWARE_AND_INTERNAL_CHAIN_TESTS_PASS' -ForegroundColor Green
     if ($Serve) {
         Write-Host 'Open http://127.0.0.1:8768/verifier.html' -ForegroundColor Yellow
         Write-Host 'This server remains in the foreground; stop it with Ctrl+C.'
