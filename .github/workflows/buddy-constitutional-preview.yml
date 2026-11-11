@@ -1,0 +1,26 @@
+name: Buddy constitutional preview HTTP and source checks
+on:
+  push:
+    branches:
+      - feature/buddy-constitutional-runtime-check-20261111
+    paths:
+      - 'tests/buddy-constitutional.node.test.mjs'
+      - 'tests/buddy-preview-live.mjs'
+      - 'tests/fixtures/buddy-constitutional.mjs'
+      - '.github/workflows/buddy-constitutional-preview.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-buddy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run deterministic and simulated upstream regression tests
+        run: node --test tests/buddy-constitutional.node.test.mjs
+      - name: Probe isolated live Cloudflare preview (no production mutation)
+        run: node tests/buddy-preview-live.mjs
