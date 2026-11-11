@@ -62,7 +62,7 @@ Project: tkrxmdonmxpeockpbazl. No new public.receipts table is required. The exi
 
 Row Level Security is enabled. anon and authenticated have no table privileges; service_role has SELECT and INSERT only. Supabase database administrators still have elevated access, so it is not a cryptographically immutable chain.
 
-The supplied sb_publishable_ key is public and cannot write into the protected receipt table. Use a distinct backend-only sb_secret_ key from Supabase → Settings → API Keys; never put it in browser variables, GitHub, or chat. Supabase Auth remains disconnected.
+The publishable key cannot write into the protected receipt table. The preferred **local CIH → Supabase Edge** transport requires **no Supabase secret on Windows or GitHub**: the CIH node sends its genuine signed receipt to the already-deployed `strmkrd-signing/cih-mirror` endpoint. The Edge function verifies the receipt against an operator-enrolled CIH node public key in `cih_node_trust` and uses Supabase's existing server-held `SUPABASE_SERVICE_ROLE_KEY` (or a managed server-only secret) to write. Supabase Auth is not used. The previous direct PostgREST mode remains optional for separate server deployments.
 
 From Windows on the existing feature branch:
 
@@ -70,7 +70,7 @@ From Windows on the existing feature branch:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup-cih-sovereign-windows.ps1 -ConfigureReplica
 ```
 
-The script asks for the server credential using a masked prompt. Press Enter to skip and continue local-only. It creates a real local signed receipt, verifies the CIH signature, and retries queued copies if remote access is configured.
+The script selects the **signed Edge receipt mirror** without asking for a secret. It creates a real local signed receipt, verifies the CIH signature, and retries queued copies. The Edge mirror will still reject the request until the CIH NODE signing public key is explicitly enrolled in Supabase `cih_node_trust`. That trust registry currently has **zero enrolled keys**, and no automatic remote enrollment exists.
 
 Check the local replica queue:
 
@@ -78,7 +78,7 @@ Check the local replica queue:
 .\.venv\Scripts\python.exe -m cih_api.replica status
 ```
 
-Retry manually after supplying an authorized server-only secret to the CLI process:
+Retry manually using the signed Edge transport (no secret on the client):
 
 ```powershell
 .\.venv\Scripts\python.exe -m cih_api.replica sync --limit 100
@@ -88,7 +88,7 @@ Every CIH issuance returns storage_status=LOCAL_SQLITE_COMMITTED only after a SQ
 
 New sb_secret_ credentials are sent exclusively on the apikey header (they are not JWTs). Legacy service_role JWT keys are supported only for migration; Supabase is deprecating legacy keys at the end of 2026.
 
-The remote replica is optional, not a request signer, trust authority, active-active cluster, recovery quorum, or proof of physical truth. A single CIH host and its root key can still be single points of failure. The remote table currently has zero receipts until an authorized write occurs.
+The remote replica is optional, not a request signer, trust authority, active-active cluster, recovery quorum, or proof of physical truth. A single CIH host and its root key can still be single points of failure. The remote table currently has zero receipts until a trusted CIH signing public key is enrolled and a genuine node-signed receipt is submitted.
 ## Browser and hosted node boundary
 
 On `artifactgptm.com`, the new UI generates a non-extractable **browser software** Ed25519 CryptoKey (stored in IndexedDB) and shows a command to enroll its public key on the trusted backend host. Enrollment is a separate out-of-band operator action; browser-generated private keys are not hardware attested. No public endpoint accepts arbitrary keys for automatic onboarding.
