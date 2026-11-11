@@ -23,7 +23,7 @@ jobs:
           node-version: '22'
       - name: Install test dependencies only
         run: python -m pip install cryptography jsonschema qrcode pillow
-      - name: V1 legacy regression: unchanged signed bytes and 21 tests
+      - name: "V1 legacy regression - unchanged signed bytes and 21 tests"
         run: python brain_registry.py --tests
       - name: Generate ephemeral demo signatures and QR; keep no private key
         env:
