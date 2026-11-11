@@ -1,68 +1,70 @@
-"""CIH production-integration contract tests; no live secrets or provider writes."""
+"""Registry persistence and local-only trust management; no remote IdP."""
 import base64
 import json
-from unittest.mock import patch
-from urllib.error import HTTPError
+import sqlite3
 
 import pytest
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from fastapi import HTTPException
-
-from cih_api.app import SignedReceipt, append_to_supabase, canonical
+from cih_api.krdid import database, enroll, readiness, store_path, authenticate, signed_bytes
 
 
 @pytest.fixture
-def example_receipt():
-    return SignedReceipt(
-        body={
-            "schema": "innovulis.cih.receipt.v0.1",
-            "operation": "evidence_digest_validation",
-            "requester_subject": "auth0|test-local",
-        },
-        body_sha256="a" * 64,
-        signature_b64=base64.b64encode(b"x" * 64).decode("ascii"),
-        key_id="ed25519-sha256:" + "b" * 24,
-    )
+def isolated(monkeypatch, tmp_path):
+    monkeypatch.setenv("CIH_LOCAL_DB_PATH", str(tmp_path / "CIH" / "sovereign.sqlite3"))
+    key = Ed25519PrivateKey.generate()
+    raw = key.public_key().public_bytes(serialization.Encoding.Raw,
+                                         serialization.PublicFormat.Raw)
+    return key, base64.b64encode(raw).decode()
 
 
-def test_no_database_configuration_does_not_claim_write(example_receipt, monkeypatch):
-    monkeypatch.delenv("SUPABASE_URL", raising=False)
-    monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY", raising=False)
-    assert append_to_supabase(example_receipt, "auth0|test-local") == "NOT_CONFIGURED"
+def test_new_registry_denies_all_until_trusted_enrollment(isolated):
+    key, public = isolated
+    assert readiness()["enrolled"] == 0
+    with pytest.raises(HTTPException) as exc:
+        authenticate(None, None, None, None, {}, "/api/v1/receipts")
+    assert exc.value.status_code == 401
+    enroll("operator.krdid", public)
+    assert readiness() == {"ready": True, "enrolled": 1}
 
 
-def test_database_request_uses_subject_and_server_side_credential(example_receipt, monkeypatch):
-    monkeypatch.setenv("SUPABASE_URL", "https://example.supabase.co")
-    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-only-not-a-real-key")
-
-    class FakeResponse:
-        status = 201
-        def __enter__(self):
-            return self
-        def __exit__(self, *args):
-            return False
-
-    with patch("urllib.request.urlopen", return_value=FakeResponse()) as upstream:
-        assert append_to_supabase(example_receipt, "auth0|test-local") == "DATABASE_ACKNOWLEDGED"
-
-    request = upstream.call_args.args[0]
-    assert request.full_url == "https://example.supabase.co/rest/v1/cih_receipts"
-    assert request.get_method() == "POST"
-    body = json.loads(request.data)
-    assert body["auth0_subject"] == "auth0|test-local"
-    assert body["receipt_hash"] == "a" * 64
-    assert body["receipt_body"]["requester_subject"] == body["auth0_subject"]
-    assert body["signature_b64"] == example_receipt.signature_b64
-    assert request.headers["Apikey"] == "test-only-not-a-real-key"
-    assert request.headers["Authorization"] == "Bearer test-only-not-a-real-key"
-    assert "test-only-not-a-real-key" not in str(body)
+def test_duplicate_enrollment_never_replaces_trusted_key(isolated):
+    key, public = isolated
+    enroll("operator.krdid", public)
+    with pytest.raises(ValueError, match="already enrolled"):
+        enroll("operator.krdid", public)
+    with sqlite3.connect(store_path()) as db:
+        assert db.execute("SELECT COUNT(*) FROM identities").fetchone()[0] == 1
 
 
-def test_database_write_error_fails_closed(example_receipt, monkeypatch):
-    monkeypatch.setenv("SUPABASE_URL", "https://example.supabase.co")
-    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-only-not-a-real-key")
-    error = HTTPError("https://example.supabase.co", 403, "Forbidden", hdrs={}, fp=None)
-    with patch("urllib.request.urlopen", side_effect=error):
-        with pytest.raises(HTTPException) as exc:
-            append_to_supabase(example_receipt, "auth0|test-local")
-    assert exc.value.status_code == 503
-    assert exc.value.detail == "PERSISTENCE_FAILED"
+def test_no_untrusted_public_key_can_override_pinned_identity(isolated):
+    _, trusted_pub = isolated
+    enroll("operator.krdid", trusted_pub)
+    attacker = Ed25519PrivateKey.generate()
+    data = {"source_id": "operator"}
+    import time, uuid
+    stamp = int(time.time())
+    nonce = uuid.uuid4().hex
+    signature = base64.b64encode(attacker.sign(
+        signed_bytes("operator.krdid", stamp, nonce, data, "/api/v1/receipts"))).decode()
+    with pytest.raises(HTTPException) as exc:
+        authenticate("operator.krdid", signature, str(stamp), nonce, data, "/api/v1/receipts")
+    assert exc.value.status_code == 403
+    assert exc.value.detail == "INVALID_KRDID_SIGNATURE"
+
+
+def test_registry_survives_reopening_sqlite(isolated):
+    key, pub = isolated
+    enroll("operator.krdid", pub)
+    with sqlite3.connect(store_path()) as db:
+        assert db.execute("SELECT pubkey_b64 FROM identities WHERE krdid=?",
+                          ("operator.krdid",)).fetchone()[0] == pub
+    assert readiness()["enrolled"] == 1
+
+
+def test_public_key_enrollment_rejects_malformed_key(isolated):
+    with pytest.raises(ValueError):
+        enroll("bad.krdid", "notbase64")
+    with pytest.raises(ValueError):
+        enroll("not-an-id", isolated[1])
