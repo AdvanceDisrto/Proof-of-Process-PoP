@@ -16,7 +16,7 @@ function b64(input: ArrayBuffer): string {
   return btoa(String.fromCharCode(...new Uint8Array(input)));
 }
 async function fixture() {
-  const kp = await crypto.subtle.generateKey({name:"Ed25519"}, true, ["sign", "verify"]);
+  const kp = await crypto.subtle.generateKey({name:"Ed25519"}, true, ["sign", "verify"]) as CryptoKeyPair;
   const pub = await crypto.subtle.exportKey("raw", kp.publicKey);
   const keyHash = hex(await crypto.subtle.digest("SHA-256",pub));
   const body = {
