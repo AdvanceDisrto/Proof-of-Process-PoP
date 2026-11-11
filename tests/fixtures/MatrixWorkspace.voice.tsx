@@ -66,6 +66,7 @@ export default function MatrixWorkspace() {
     try { return window.localStorage.getItem("i-buddy-spoken-replies") !== "off"; }
     catch { return true; }
   });
+  const spokenRepliesRef = useRef(spokenReplies);
   const recognitionRef = useRef<any>(null);
   const [utcClock, setUtcClock] = useState(() => now());
   const [headlines, setHeadlines] = useState<NewsItem[]>([]);
@@ -164,7 +165,7 @@ export default function MatrixWorkspace() {
   }, []);
 
   function speak(text: string) {
-    if (!spokenReplies || !("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") return;
+    if (!spokenRepliesRef.current || !("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") return;
     try {
       window.speechSynthesis.cancel();
       const speech = new SpeechSynthesisUtterance(text.slice(0, 900));
@@ -301,6 +302,7 @@ export default function MatrixWorkspace() {
       return;
     }
     const next = !spokenReplies;
+    spokenRepliesRef.current = next;
     setSpokenReplies(next);
     try { window.localStorage.setItem("i-buddy-spoken-replies", next ? "on" : "off"); } catch { /* optional */ }
     if (!next) {
