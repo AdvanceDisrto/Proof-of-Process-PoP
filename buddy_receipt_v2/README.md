@@ -77,3 +77,32 @@ For camera testing, open `scanner.html` in a browser with a supported native QR 
 The `v2` signer uses a new **ephemeral test key**. It is NOT wired to the production CIH Ed25519 private key, `.krdid` enrolment, Supabase service credentials, real sensors, cloud Worker, or patient data. No deployment or merge is required for this demo. Do not make protected repositories public or merge changes without owner approval.
 
 **Accurate claim:** “The offline verifier confirms the hash and Ed25519 signature against a separately installed demo public key, displays policy gate checks and receipt age, and makes the limits of signer identity and full chain verification explicit.”
+
+## Three-receipt INTERNAL signed chain — corrected filenames
+
+Earlier suggested paths `receipt-1.json`, `receipt-2.json`, `receipt-3.json` do NOT exist. The actual files are:
+
+- `receipt-1-Calculator.json`
+- `receipt-2-OracleHumanReview.json`
+- `receipt-3-Claude.json`
+
+All three already occur in `signed-receipt-chain-v2.json`. The viewer now accepts a single signed receipt or a complete three-receipt envelope/array. It verifies each SHA-256 and Ed25519 signature against the separately pinned DEMO key, then verifies genesis and both signed parent links.
+
+On Windows, in the extracted demo folder:
+
+```powershell
+$folder = Join-Path $env:USERPROFILE 'Downloads\Buddy_Signed_Receipt_v2'
+Set-Location -LiteralPath $folder
+node .\verify_signed_chain.cjs
+$raw = Get-Content -LiteralPath (Join-Path $folder 'signed-receipt-chain-v2.json') -Raw -Encoding UTF8
+$bundle = $raw | ConvertFrom-Json
+if ($bundle.receipts.Count -ne 3) { throw 'EXPECTED_THREE_SIGNED_RECEIPTS' }
+Set-Clipboard -Value $raw
+Write-Host 'THREE_RECEIPT_JSON_COPIED_NOT_VERIFIED_BY_CLIPBOARD'
+```
+
+Reload `http://127.0.0.1:8768/verifier.html` while the existing Python server runs, click the JSON textarea, paste (Ctrl+A then Ctrl+V), and choose VERIFY SIGNED JSON. It should display INTERNAL CHAIN VERIFIED, explicitly NOT EXTERNALLY ANCHORED. The old viewer accepts just one receipt; install the updated viewer with its matching already-pinned demo trust key.
+
+Never regenerate only one of the QR, pinned key, signed chain, or viewer: build_demo.py creates a fresh ephemeral key each time. The updated prebuilt upgrade ZIP preserves the original demo key, receipt hashes, and QR. Reordering the chain, dropping a member, or altering a middle receipt must be rejected.
+
+The phone QR still contains ONE receipt, not the complete chain. An optical phone scan requires a trusted HTTPS scanner, camera permission and native BarcodeDetector support. One QR cannot establish independent external ledger anchoring or the full three-receipt continuity.
