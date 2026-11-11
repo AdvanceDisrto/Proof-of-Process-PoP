@@ -32,8 +32,11 @@ def replica_config() -> tuple[str, str] | None:
     key = os.getenv("SUPABASE_SECRET_KEY", "") or os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
     if not url or not key:
         return None
-    parsed = urlparse(url)
-    if parsed.scheme != "https" or parsed.hostname != PROJECT_HOST or parsed.port is not None or parsed.path or parsed.query or parsed.fragment or parsed.username:
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme != "https" or parsed.hostname != PROJECT_HOST or parsed.port is not None or parsed.path or parsed.query or parsed.fragment or parsed.username:
+            return None
+    except ValueError:
         return None
     if key.startswith("sb_secret_") and len(key) > 20:
         return url, key
