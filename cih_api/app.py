@@ -14,22 +14,20 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-import jwt
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
-from fastapi import Depends, FastAPI, HTTPException, Security
+from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field, field_validator
+from cih_api.krdid import authenticate, commit_receipt, readiness, consume_nonce
 
-app = FastAPI(title="iNNOVULIS CIH ΔiΔ", version="0.1.0",
+app = FastAPI(title="iNNOVULIS CIH ΔiΔ", version="0.2.0",
               description="Evidence-integrity operations; no automatic truth or hardware certification.")
 allowed_origins = [x.strip() for x in os.getenv("CIH_ALLOWED_ORIGINS", "").split(",") if x.strip()]
 if allowed_origins:
     app.add_middleware(CORSMiddleware, allow_origins=allowed_origins,
-                       allow_methods=["GET", "POST"], allow_headers=["authorization", "content-type"])
-bearer = HTTPBearer(auto_error=False)
+                       allow_methods=["GET", "POST"], allow_headers=["content-type", "x-krdid", "x-krdid-signature", "x-krdid-timestamp", "x-krdid-nonce"])
 HASH = re.compile(r"^[a-f0-9]{64}$")
 DOES_NOT_PROVE = (
     "the source data are truthful or independently authenticated",
@@ -79,26 +77,6 @@ def public_key_id(key: Ed25519PublicKey) -> str:
     raw = key.public_bytes(encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw)
     return "ed25519-sha256:" + sha256(raw)[:24]
 
-
-def require_auth(credentials: HTTPAuthorizationCredentials | None = Security(bearer)) -> str:
-    issuer = os.getenv("AUTH0_ISSUER", "").rstrip("/") + "/"
-    audience = os.getenv("AUTH0_AUDIENCE", "")
-    if issuer == "/" or not audience:
-        raise HTTPException(status_code=503, detail="AUTH_PROVIDER_UNCONFIGURED")
-    if credentials is None:
-        raise HTTPException(status_code=401, detail="BEARER_TOKEN_REQUIRED",
-                            headers={"WWW-Authenticate": "Bearer"})
-    if not issuer.startswith("https://"):
-        raise HTTPException(status_code=503, detail="AUTH_ISSUER_INVALID")
-    try:
-        jwks = jwt.PyJWKClient(issuer + ".well-known/jwks.json")
-        selected = jwks.get_signing_key_from_jwt(credentials.credentials)
-        claims = jwt.decode(credentials.credentials, selected.key,
-                            algorithms=["RS256"], audience=audience, issuer=issuer,
-                            options={"require": ["exp", "iss", "sub", "aud"]})
-        return str(claims["sub"])
-    except (jwt.PyJWTError, ValueError) as exc:
-        raise HTTPException(status_code=401, detail="INVALID_BEARER_TOKEN") from exc
 
 
 class ReceiptRequest(BaseModel):
@@ -150,42 +128,21 @@ def check_signed_receipt(receipt: SignedReceipt) -> bool:
         return False
 
 
-def append_to_supabase(receipt: SignedReceipt, subject: str) -> str:
-    # Optional: never imply durable persistence if the database is not configured.
-    api = os.getenv("SUPABASE_URL", "").rstrip("/")
-    secret = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-    if not api or not secret:
-        return "NOT_CONFIGURED"
-    import urllib.error
-    import urllib.request
-    data = canonical({
-        "receipt_hash": receipt.body_sha256,
-        "auth0_subject": subject,
-        "receipt_body": receipt.body,
-        "signature_b64": receipt.signature_b64,
-        "key_id": receipt.key_id
-    })
-    request = urllib.request.Request(
-        api + "/rest/v1/cih_receipts", data=data, method="POST",
-        headers={"apikey": secret, "Authorization": "Bearer " + secret,
-                 "Content-Type": "application/json", "Prefer": "return=minimal"})
-    try:
-        with urllib.request.urlopen(request, timeout=8) as response:
-            if response.status not in (200, 201, 204):
-                raise OSError("Unexpected Supabase status")
-    except (urllib.error.URLError, OSError) as exc:
-        raise HTTPException(status_code=503, detail="PERSISTENCE_FAILED") from exc
-    return "DATABASE_ACKNOWLEDGED"
-
 
 @app.get("/api/v1/health")
 def health() -> dict[str, Any]:
+    state = readiness()
     return {
-        "service": "cih-evidence-api", "version": "0.1.0", "status": "RUNNING",
-        "auth_configured": bool(os.getenv("AUTH0_ISSUER") and os.getenv("AUTH0_AUDIENCE")),
+        "service": "cih-evidence-api", "version": "0.2.0", "status": "RUNNING",
+        "auth_provider": "LOCAL_KRDID_ED25519",
+        "auth_configured": state["enrolled"] > 0,
+        "krdid_enrolled_count": state["enrolled"],
+        "krdid_registry_ready": state["ready"],
         "signer_configured": bool(os.getenv("CIH_ED25519_PRIVATE_KEY_B64")),
         "trusted_key_configured": bool(os.getenv("CIH_ED25519_PUBLIC_KEY_B64")),
-        "storage_configured": bool(os.getenv("SUPABASE_URL") and os.getenv("SUPABASE_SERVICE_ROLE_KEY")),
+        "storage_configured": state["ready"],
+        "storage_provider": "LOCAL_SQLITE",
+        "hardware_backed_identity": "NOT_ATTESTED",
         "independent_truth_engine": "NOT_CONNECTED",
         "hardware_attestation": "NOT_CONNECTED"
     }
@@ -203,7 +160,15 @@ def architecture() -> dict[str, Any]:
 
 
 @app.post("/api/v1/receipts", response_model=SignedReceipt)
-def issue_receipt(data: ReceiptRequest, subject: str = Depends(require_auth)) -> SignedReceipt:
+def issue_receipt(
+    data: ReceiptRequest,
+    x_krdid: str | None = Header(default=None),
+    x_krdid_signature: str | None = Header(default=None),
+    x_krdid_timestamp: str | None = Header(default=None),
+    x_krdid_nonce: str | None = Header(default=None),
+) -> SignedReceipt:
+    auth = authenticate(x_krdid, x_krdid_signature, x_krdid_timestamp,
+                        x_krdid_nonce, data.model_dump(mode="json"), "/api/v1/receipts")
     try:
         actual_hash = sha256(canonical(data.evidence))
     except (TypeError, ValueError) as exc:
@@ -218,18 +183,28 @@ def issue_receipt(data: ReceiptRequest, subject: str = Depends(require_auth)) ->
         "operation": "evidence_digest_validation",
         "claim": data.claim,
         "source_id": data.source_id,
-        "requester_subject": subject,
+        "requester_subject": auth["krdid"],
+        "request_identity": {
+            "method": "LOCAL_ENROLLED_KRDID_ED25519",
+            "krdid": auth["krdid"],
+            "request_sha256": auth["request_sha256"],
+            "public_key_sha256": auth["public_key_sha256"],
+            "request_timestamp": auth["timestamp"],
+            "nonce": auth["nonce"],
+        },
         "evidence_sha256": actual_hash,
         "parent_receipt_hashes": data.parent_receipt_hashes,
         "assessment": "INPUT_DIGEST_MATCHED",
-        "warrant": "SELF_DECLARED_SOURCE; SIGNED_BY_CIH",
+        "warrant": "SELF_DECLARED_SOURCE; KRDID_SIGNATURE_VERIFIED; SIGNED_BY_CIH",
         "does_not_prove": list(DOES_NOT_PROVE),
     }
     serialized = canonical(body)
     receipt = SignedReceipt(body=body, body_sha256=sha256(serialized),
                             signature_b64=base64.b64encode(key.sign(serialized)).decode("ascii"),
                             key_id=public_key_id(key.public_key()))
-    receipt.storage_status = append_to_supabase(receipt, subject)
+    record = receipt.model_dump(mode="json")
+    record["storage_status"] = "LOCAL_SQLITE_COMMITTED"
+    receipt.storage_status = commit_receipt(auth, record)
     return receipt
 
 
@@ -241,8 +216,16 @@ def verify_receipt(receipt: SignedReceipt) -> dict[str, Any]:
 
 
 @app.post("/api/v1/reconcile")
-def reconcile_fragment(data: ReconciliationRequest, subject: str = Depends(require_auth)) -> dict[str, Any]:
+def reconcile_fragment(
+    data: ReconciliationRequest,
+    x_krdid: str | None = Header(default=None),
+    x_krdid_signature: str | None = Header(default=None),
+    x_krdid_timestamp: str | None = Header(default=None),
+    x_krdid_nonce: str | None = Header(default=None),
+) -> dict[str, Any]:
     """Verify signatures plus local parent links; NOT a deployed mesh protocol."""
+    auth = authenticate(x_krdid, x_krdid_signature, x_krdid_timestamp,
+                        x_krdid_nonce, data.model_dump(mode="json"), "/api/v1/reconcile")
     observed: set[str] = set()
     for index, receipt in enumerate(data.receipts):
         if not check_signed_receipt(receipt):
@@ -253,6 +236,7 @@ def reconcile_fragment(data: ReconciliationRequest, subject: str = Depends(requi
         if receipt.body_sha256 in observed:
             raise HTTPException(status_code=409, detail={"status": "REJECTED_DUPLICATE", "index": index})
         observed.add(receipt.body_sha256)
+    consume_nonce(auth, "reconcile:" + sha256(canonical(data.model_dump(mode="json"))))
     return {"status": "FRAGMENT_INTEGRITY_ACCEPTED", "receipts_checked": len(observed),
             "does_not_prove": ["that a physical mesh synchronized",
                                "that every claimed computation occurred",
