@@ -74,11 +74,11 @@ button:hover{background:#145e60}textarea{min-height:130px;width:100%;padding:12p
 <p>SHA-256 and Ed25519 verified locally against a separate <b>demo-only</b> public key embedded in this viewer. No server call, no code from QR executed, no physical truth determined.</p>
 <div class="controls">'''+camera_button+'''<button id="verifyBtn" type="button">VERIFY SIGNED JSON</button><button id="clearBtn" type="button">CLEAR</button></div>
 '''+camera_markup+'''
-<label for="payload">Paste one complete v2 receipt JSON (or scan)</label>
+<label for="payload">Paste one signed v2 receipt OR the full signed-receipt-chain-v2.json file (or scan)</label>
 <textarea id="payload" spellcheck="false" maxlength="65000" placeholder='{"schema":"bitwitness/brain/receipt/v2", ...}'></textarea>
 <div id="status" role="status" aria-live="polite">READY · PASTE A RECEIPT TO VERIFY</div>
 <div id="result" role="log" aria-live="polite">No receipt has been checked.</div>
-<div class="notice"><b>Boundaries:</b> Signatures prove key possession, not the legal owner's identity or whether a claim is true. The displayed prior hash is signed, but full chain linkage cannot be established from one QR. Old signatures may remain valid; age is shown. Local clock may be inaccurate. QR data is not executable.</div>
+<div class="notice"><b>Boundaries:</b> Signatures prove key possession, not legal identity or factual truth. A single QR does NOT verify a chain. A full three-receipt JSON file can verify INTERNAL SIGNED LINKAGE only, not an externally anchored genesis or ledger. Camera needs HTTPS and native BarcodeDetector. Age is informational; local clock may be wrong. QR data is not executable.</div>
 </main><script>
 '''+core+'''
 const DEMO_PINNED_PUBLIC_KEY_B64='''+json.dumps(anchor)+''';
@@ -95,6 +95,39 @@ async function check(raw){
   try{
     if(typeof raw!=='string'||raw.length>65000)throw Error('RECEIPT_TOO_LARGE');
     obj=JSON.parse(raw);
+    const array=Array.isArray(obj)?obj:obj&&typeof obj==='object'&&Array.isArray(obj.receipts)?obj.receipts:null;
+    if(array) {
+      const chain=await V.verifyChain(array,DEMO_PINNED_PUBLIC_KEY_B64,3);
+      if(!chain.valid)throw Error(chain.error);
+      // Key continuity only after all signatures and links pass independently.
+      for(const rec of array) {
+        const continuity=V.keyContinuity(window.localStorage,rec.brain,rec.signer_pubkey);
+        if(continuity.status==='KEY_CHANGED_BLOCK')throw Error('PINNED_SIGNER_CONTINUITY_CHANGED');
+      }
+      lines.push('THREE-RECEIPT ED25519 CHAIN · INTERNAL LINKAGE VERIFIED');
+      lines.push('Signatures: ALL THREE VALID against preinstalled DEMO key');
+      lines.push('Genesis: SELF-DECLARED / NOT EXTERNALLY ANCHORED');
+      lines.push('Signed chain links: 1 → 2 → 3 VERIFIED');
+      lines.push('Full external ledger provenance: NOT VERIFIED');
+      lines.push('Count: '+chain.count);
+      for(const rec of chain.signed_receipts) {
+        lines.push('');
+        lines.push('RECEIPT '+rec.index+': '+rec.brain+' / '+rec.gate_verdict);
+        lines.push('  Issued UTC: '+rec.ts+' ('+V.formatAge(rec.age_seconds)+')');
+        if(rec.age_seconds>3600)lines.push('  WARNING: receipt older than 1 hour');
+        lines.push('  Gate checks: '+rec.gate_checks.join(' | '));
+        lines.push('  Claims (declared): '+rec.claims.join(' | '));
+        lines.push('  Refusals: '+rec.refusals.join(' | '));
+        lines.push('  Signed parent: '+rec.prev_hash);
+        lines.push('  Signed root: '+rec.receipt_hash);
+      }
+      lines.push('');
+      lines.push('Signed final tip: '+chain.tip);
+      lines.push('DOES NOT PROVE: external genesis, signer legal identity, factual truth or hardware.');
+      render(lines,'pass');
+      setStatus('THREE SIGNED RECEIPTS · INTERNAL CHAIN VERIFIED · DEMO KEY','pass');
+      return true;
+    }
     const verdict=await V.verifyReceipt(obj,DEMO_PINNED_PUBLIC_KEY_B64);
     if(!verdict.valid)throw Error(verdict.error);
     // TOFU continuity happens only AFTER matching a separately installed trusted anchor.
