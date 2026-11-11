@@ -3,7 +3,8 @@
 ## What exists in this branch
 - Identity authentication: **real Ed25519 request signatures** verified against a locally maintained, operator-enrolled `.krdid` public-key registry.
 - Receipt signing: existing CIH node Ed25519 private key, stored locally in owner-restricted file; public key trust anchor remains pinned.
-- Storage: **local SQLite**, with the signed receipt and the consumed nonce recorded in one transaction. No Auth0, JWT issuer lookup, Supabase service-role key, or internet access is required for the local issuance path.
+- Primary storage: **local SQLite**, with the signed receipt, consumed nonce, and optional remote-replication queue entry recorded in one transaction. No Auth0, JWT issuer lookup, Supabase API key, or internet access is required for LOCAL issuance.
+- Optional backup: Supabase PostgreSQL as a **secondary replica**, with a backend-only secret key, never as identity provider. Remote failure leaves the locally signed receipt intact with remote_replication_status=PENDING_RETRY. A confirmed remote insert returns REPLICA_ACKNOWLEDGED; no server credential returns NOT_CONFIGURED. Neither database is hardware-immutable.
 - Freshness: timestamp within ±300 seconds of the node clock and a 128-bit random nonce; duplicate `krdid+nonce` is rejected (including after restart).
 - Signature binds the `domain`, HTTP method, exact endpoint path, .krdid, timestamp, nonce and whole receipt request. A caller-provided public key is **never** accepted to establish identity. Keys must be enrolled by the trusted local operator.
 - `GET /api/v1/health` reports `auth_provider: LOCAL_KRDID_ED25519`, local registry status, node signer, and SQLite status.
@@ -55,11 +56,44 @@ Expect:
 }
 ```
 
+## Optional Supabase replica: BUDDY project
+
+Project: tkrxmdonmxpeockpbazl. No new public.receipts table is required. The existing protected public.cih_receipts table now uses requester_subject rather than the retired auth0_subject field. Applied SQL is preserved in docs/sql/cih-krdid-supabase-mirror.sql.
+
+Row Level Security is enabled. anon and authenticated have no table privileges; service_role has SELECT and INSERT only. Supabase database administrators still have elevated access, so it is not a cryptographically immutable chain.
+
+The supplied sb_publishable_ key is public and cannot write into the protected receipt table. Use a distinct backend-only sb_secret_ key from Supabase → Settings → API Keys; never put it in browser variables, GitHub, or chat. Supabase Auth remains disconnected.
+
+From Windows on the existing feature branch:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup-cih-sovereign-windows.ps1 -ConfigureReplica
+```
+
+The script asks for the server credential using a masked prompt. Press Enter to skip and continue local-only. It creates a real local signed receipt, verifies the CIH signature, and retries queued copies if remote access is configured.
+
+Check the local replica queue:
+
+```powershell
+.\.venv\Scripts\python.exe -m cih_api.replica status
+```
+
+Retry manually after supplying an authorized server-only secret to the CLI process:
+
+```powershell
+.\.venv\Scripts\python.exe -m cih_api.replica sync --limit 100
+```
+
+Every CIH issuance returns storage_status=LOCAL_SQLITE_COMMITTED only after a SQLite transaction. remote_replication_status is separate: REPLICA_ACKNOWLEDGED, NOT_CONFIGURED, CONFIGURATION_INVALID, or PENDING_RETRY. Network errors cannot relabel unreplicated receipts as recorded.
+
+New sb_secret_ credentials are sent exclusively on the apikey header (they are not JWTs). Legacy service_role JWT keys are supported only for migration; Supabase is deprecating legacy keys at the end of 2026.
+
+The remote replica is optional, not a request signer, trust authority, active-active cluster, recovery quorum, or proof of physical truth. A single CIH host and its root key can still be single points of failure. The remote table currently has zero receipts until an authorized write occurs.
 ## Browser and hosted node boundary
 
 On `artifactgptm.com`, the new UI generates a non-extractable **browser software** Ed25519 CryptoKey (stored in IndexedDB) and shows a command to enroll its public key on the trusted backend host. Enrollment is a separate out-of-band operator action; browser-generated private keys are not hardware attested. No public endpoint accepts arbitrary keys for automatic onboarding.
 
-The existing public Worker gateway can forward the four explicit `X-Krdid*` headers, but **only the CIH backend checks the registry**. A hosted node needs a stable local disk or a replicated trust store, the CIH signing key pair, explicit operator enrollments, and a deployment review before issuing receipts. Render's default ephemeral filesystem is not sufficient for durable post-redeploy evidence. The local Windows machine and hosted node do not share trusted identities or receipt storage automatically.
+The feature-branch Worker gateway can forward the four explicit `X-Krdid*` headers, but **only the CIH backend checks the registry**. A hosted node needs a stable local disk or a replicated trust store, the CIH signing key pair, explicit operator enrollments, and a deployment review before issuing receipts. Render's default ephemeral filesystem is not sufficient for durable post-redeploy evidence. The local Windows machine and hosted node do not share trusted identities or receipt storage automatically.
 
 ## Untrusted or absent capabilities
 
@@ -68,6 +102,6 @@ The existing public Worker gateway can forward the four explicit `X-Krdid*` head
 - NO simulated server signatures.
 - NO automatic hardware proof from browser WebCrypto.
 - NO independent Z3 truth adjudication.
-- NO cross-node mesh agreement, recovery, replicated ledger, or single-point-of-failure elimination.
+- NO cross-node mesh agreement, quorum, automated failover, or single-point-of-failure elimination. One-way Supabase replication is optional and requires a server-only credential.
 - NO automatic certification of scientific or legal conclusions.
 - NO PR merge without user approval.
