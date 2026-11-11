@@ -11,6 +11,16 @@ async function ask(message) {
   return {status:result.status,...data};
 }
 
+const previewPage=await fetch(endpoint.replace("/api/buddy","/voice-test"),{
+  method:"GET",signal:AbortSignal.timeout(10000)
+});
+assert.equal(previewPage.status,200);
+const html=await previewPage.text();
+assert.match(html,/Buddy™/);
+assert.match(html,/START MICROPHONE/);
+assert.match(html,/SPOKEN REPLIES ON/);
+console.log("LIVE_BUDDY_VOICE_DIAGNOSTIC_PAGE_PASS");
+
 const identity=await ask("Who are you?");
 assert.equal(identity.status,200,JSON.stringify(identity));
 assert.equal(identity.source,"DETERMINISTIC_BUDDY_IDENTITY");
