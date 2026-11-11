@@ -24,6 +24,19 @@ function pass(name){count++;console.log('PASS',name);}
  assert.equal(fixtures.receipts[1].prev_hash,fixtures.receipts[0].receipt_hash);
  assert.equal(fixtures.receipts[2].prev_hash,fixtures.receipts[1].receipt_hash);
  pass('three receipts chain by signed parent references');
+ const verifiedChain=await V.verifyChain(fixtures.receipts,pub,3);
+ assert.equal(verifiedChain.valid,true,JSON.stringify(verifiedChain));
+ assert.equal(verifiedChain.external_genesis_pinned,false);
+ assert.equal(verifiedChain.tip,fixtures.receipts[2].receipt_hash);
+ pass('three signatures verified with bounded internal signed chain, no external root');
+ const reversed=await V.verifyChain([...fixtures.receipts].reverse(),pub,3);
+ assert.equal(reversed.valid,false);
+ assert.equal((await V.verifyChain(fixtures.receipts.slice(0,2),pub,3)).valid,false);
+ const modifiedChain=JSON.parse(JSON.stringify(fixtures.receipts));
+ modifiedChain[1].gate_verdict='ACCEPT';
+ assert.equal((await V.verifyChain(modifiedChain,pub,3)).valid,false);
+ pass('reorder, missing third, tampered middle member all fail closed');
+
  const source=fixtures.receipts[0];
  const copy=()=>JSON.parse(JSON.stringify(source));
  let bad=copy();bad.claims=['the signer proved a patient was cured'];
