@@ -46,7 +46,7 @@ function base64Bytes(input: string, expectedLength: number): Uint8Array {
   return Uint8Array.from(decoded, c => c.charCodeAt(0));
 }
 async function sha(data: Uint8Array): Promise<string> {
-  return hex(await crypto.subtle.digest("SHA-256", data));
+  return hex(await crypto.subtle.digest("SHA-256", new Uint8Array(data).buffer));
 }
 async function boundedText(req: Request): Promise<string> {
   if (Number(req.headers.get("content-length") || "0") > MAX_BYTES) throw new Error("REQUEST_TOO_LARGE");
@@ -162,8 +162,8 @@ async function handle(req: Request): Promise<Response> {
     const signedBody = new TextEncoder().encode(canonical(input.body));
     if (await sha(signedBody) !== input.body_sha256) return json({ error: "RECEIPT_BODY_HASH_MISMATCH" }, 403);
     const sig = base64Bytes(input.signature_b64, 64);
-    const key = await crypto.subtle.importKey("raw", pub, { name: "Ed25519" }, false, ["verify"]);
-    if (!await crypto.subtle.verify("Ed25519", key, sig, signedBody)) {
+    const key = await crypto.subtle.importKey("raw", new Uint8Array(pub).buffer, { name: "Ed25519" }, false, ["verify"]);
+    if (!await crypto.subtle.verify("Ed25519", key, new Uint8Array(sig).buffer, new Uint8Array(signedBody).buffer)) {
       return json({ error: "REFUTED_SIGNATURE" }, 403);
     }
   } catch {
