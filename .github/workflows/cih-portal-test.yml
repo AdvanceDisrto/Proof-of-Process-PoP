@@ -49,7 +49,10 @@ jobs:
           assert '"fail" not in' not in code
           assert 'PROVEN_TRUE' not in code
           assert 'SIGNING_KEY_UNAVAILABLE' in code
-          assert 'AUTH_PROVIDER_UNCONFIGURED' in code
+          assert 'LOCAL_ENROLLED_KRDID_ED25519' in code
+          assert 'AUTH0_ISSUER' not in code
+          assert 'append_to_supabase' not in code
+          assert 'commit_receipt(auth, record)' in code
           print('No simulated truth/certification shortcut detected')
           PY
 
