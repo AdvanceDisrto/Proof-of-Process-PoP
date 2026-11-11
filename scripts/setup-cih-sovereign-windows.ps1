@@ -1,5 +1,6 @@
 # iNNOVULIS CIH sovereign software node: one-command Windows setup.
 # No Auth0, JWT, Supabase credential, mock signatures or self-enrollment via HTTP.
+param([switch]$ConfigureReplica)
 $ErrorActionPreference = "Stop"
 $repo = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $python = Join-Path $repo ".venv\Scripts\python.exe"
@@ -45,6 +46,30 @@ try {
     $env:CIH_ED25519_PUBLIC_KEY_B64 = $node.CIH_ED25519_PUBLIC_KEY_B64
     $env:CIH_ALLOWED_ORIGINS = "https://artifactgptm.com,https://www.artifactgptm.com,https://igptm-matrix-artifact-preview.onrender.com"
 
+    if ($ConfigureReplica) {
+        # Replica is optional: network/cloud errors MUST NEVER prevent local receipts.
+        $env:SUPABASE_URL = "https://tkrxmdonmxpeockpbazl.supabase.co"
+        if (!$env:SUPABASE_SECRET_KEY -and !$env:SUPABASE_SERVICE_ROLE_KEY) {
+            Write-Host "Optional Supabase replica: paste server-only sb_secret key, or Enter to skip." -ForegroundColor Cyan
+            $secureInput = Read-Host "Supabase SERVER secret (hidden)" -AsSecureString
+            $ptr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureInput)
+            try {
+                $plain = [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr)
+                if ($plain) {
+                    if (!$plain.StartsWith("sb_secret_")) {
+                        throw "Only Supabase server-only sb_secret_ key accepted. The sb_publishable_ key cannot write receipt records."
+                    }
+                    $env:SUPABASE_SECRET_KEY = $plain
+                }
+            }
+            finally {
+                [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr)
+                $plain = $null
+                $secureInput = $null
+            }
+        }
+    }
+
     $endpoint = "http://127.0.0.1:8000"
     $listener = Get-NetTCPConnection -LocalPort 8000 -State Listen -ErrorAction SilentlyContinue | Where-Object { $_.LocalAddress -eq "127.0.0.1" } | Select-Object -First 1
     if ($listener) {
@@ -88,6 +113,20 @@ try {
     Write-Host "[CIH] PERFORMING REAL SIGNED LOCAL HTTP RECEIPT" -ForegroundColor Cyan
     & $python -m cih_api.krdid smoke --url $endpoint
     if ($LASTEXITCODE -ne 0) { throw "Actual receipt issuance or verification failed." }
+    $remoteState = Invoke-RestMethod "$endpoint/api/v1/health" -TimeoutSec 4
+    if ($ConfigureReplica) {
+        Write-Host "[CIH] OPTIONAL REMOTE REPLICA" -ForegroundColor Cyan
+        & $python -m cih_api.replica status
+        if ($remoteState.remote_replica_configured) {
+            & $python -m cih_api.replica sync --limit 100
+            if ($LASTEXITCODE -ne 0) {
+                Write-Warning "Remote sync failed; local signed receipts remain valid and queued."
+            }
+        }
+        else {
+            Write-Warning "Remote replica unconfigured; all signed receipts remain local and queued."
+        }
+    }
 
     Write-Host "CIH SOVEREIGN SOFTWARE PROCESS VERIFIED" -ForegroundColor Green
     Write-Host "PID: $($server.Id)"
@@ -99,6 +138,11 @@ try {
 finally {
     foreach ($name in @("CIH_ED25519_PRIVATE_KEY_B64","CIH_ED25519_PUBLIC_KEY_B64","CIH_ALLOWED_ORIGINS")) {
         Remove-Item "Env:$name" -ErrorAction SilentlyContinue
+    }
+    if ($ConfigureReplica) {
+        Remove-Item Env:SUPABASE_SECRET_KEY -ErrorAction SilentlyContinue
+        Remove-Item Env:SUPABASE_SERVICE_ROLE_KEY -ErrorAction SilentlyContinue
+        Remove-Item Env:SUPABASE_URL -ErrorAction SilentlyContinue
     }
     $node = $null
     Pop-Location
