@@ -37,6 +37,7 @@ jobs:
         run: |
           node buddy_receipt_v2/test_v2_node.cjs
           node buddy_receipt_v2/test_verifier_ui.cjs
+          node buddy_receipt_v2/verify_signed_chain.cjs
       - name: Honest execution boundaries
         run: |
           echo "No production signing key, deployment, physical scanning or HTML capsule execution."
