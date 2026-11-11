@@ -55,7 +55,7 @@ export function deterministicBuddyResponse(message, history = []) {
     return evidenceReply(
       "I am Buddy™, the conversational interface for the i™ / iNNOVULIS™ CIH ΔiΔ project. " +
       "I can answer questions using the connected inference adapter when available, and report bounded runtime information. " +
-      "I do not claim to be Apple or to have independently executed proposed Z3, Twinions, hardware or certification workflows.",
+      "I do not claim to have independently executed proposed Z3, Twinions, hardware or certification workflows.",
       "DETERMINISTIC_BUDDY_IDENTITY"
     );
   }
