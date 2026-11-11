@@ -47,27 +47,12 @@ try {
     $env:CIH_ALLOWED_ORIGINS = "https://artifactgptm.com,https://www.artifactgptm.com,https://igptm-matrix-artifact-preview.onrender.com"
 
     if ($ConfigureReplica) {
-        # Replica is optional: network/cloud errors MUST NEVER prevent local receipts.
-        $env:SUPABASE_URL = "https://tkrxmdonmxpeockpbazl.supabase.co"
-        if (!$env:SUPABASE_SECRET_KEY -and !$env:SUPABASE_SERVICE_ROLE_KEY) {
-            Write-Host "Optional Supabase replica: paste server-only sb_secret key, or Enter to skip." -ForegroundColor Cyan
-            $secureInput = Read-Host "Supabase SERVER secret (hidden)" -AsSecureString
-            $ptr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureInput)
-            try {
-                $plain = [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr)
-                if ($plain) {
-                    if (!$plain.StartsWith("sb_secret_")) {
-                        throw "Only Supabase server-only sb_secret_ key accepted. The sb_publishable_ key cannot write receipt records."
-                    }
-                    $env:SUPABASE_SECRET_KEY = $plain
-                }
-            }
-            finally {
-                [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr)
-                $plain = $null
-                $secureInput = $null
-            }
-        }
+        # No Supabase secret on Windows. Edge verifies the CIH node signature against
+        # an operator-enrolled public key. Private DB credentials remain at Supabase.
+        $env:CIH_REPLICA_TRANSPORT = "edge"
+        Write-Host "Optional Supabase Edge mirror enabled; no cloud key required." -ForegroundColor Cyan
+        Write-Host "Operator enrollment of the CIH node PUBLIC key is still required."
+        Write-Host "If unenrolled or offline, local receipts remain valid and queued."
     }
 
     $endpoint = "http://127.0.0.1:8000"
@@ -140,9 +125,7 @@ finally {
         Remove-Item "Env:$name" -ErrorAction SilentlyContinue
     }
     if ($ConfigureReplica) {
-        Remove-Item Env:SUPABASE_SECRET_KEY -ErrorAction SilentlyContinue
-        Remove-Item Env:SUPABASE_SERVICE_ROLE_KEY -ErrorAction SilentlyContinue
-        Remove-Item Env:SUPABASE_URL -ErrorAction SilentlyContinue
+        Remove-Item Env:CIH_REPLICA_TRANSPORT -ErrorAction SilentlyContinue
     }
     $node = $null
     Pop-Location
