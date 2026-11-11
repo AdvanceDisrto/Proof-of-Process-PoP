@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://artifactgptm.com/schemas/buddy_receipt_v2.schema.json",
+  "title": "Buddy BrainGate Signed Epistemic Receipt v2",
+  "description": "Signed v2 schema; legacy unsigned bitwitness/brain/receipt/v1 remains unchanged. This receipt is a number-free RFC8785 I-JSON profile; its hash is not a proof of factual truth.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "brain", "kind", "role", "has_checkpoint", "connection_status", "external_provider",
+    "external_model_version", "request_hash", "output_hash", "claims", "refusals", "disclosure",
+    "gate_verdict", "gate_checks", "gate_reason", "prev_hash", "genesis", "ts", "legacy_receipt_hash",
+    "receipt_hash", "signer_pubkey", "signature"
+  ],
+  "$defs": {
+    "hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "arrayOfText": { "type": "array", "items": { "type": "string" } }
+  },
+  "properties": {
+    "schema": { "const": "bitwitness/brain/receipt/v2" },
+    "brain": { "type": "string", "minLength": 1 },
+    "kind": { "enum": ["deterministic", "head", "router", "oracle", "external_llm", "refusal"] },
+    "role": { "type": "string" },
+    "has_checkpoint": { "type": "boolean" },
+    "connection_status": { "enum": ["", "n/a", "ready", "not_connected", "unreachable"] },
+    "external_provider": { "type": "string" },
+    "external_model_version": { "type": "string" },
+    "request_hash": { "$ref": "#/$defs/hash" },
+    "output_hash": { "anyOf": [{"const":""}, {"$ref": "#/$defs/hash"}] },
+    "claims": { "$ref": "#/$defs/arrayOfText" },
+    "refusals": { "$ref": "#/$defs/arrayOfText" },
+    "disclosure": { "type": "string", "minLength": 1 },
+    "gate_verdict": { "enum": ["ACCEPT", "ACCEPT-REFUSAL", "REJECT"] },
+    "gate_checks": { "$ref": "#/$defs/arrayOfText" },
+    "gate_reason": { "type": "string" },
+    "prev_hash": { "$ref": "#/$defs/hash" },
+    "genesis": { "type": "boolean" },
+    "ts": { "type": "string", "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$" },
+    "legacy_receipt_hash": { "$ref": "#/$defs/hash" },
+    "receipt_hash": { "$ref": "#/$defs/hash" },
+    "signer_pubkey": { "type": "string", "pattern": "^[A-Za-z0-9+/]{43}=$" },
+    "signature": { "type": "string", "pattern": "^[A-Za-z0-9+/]{86}==$" }
+  }
+}
