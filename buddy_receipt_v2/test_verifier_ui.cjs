@@ -31,6 +31,17 @@ async function checkViewer(filename){
   assert.match(text,/Signer identity: NOT PROVEN/);
   assert.match(text,/Full chain continuity: NOT PROVEN/);
   assert.match(text,/SHA-256|Receipt hash:/);
+  const bundle=JSON.parse(fs.readFileSync(path.join(here,'signed-receipt-chain-v2.json'),'utf8'));
+  const acceptedChain=await vm.runInContext('check('+JSON.stringify(JSON.stringify(bundle))+')',ctx);
+  assert.equal(acceptedChain,true);
+  assert.match(elem('status').textContent,/INTERNAL CHAIN VERIFIED/);
+  assert.match(elem('result').textContent,/RECEIPT 3: Claude/);
+  assert.match(elem('result').textContent,/NOT EXTERNALLY ANCHORED/);
+  const changedBundle=JSON.parse(JSON.stringify(bundle));
+  changedBundle.receipts[1].claims=['FALSE CLAIM'];
+  const refusedChain=await vm.runInContext('check('+JSON.stringify(JSON.stringify(changedBundle))+')',ctx);
+  assert.equal(refusedChain,false);
+  assert.match(elem('result').textContent,/RECEIPT_2_RECEIPT_HASH_MISMATCH/);
   const rechecked=await vm.runInContext('check('+JSON.stringify(src)+')',ctx);
   assert.equal(rechecked,true);
   assert.match(elem('result').textContent,/Signer continuity: KEY_MATCH/);
