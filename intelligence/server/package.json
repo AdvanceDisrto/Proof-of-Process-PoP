@@ -1,1 +1,0 @@
-{"name":"tai-pop-engine","private":true,"version":"0.1.0","scripts":{"build":"tsc","test":"node --test dist/tests/*.test.js"},"devDependencies":{"@types/node":"^22.0.0","typescript":"^5.7.0"}}

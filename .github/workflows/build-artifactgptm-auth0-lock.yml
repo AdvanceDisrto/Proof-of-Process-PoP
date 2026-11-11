@@ -1,0 +1,37 @@
+name: Generate isolated ArtifactGPTm Auth0 lockfile
+on:
+  push:
+    branches: [feature/innovulis-cih-sovereign-portal-20261110]
+    paths:
+      - ".github/workflows/build-artifactgptm-auth0-lock.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  generate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Resolve the official Auth0 SDK with a reproducible lockfile
+        shell: bash
+        run: |
+          mkdir -p /tmp/cih-artifactgptm-auth
+          cp .github/fixtures/artifactgptm-auth0-lock-source.json /tmp/cih-artifactgptm-auth/package.json
+          cd /tmp/cih-artifactgptm-auth
+          npm install --global npm@11.6.0
+          npm install --package-lock-only --ignore-scripts --save-exact --legacy-peer-deps @auth0/auth0-react@2.30.0
+          npm ci --ignore-scripts --legacy-peer-deps
+          node - <<'JS'
+          const fs = require('fs');
+          for (const [name,path] of [['LOCK','package-lock.json'], ['PKG','package.json']]) {
+            const b64 = Buffer.from(fs.readFileSync(path)).toString('base64');
+            const chunks = b64.match(/.{1,900}/g) || [];
+            console.log(name + '_SIZE:' + b64.length);
+            chunks.forEach(chunk => console.log(name + '_B64:' + chunk));
+            console.log(name + '_END');
+          }
+          JS

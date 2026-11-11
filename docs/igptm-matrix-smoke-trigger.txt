@@ -1,0 +1,1 @@
+One-shot smoke, 2026-11-10. Validate STRMKRD/ArtifactGPTm Matrix preview, scoped Cloudflare real market and Buddy adapters, and fail-closed receipts. No production igptm.com cutover claimed while zone is pending.

@@ -1,0 +1,123 @@
+name: artifactgptm.com production host smoke
+on:
+  push:
+    branches: [feature/innovulis-cih-sovereign-portal-20261110]
+    paths:
+      - ".github/workflows/artifactgptm-production-host-smoke.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  public-host:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - name: Check authoritative public host, SSL, assets, API CORS and integrity
+        run: |
+          node --input-type=module <<'EOF'
+          import assert from "node:assert/strict";
+          const base = "https://artifactgptm.com";
+          const hosts = [base, "https://www.artifactgptm.com"];
+          async function check(url, init={}) {
+            let error;
+            for(let i=0;i<4;i++){
+              try {
+                const response = await fetch(url,{redirect:"manual",signal:AbortSignal.timeout(15000),...init});
+                return {status:response.status,headers:response.headers,text:await response.text()};
+              } catch(e) { error=e; await new Promise(r=>setTimeout(r,5000)); }
+            }
+            throw error;
+          }
+          for(const host of hosts) {
+            const r=await check(host+"/__artifactgptm_release_status");
+            assert.equal(r.status,200,host+" release status: "+r.status+" "+r.text.slice(0,160));
+            const state=JSON.parse(r.text);
+            assert.equal(state.release,"i-ARTIFACTGPTm-SOVEREIGN-MATRIX-20261110");
+            assert.equal(state.certified_live,false);
+            console.log("DOMAIN ROUTING PASS",host);
+            const home=await check(host+"/");
+            assert.equal(home.status,200,host+" HTML: "+home.status+" "+home.text.slice(0,160));
+            assert.match(home.text,/ARTIFACTGPTm/i);
+            console.log("DOMAIN HTML PASS",host);
+          }
+          for(const host of ["https://igptm-matrix-artifact-preview.onrender.com","https://artifactgptm.com"]){
+            const homepage=await check(host+"/?cih_status_probe=20261110");
+            const src=homepage.text.match(/src="([^"]+\.js)"/)?.[1];
+            console.log("CIH BUNDLE DIAGNOSTIC",host,"index JS:",src);
+            if(!src)continue;
+            const asset=await check(new URL(src,host).href);
+            console.log("CIH BUNDLE CONTENT",host,"authenticated-view:",asset.text.includes("Authenticated Evidence Index"),"auth-sdk:",asset.text.includes("AUTH0_NOT_CONFIGURED"));
+            const built=await check(host+"/assets/index-CilaPdjb.js",{headers:{"cache-control":"no-cache"}});
+            console.log("LATEST BUILD ASSET",host,"status:",built.status,"hasNewUI:",built.text.includes("Authenticated Evidence Index"),"cache:",built.headers.get("cf-cache-status")||built.headers.get("age")||"unknown");
+            console.log("INDEX HEADERS",host,"cache:",homepage.headers.get("cache-control"),"age:",homepage.headers.get("age"),"etag:",homepage.headers.get("etag"));
+
+          }
+          const api="https://igptm-matrix-api.innovulis-i-edge.workers.dev";
+          const cors=await check(api+"/api/status",{headers:{"origin":base}});
+          assert.equal(cors.status,200);
+          assert.equal(cors.headers.get("access-control-allow-origin"),base);
+          assert.equal(JSON.parse(cors.text).certified_live,false);
+          console.log("MAIN DOMAIN CORS PASS");
+          const invalid=await check(api+"/api/receipts/verify",{method:"POST",headers:{"origin":base,"content-type":"application/json"},body:"{}"});
+          assert.equal(invalid.status,422);
+          console.log("BAD SIGNED RECEIPT BLOCK PASS 422");
+          const preflight=await check(api+"/api/cih/receipts",{method:"OPTIONS",headers:{"origin":base,"access-control-request-method":"POST","access-control-request-headers":"content-type,authorization"}});
+          assert.equal(preflight.status,204,"CIH CORS preflight must pass");
+          assert.ok((preflight.headers.get("access-control-allow-headers")||"").includes("authorization"));
+          console.log("AUTH0 BEARER CORS PREFLIGHT PASS");
+          const unauthorized=await check(api+"/api/cih/receipts",{method:"POST",headers:{"origin":base,"content-type":"application/json"},body:"{}"});
+          assert.equal(unauthorized.status,401,"Unauthenticated CIH issuance must be blocked");
+          assert.equal(JSON.parse(unauthorized.text).error,"AUTH0_ACCESS_TOKEN_REQUIRED");
+          console.log("CIH SIGNED RECEIPT ISSUANCE FAILS CLOSED 401");
+          const cih=await check(api+"/api/cih/health",{headers:{"origin":base}});
+          assert.equal(cih.status,200,"Public CIH health adapter should reach configured upstream");
+          const state=JSON.parse(cih.text);assert.equal(state.service,"cih-evidence-api");
+          console.log("CIH BACKEND HEALTH BRIDGE PASS",state.status,"auth:",state.auth_configured,"signer:",state.signer_configured,"db:",state.storage_configured);
+          // Deterministic time must bypass model inference and never issue a receipt.
+          const dateRequest=await check(api+"/api/buddy/chat",{
+            method:"POST",headers:{"origin":base,"content-type":"application/json"},
+            body:JSON.stringify({message:"whats the date",history:[]})
+          });
+          assert.equal(dateRequest.status,200,"Date request must be answered from live runtime");
+          const dateAnswer=JSON.parse(dateRequest.text);
+          assert.equal(dateAnswer.source,"EDGE_SYSTEM_CLOCK");
+          assert.equal(dateAnswer.llm_called,false);
+          assert.equal(dateAnswer.receipt_issued,false);
+          assert.equal(dateAnswer.clock_synchronization_attested,false);
+          assert.match(dateAnswer.observed_at_utc,/^\d{4}-\d\d-\d\dT/);
+          assert.ok(dateAnswer.reply.includes("New York")&&dateAnswer.reply.includes("UTC"));
+          const nyFollowup=await check(api+"/api/buddy/chat",{
+            method:"POST",headers:{"origin":base,"content-type":"application/json"},
+            body:JSON.stringify({message:"in new york",history:[
+              {role:"user",content:"whats the date"},
+              {role:"assistant",content:dateAnswer.reply}
+            ]})
+          });
+          assert.equal(nyFollowup.status,200);
+          const ny=JSON.parse(nyFollowup.text);
+          assert.equal(ny.llm_called,false);
+          assert.ok(ny.reply.startsWith("In New York"));
+          console.log("BUDDY DETERMINISTIC UTC / NY CLOCK PASS; NO LLM OR RECEIPT");
+          const health=await check("https://innovulis-cih-evidence-preview.onrender.com/api/v1/health");
+          assert.equal(health.status,200);
+          const signals=JSON.parse(health.text);
+          assert.equal(signals.independent_truth_engine,"NOT_CONNECTED");
+          assert.equal(signals.hardware_attestation,"NOT_CONNECTED");
+          console.log("CIH HEALTH EVIDENCE BOUNDARY PASS; AUTH0:",signals.auth_configured,"SIGNER:",signals.signer_configured);
+          const blocked=await check("https://innovulis-cih-evidence-preview.onrender.com/api/v1/receipts",{
+            method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({
+              claim:"The bioreactor is operating within safe parameters.",
+              evidence:{temperature_celsius:36.5,sensor_id:"MCP9808-01"},
+              expected_evidence_sha256:"",source_id:"hospital-node-01",parent_receipt_hashes:[]
+            })
+          });
+          assert.equal(blocked.status,signals.auth_configured ? 401 : 503,"Without valid Auth0 token CIH must block receipt issuance before payload validation");
+          if(!signals.auth_configured)assert.equal(JSON.parse(blocked.text).detail,"AUTH_PROVIDER_UNCONFIGURED");
+          console.log("CIH UNAUTHENTICATED RECEIPT REQUEST FAILS CLOSED PASS",blocked.status);
+          // The isolated FastAPI unit tests with authenticated test fixture establish invalid digest -> 422.
+          const news=await check(api+"/api/news",{headers:{"origin":base}});
+          assert.equal(news.status,200,"News sources down (must show unavailable rather than fabricate): "+news.status+" "+news.text.slice(0,150));
+          const n=JSON.parse(news.text);assert.ok(n.live_source&&n.headlines.length>0);
+          assert.ok(n.headlines.every(x=>/^https:\/\//.test(x.url)&&x.title&&x.source));
+          console.log("REAL ATTRIBUTED NEWS PASS",n.source,n.headlines[0].title.slice(0,70));
+          EOF

@@ -158,5 +158,3 @@ if __name__ == "__main__":
     output = sys.argv[2] if len(sys.argv) > 2 else "evidence/mmr_5000.json"
     result = run_pipeline(count, output)
     print(f"[MMR] leaves={result['task_count']} peaks={len(result['mmr_peaks'])}")
-    print(f"[MMR] root={result['mmr_root']}")
-    print(f"[State] {result['state']} · physical_gate={result['physical_gate']}")

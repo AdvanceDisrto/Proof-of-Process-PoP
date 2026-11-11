@@ -1,0 +1,152 @@
+name: CIH portal / evidence API checks
+on:
+  push:
+    branches:
+      - feature/innovulis-cih-sovereign-portal-20261110
+  pull_request:
+    paths:
+      - 'site/**'
+      - 'cloudflare/**'
+      - 'scripts/setup-cih-*.sh'
+      - 'scripts/setup-cih-*.ps1'
+      - 'cih_api/**'
+      - '.github/workflows/cih-portal-test.yml'
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Deno compile and Edge Ed25519 mirror security tests
+        run: |
+          deno check supabase/functions/strmkrd-signing/index.ts tests/cih_edge_mirror_test.ts
+          deno test --allow-env tests/cih_edge_mirror_test.ts
+      - run: python -m pip install -r cih_api/requirements-dev.txt
+      - run: python -m pytest -q cih_api
+      - name: Live BUDDY Supabase signing route CIH mirror fail-closed smoke
+        run: |
+          python - <<'PY'
+          import json, urllib.request, urllib.error
+          origin = "https://tkrxmdonmxpeockpbazl.supabase.co/functions/v1/strmkrd-signing"
+          with urllib.request.urlopen(origin + "/cih-mirror", timeout=15) as resp:
+              assert resp.status == 200
+              status = json.load(resp)
+          assert status["service"] == "innovulis-cih-signed-receipt-mirror"
+          assert status["issues_receipts"] is False
+          req = urllib.request.Request(
+              origin + "/cih-mirror", data=b"{}",
+              method="POST", headers={"Content-Type":"application/json"})
+          try:
+              urllib.request.urlopen(req, timeout=15)
+              raise AssertionError("UNSIGNED_CIH_MIRROR_POST_WAS_NOT_REJECTED")
+          except urllib.error.HTTPError as error:
+              assert error.code == 401, error.code
+              reply = json.load(error)
+              assert reply["error"] == "SIGNED_RECEIPT_REQUIRED", reply
+          # Legacy route remains available and has not been replaced by the CIH mirror.
+          with urllib.request.urlopen(origin + "/status", timeout=15) as resp:
+              assert resp.status == 200
+              legacy = json.load(resp)
+          assert legacy.get("service") == "Master P Signing Authority"
+          print("LIVE_SUPABASE_EDGE_CIH_MIRROR_FAIL_CLOSED_PASS")
+          print("LEGACY_MASTERP_SIGNING_STATUS_PRESERVED_PASS")
+          PY
+      - name: Brain Registry 21 brain unit acceptance
+        run: |
+          python brain_registry.py --tests
+          python brain_registry.py --coverage
+      - name: Run 3 real BrainGate dispatches and inspect evidence chain
+        run: |
+          python test_brain_gate.py
+      - name: Real local .krdid signed HTTP issuance + verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          export XDG_DATA_HOME="$RUNNER_TEMP/krdid-software-proof"
+          export CIH_LOCAL_DB_PATH="$RUNNER_TEMP/krdid-software-proof/cih.sqlite3"
+          python -m cih_api.krdid init-local
+          python -m cih_api.provision_keys
+          export CIH_ED25519_PRIVATE_KEY_B64="$(python -c 'import json; from cih_api.provision_keys import default_destination; print(json.loads(default_destination().read_text())["CIH_ED25519_PRIVATE_KEY_B64"])')"
+          export CIH_ED25519_PUBLIC_KEY_B64="$(python -c 'import json; from cih_api.provision_keys import default_destination; print(json.loads(default_destination().read_text())["CIH_ED25519_PUBLIC_KEY_B64"])')"
+          python -m uvicorn cih_api.app:app --host 127.0.0.1 --port 18000 > "$RUNNER_TEMP/cih-http.log" 2>&1 &
+          cih_pid=$!
+          trap 'kill "$cih_pid" 2>/dev/null || true' EXIT
+          python - <<'PY'
+          import time, urllib.request
+          for retry in range(40):
+              try:
+                  with urllib.request.urlopen("http://127.0.0.1:18000/api/v1/health", timeout=1) as response:
+                      assert response.status == 200
+                  break
+              except Exception:
+                  time.sleep(0.2)
+          else:
+              raise SystemExit("CIH HTTP server never became healthy")
+          PY
+          python -m cih_api.krdid smoke --url http://127.0.0.1:18000
+      - name: Static website smoke and inline JS syntax
+        run: |
+          python - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          import re
+          html=Path('site/index.html').read_text()
+          assert 'CIH' in html and 'PATENT PENDING' in html
+          scripts=re.findall(r'<script[^>]*>(.*?)</script>',html,flags=re.S)
+          assert len(scripts)==1
+          Path('/tmp/innovulis-inline.js').write_text(scripts[0])
+          p=HTMLParser();p.feed(html)
+          print('HTML parsed; JS extracted')
+          PY
+          node --check /tmp/innovulis-inline.js
+          node --check cloudflare/innovulis-public-router-20261110.js
+          node --check cloudflare/innovulis-cih-api-gateway-20261110.js
+      - name: Fail if fake truth claims are introduced
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          code=Path('cih_api/app.py').read_text()
+          assert '"fail" not in' not in code
+          assert 'PROVEN_TRUE' not in code
+          assert 'SIGNING_KEY_UNAVAILABLE' in code
+          assert 'LOCAL_ENROLLED_KRDID_ED25519' in code
+          assert 'AUTH0_ISSUER' not in code
+          assert 'append_to_supabase' not in code
+          assert 'commit_receipt(auth, record)' in code
+          print('No simulated truth/certification shortcut detected')
+          PY
+
+  windows-setup:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run the actual Windows CIH setup with tests
+        shell: pwsh
+        run: .\scripts\setup-cih-windows.ps1 -TestOnly
+      - name: Parse sovereign Windows setup without executing host changes
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $parseErrors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path ".\scripts\setup-cih-sovereign-windows.ps1"),
+            [ref]$tokens, [ref]$parseErrors
+          ) | Out-Null
+          if ($parseErrors.Count -ne 0) {
+            $parseErrors | ForEach-Object { Write-Host $_ }
+            throw "SOVEREIGN_WINDOWS_SETUP_PARSE_FAILED"
+          }
+          Write-Host "SOVEREIGN_WINDOWS_SETUP_SYNTAX_PASS"
+
