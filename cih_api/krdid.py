@@ -176,6 +176,25 @@ def commit_receipt(authorization: dict, receipt: dict) -> str:
     return "LOCAL_SQLITE_COMMITTED"
 
 
+def consume_nonce(authorization: dict, operation_hash: str):
+    """Persist one-time authorization for non-issuing operations."""
+    try:
+        with database() as db:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute("SELECT disabled FROM identities WHERE krdid=?",
+                             (authorization["krdid"],)).fetchone()
+            if not row or row[0]:
+                raise HTTPException(status_code=403, detail="KRDID_NOT_ENROLLED")
+            db.execute("INSERT INTO nonces(krdid,nonce,receipt_sha256,used_at) VALUES(?,?,?,?)",
+                       (authorization["krdid"], authorization["nonce"],
+                        operation_hash, int(time.time())))
+            db.commit()
+    except sqlite3.IntegrityError as exc:
+        raise HTTPException(status_code=409, detail="KRDID_REPLAY_OR_DUPLICATE") from exc
+    except sqlite3.Error as exc:
+        raise HTTPException(status_code=503, detail="LOCAL_PERSISTENCE_FAILED") from exc
+
+
 def _protect_file(path: Path):
     if os.name == "nt":
         import subprocess
