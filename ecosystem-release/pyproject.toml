@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68","wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "innovulis-ecosystem-release"
+version = "1.1.0a0"
+description = "iNNOVULIS evidence-bound cross-component software release gates"
+requires-python = ">=3.11"
+license = {text = "Apache-2.0"}
+
+[project.optional-dependencies]
+test = ["pytest>=8,<10","jsonschema>=4.22,<5"]
+
+[project.scripts]
+innovulis-release = "ecosystem_release.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ecosystem_release*"]

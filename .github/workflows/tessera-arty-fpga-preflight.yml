@@ -1,0 +1,82 @@
+name: Tessera-G Arty A7-100T board prep (no physical claims)
+on:
+  pull_request:
+    paths:
+      - 'tessera-g/fpga/arty_a7_100t/**'
+      - 'tessera-g/rtl/tessera_g_dag_tile.sv'
+      - '.github/workflows/tessera-arty-fpga-preflight.yml'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'preflight (GitHub CPU simulation) or vivado (approved self-hosted toolchain)'
+        type: choice
+        options: [preflight, vivado]
+        default: preflight
+        required: true
+permissions:
+  contents: read
+jobs:
+  headless-board-preflight:
+    if: github.event_name == 'pull_request' || inputs.mode == 'preflight'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install open HDL tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y iverilog verilator yosys
+      - name: Run the physical-board *simulation* and generic synth
+        run: bash tessera-g/fpga/arty_a7_100t/ci/run_board_preflight.sh
+      - name: Upload FPGA-ready board source and operator runbook
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tessera-arty-a7-100t-vivado-source-unflashed
+          path: |
+            tessera-g/rtl/tessera_g_dag_tile.sv
+            tessera-g/fpga/arty_a7_100t/**/*.sv
+            tessera-g/fpga/arty_a7_100t/**/*.xdc
+            tessera-g/fpga/arty_a7_100t/*.tcl
+            tessera-g/fpga/arty_a7_100t/*.sh
+            tessera-g/fpga/arty_a7_100t/ci/*.py
+            tessera-g/fpga/arty_a7_100t/ci/*.sh
+            tessera-g/fpga/arty_a7_100t/README.md
+          if-no-files-found: error
+          retention-days: 14
+      - name: Publish headless simulator evidence only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tessera-arty-board-simulation-evidence
+          path: tessera-g/fpga/arty_a7_100t/evidence/
+          retention-days: 14
+          if-no-files-found: ignore
+  vivado-bitstream:
+    # Execute manually only from reviewed main, on an operator-controlled Vivado host.
+    # Does not flash, program EEPROM, use secrets, or claim real FPGA acceptance.
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'vivado' && github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, linux, vivado]
+    timeout-minutes: 90
+    environment: fpga-hardware
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Require real licensed Vivado
+        run: |
+          command -v vivado
+          vivado -version
+      - name: Generate and timing-check real Artix-7 bitstream
+        run: bash tessera-g/fpga/arty_a7_100t/build_on_vivado_host.sh
+      - name: Upload output bitstream, timing and DRC, explicitly NOT flashed
+        uses: actions/upload-artifact@v4
+        with:
+          name: tessera-arty-a7-100t-real-vivado-bitstream-unflashed
+          path: |
+            tessera-g/fpga/arty_a7_100t/output/*.bit
+            tessera-g/fpga/arty_a7_100t/output/*.dcp
+            tessera-g/fpga/arty_a7_100t/output/*.sha256
+            tessera-g/fpga/arty_a7_100t/output/*.rpt
+            tessera-g/fpga/arty_a7_100t/output/vivado_build.log
+          retention-days: 14

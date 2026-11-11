@@ -1,0 +1,55 @@
+name: iCore iISA v0.2 Systolic PE Simulation and Synthesis
+on:
+  push:
+    branches: [test/icore-systolic-coverage-v03-20261104]
+    paths: ['hardware/icore-systolic/**', '.github/workflows/icore-systolic.yml']
+  pull_request:
+    paths: ['hardware/icore-systolic/**', '.github/workflows/icore-systolic.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  systolic-sim-synth:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install RTL toolchain
+        run: sudo apt-get update -qq && sudo apt-get install -y iverilog yosys
+      - name: Simulate wavefront, reset, replay and random vectors
+        run: |
+          iverilog -g2012 -Wall -s tb_icore_systolic_2x2 -o /tmp/icore-systolic \
+            hardware/icore-systolic/rtl/icore_pe.sv \
+            hardware/icore-systolic/rtl/icore_systolic_2x2.sv \
+            hardware/icore-systolic/tb/tb_icore_systolic_2x2.sv
+          vvp /tmp/icore-systolic | tee systolic-simulation.log
+          grep -q 'ALL_SYSTOLIC_SIMULATION_TESTS_PASS' systolic-simulation.log
+          grep -q 'PASS corner_vectors=32' systolic-simulation.log
+          grep -q 'PASS skew_vectors=16' systolic-simulation.log
+          grep -q 'PASS back_to_back_vectors=4' systolic-simulation.log
+          grep -q 'PASS mid_pipeline_resets=4' systolic-simulation.log
+          grep -q 'PASS randomized_vectors=512 seed=0x00091911' systolic-simulation.log
+          grep -q 'PASS deterministic_replays=1000' systolic-simulation.log
+          grep -q 'ALL_SYSTOLIC_SIMULATION_TESTS_PASS total=1568 skew_scheme=output_stationary array=2x2 tiles_per_matmul=1' systolic-simulation.log
+      - name: Generic synthesis and structural checks
+        run: |
+          yosys -Q -T -l systolic-synthesis.log -p 'read_verilog -sv hardware/icore-systolic/rtl/icore_pe.sv hardware/icore-systolic/rtl/icore_systolic_2x2.sv; hierarchy -check -top icore_systolic_2x2; proc; opt; check -assert; synth -top icore_systolic_2x2; stat'
+          grep -q 'Found and reported 0 problems.' systolic-synthesis.log
+      - name: Map design into Gowin FPGA primitives (no placement/routing)
+        run: |
+          yosys -Q -T -l systolic-gowin-mapping.log -p 'read_verilog -sv hardware/icore-systolic/rtl/icore_pe.sv hardware/icore-systolic/rtl/icore_systolic_2x2.sv; hierarchy -check -top icore_systolic_2x2; synth_gowin -top icore_systolic_2x2 -json icore-gowin-netlist.json; check -assert; stat'
+          test -s icore-gowin-netlist.json
+          grep -q 'Found and reported 0 problems.' systolic-gowin-mapping.log
+      - name: Produce inspectable software evidence receipt
+        run: python hardware/icore-systolic/tools/make_ci_evidence.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: icore-systolic-simulation-synthesis
+          path: |
+            systolic-simulation.log
+            systolic-synthesis.log
+            icore-rtl-evidence.json
+            systolic-gowin-mapping.log
+            icore-gowin-netlist.json
+          if-no-files-found: warn

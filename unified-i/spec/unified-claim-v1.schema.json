@@ -1,0 +1,27 @@
+{
+ "$schema":"https://json-schema.org/draft/2020-12/schema",
+ "$id":"https://igptm.com/spec/i-unified-claim/v1",
+ "title":"i™ bounded software claim record v1",
+ "type":"object",
+ "additionalProperties":false,
+ "required":["event_id","subject","assertion_kind","verdict","source_tier","evidence_sha256","issuer_key_id","sequence","issued_at","expires_at","limitations","observed_micro_units","maximum_micro_units"],
+ "properties":{
+  "event_id":{"type":"string","pattern":"^[A-Za-z0-9_.:/-]{2,120}$"},
+  "subject":{"type":"string","minLength":1,"maxLength":200},
+  "assertion_kind":{"enum":["INTEGER_LTE","DECLARED_UNASSESSED"]},
+  "verdict":{"enum":["PASS_BOUNDED_CLAIM","REFUTED_BOUNDED_CLAIM","UNRESOLVED"]},
+  "source_tier":{"enum":["SYNTHETIC","SOFTWARE_OBSERVED","HARDWARE_UNATTESTED","HARDWARE_SIGNATURE_VERIFIED","EXTERNAL_WITNESS_REVIEWED"]},
+  "evidence_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+  "issuer_key_id":{"type":"string","pattern":"^[A-Za-z0-9_.:/-]{2,120}$"},
+  "sequence":{"type":"integer","minimum":1,"maximum":9223372036854775807},
+  "issued_at":{"type":"integer","minimum":0},
+  "expires_at":{"type":"integer","minimum":1},
+  "limitations":{"type":"array","minItems":1,"maxItems":12,"items":{"type":"string","minLength":1,"maxLength":256}},
+  "observed_micro_units":{"type":["integer","null"],"minimum":-1000000000000,"maximum":1000000000000},
+  "maximum_micro_units":{"type":["integer","null"],"minimum":-1000000000000,"maximum":1000000000000}
+ },
+ "oneOf":[
+  {"properties":{"assertion_kind":{"const":"DECLARED_UNASSESSED"},"verdict":{"const":"UNRESOLVED"},"observed_micro_units":{"type":"null"},"maximum_micro_units":{"type":"null"}}},
+  {"properties":{"assertion_kind":{"const":"INTEGER_LTE"},"observed_micro_units":{"type":"integer"},"maximum_micro_units":{"type":"integer"}}}
+ ]
+}

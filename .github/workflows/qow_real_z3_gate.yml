@@ -1,0 +1,38 @@
+name: QoW real cross-repository Z3 gate
+
+on:
+  push:
+    branches:
+      - feat/qow-real-z3-gate
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout PoP
+        uses: actions/checkout@v4
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Checkout pinned QoW source (must have repository read access)
+        uses: actions/checkout@v4
+        with:
+          repository: AdvanceDisrto/Quantum-of-Work-QoW
+          ref: 3ee40f7de19070017595d4ff580eb6b978b413c1
+          path: _qow_checkout
+          token: ${{ secrets.QOW_READ_TOKEN || github.token }}
+      - name: Install actual QoW and PoP dependencies
+        run: |
+          python -m pip install -r _qow_checkout/requirements.txt
+          python -m pip install -r requirements.txt
+      - name: Real independent Z3 recheck through PoP adapter
+        run: PYTHONPATH=.:_qow_checkout python tests/qow_real_z3_gate.py

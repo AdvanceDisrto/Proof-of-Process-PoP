@@ -1,0 +1,12 @@
+Reference,Component,Nominal specification,Status,Notes
+U1,MCU RP2040,USB2.0 device and I2C native controller,CANDIDATE,Requires reference schematic external QSPI flash crystal and verified boot design
+U2,Secure Element,ATECC608B-family ECDSA P-256,CANDIDATE,ATECC608A NRND; select exact security/provisioning variant
+U3,Temperature Sensor,MCP9808 I2C 3.3V,CANDIDATE,Read-only identity and temperature register
+U4,Regulator,3.3V from USB VBUS,CANDIDATE,Load thermal stability dropout and decoupling design pending
+J1,Connector,USB-C USB2.0 device,CANDIDATE,CC pull-downs ESD and VBUS protection required
+R1+R2,I2C pull-ups,3.3V SDA and SCL,CANDIDATE,Value from bus capacitance/driver limits
+C1..C4,Decoupling,>=100nF near each IC power pins,CANDIDATE,Physical placement not yet measured
+D1,USB ESD protector,device compatible low capacitance,CANDIDATE,Select part and route according to data sheet
+J2,Service pads,read-only test pads for UART/I2C and power,CANDIDATE,No unrestricted secure-element provisioning path
+PCB,4-layer FR4 concept,18x45x1.6 mm,CANDIDATE,Stackup and controlled impedance not calculated or routed
+CASE,Enclosure,OpenSCAD preliminary shell,CANDIDATE,Fit and material testing missing

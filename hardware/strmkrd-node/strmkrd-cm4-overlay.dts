@@ -1,0 +1,23 @@
+/* CM4/BCM2711 Raspberry Pi adapter ONLY. NOT a portable x86 overlay.
+ * No fake generic SPI E-Ink compatible; initialize that via vendor driver.
+ * On some kernels INA226 hwmon binding may claim the I2C addr; use a
+ * compatible driver OR userspace register access, not both concurrently.
+ */
+/dts-v1/;
+/plugin/;
+
+/ {
+    compatible = "brcm,bcm2711";
+
+    fragment@0 {
+        target = <&i2c1>;
+        __overlay__ {
+            status = "okay";
+            /* Addresses included for design review only; do not enable
+             * in the kernel if using userspace smbus2 simultaneously.
+             * Verify #address-cells, shunt-resistor units, compatible names
+             * and board address straps against installed Linux DT bindings.
+             */
+        };
+    };
+};

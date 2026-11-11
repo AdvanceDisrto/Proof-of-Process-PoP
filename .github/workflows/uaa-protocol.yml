@@ -1,0 +1,28 @@
+name: UAA-1.0 Protocol Integrity
+on:
+  pull_request:
+    paths:
+      - 'standards/UAA-1.0.md'
+      - 'tests/test_uaa_protocol.py'
+      - '.github/workflows/uaa-protocol.yml'
+  push:
+    paths:
+      - 'standards/UAA-1.0.md'
+      - 'tests/test_uaa_protocol.py'
+      - '.github/workflows/uaa-protocol.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate-protocol:
+    name: Validate UAA document structure
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate document (stdlib only)
+        run: python3 tests/test_uaa_protocol.py
+      - name: CI scope statement
+        run: |
+          echo 'PASS here means protocol structure was validated.'
+          echo 'It does NOT attest external model compliance or independent audit.'

@@ -1,0 +1,137 @@
+name: iNNOVULIS RunPod AMD DAGE GPU CI (manual activation)
+on:
+  pull_request:
+    paths:
+      - 'tools/runpod_gpu_probe/**'
+      - '.github/workflows/runpod-dage-gpu.yml'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'connect: authenticate existing RunPod pod; gpu: run actual AMD Vulkan+Z3 smoke over pinned SSH'
+        type: choice
+        options:
+          - connect
+          - gpu
+        required: true
+        default: connect
+permissions:
+  contents: read
+concurrency:
+  group: runpod-dage-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: false
+jobs:
+  safe-rust-check:
+    name: Rust compile and Z3 tests (GitHub CPU runner, not GPU evidence)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install native Z3 and compiler prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libz3-dev pkg-config libclang-dev clang libvulkan-dev
+      - name: Compile and run real Z3 unit tests
+        run: |
+          cargo test --manifest-path tools/runpod_gpu_probe/Cargo.toml
+          cargo build --manifest-path tools/runpod_gpu_probe/Cargo.toml
+
+  runpod-connection:
+    name: Authenticate RunPod CI key and verify existing pod (no allocation)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: runpod-gpu
+    env:
+      RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
+      RUNPOD_POD_ID: ${{ vars.RUNPOD_POD_ID }}
+    steps:
+      - name: Fail closed if GitHub secret or pod ID is missing
+        run: |
+          if [ -z "$RUNPOD_API_KEY" ]; then
+            echo "::error::Missing repository/environment secret RUNPOD_API_KEY"; exit 2
+          fi
+          if [ -z "$RUNPOD_POD_ID" ]; then
+            echo "::error::Missing repository/environment variable RUNPOD_POD_ID (must name an EXISTING pod)"; exit 2
+          fi
+          if ! [[ "$RUNPOD_POD_ID" =~ ^[A-Za-z0-9_-]{3,64}$ ]]; then
+            echo "::error::Invalid RunPod pod ID"; exit 2
+          fi
+      - name: Install official runpodctl into GitHub runner
+        run: |
+          curl -fsSL https://cli.runpod.net -o /tmp/runpodctl-installer.sh
+          bash /tmp/runpodctl-installer.sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Authenticate and retrieve existing pod state
+        env:
+          RUNPOD_NO_UPDATE_CHECK: '1'
+        run: |
+          set -euo pipefail
+          command -v runpodctl
+          runpodctl user >/dev/null
+          runpodctl pod get "$RUNPOD_POD_ID" >/dev/null
+          echo "RUNPOD_CI_CONNECTION=PASS (authenticated and pod exists; not GPU execution)"
+      - name: Declare the scope of evidence
+        run: |
+          echo 'RUNPOD_CI_CONNECTION=PASS' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Existing pod queried without allocating or changing billable resources.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Hardware execution and physics gates remain pending unless gpu mode completes.' >> "$GITHUB_STEP_SUMMARY"
+
+  runpod-gpu-smoke:
+    name: Existing RunPod pod - REAL AMD Vulkan GPU compute (manually selected)
+    needs: runpod-connection
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'gpu'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    environment: runpod-gpu
+    env:
+      RUNPOD_SSH_HOST: ${{ vars.RUNPOD_SSH_HOST }}
+      RUNPOD_SSH_PORT: ${{ vars.RUNPOD_SSH_PORT }}
+      RUNPOD_SSH_PRIVATE_KEY: ${{ secrets.RUNPOD_SSH_PRIVATE_KEY }}
+      RUNPOD_SSH_KNOWN_HOSTS: ${{ secrets.RUNPOD_SSH_KNOWN_HOSTS }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate SSH target and pinned known_hosts (do not trust arbitrary host keys)
+        run: |
+          set -euo pipefail
+          [[ "$RUNPOD_SSH_HOST" =~ ^[A-Za-z0-9.-]+$ ]] || { echo "::error::Set RUNPOD_SSH_HOST to existing pod TCP host"; exit 2; }
+          [[ "$RUNPOD_SSH_PORT" =~ ^[0-9]{1,5}$ ]] || { echo "::error::Set RUNPOD_SSH_PORT"; exit 2; }
+          (( RUNPOD_SSH_PORT >= 1 && RUNPOD_SSH_PORT <= 65535 )) || exit 2
+          [ -n "$RUNPOD_SSH_PRIVATE_KEY" ] || { echo "::error::Set RUNPOD_SSH_PRIVATE_KEY"; exit 2; }
+          [ -n "$RUNPOD_SSH_KNOWN_HOSTS" ] || { echo "::error::Set RUNPOD_SSH_KNOWN_HOSTS"; exit 2; }
+          mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
+          printf '%s\n' "$RUNPOD_SSH_PRIVATE_KEY" > "$HOME/.ssh/runpod_ci_key"
+          printf '%s\n' "$RUNPOD_SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/runpod_ci_key" "$HOME/.ssh/known_hosts"
+          ssh-keygen -y -f "$HOME/.ssh/runpod_ci_key" >/dev/null
+      - name: Upload exactly the reviewed AMD GPU smoke code and execute on RunPod
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/innovulis-gpu-probe.tgz"
+          tar -czf "$archive" tools/runpod_gpu_probe
+          remote_dir="/tmp/innovulis-ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          target="root@$RUNPOD_SSH_HOST"
+          sshargs=(-i "$HOME/.ssh/runpod_ci_key" -p "$RUNPOD_SSH_PORT"
+            -o BatchMode=yes -o StrictHostKeyChecking=yes
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts"
+            -o ConnectTimeout=15)
+          scpargs=(-i "$HOME/.ssh/runpod_ci_key" -P "$RUNPOD_SSH_PORT"
+            -o BatchMode=yes -o StrictHostKeyChecking=yes
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts"
+            -o ConnectTimeout=15)
+          ssh "${sshargs[@]}" "$target" "mkdir -p '$remote_dir'"
+          trap 'ssh "${sshargs[@]}" "$target" "rm -rf '\''$remote_dir'\''" || true' EXIT
+          scp "${scpargs[@]}" "$archive" "$target:$remote_dir/src.tgz"
+          ssh "${sshargs[@]}" "$target" "set -e; cd '$remote_dir'; tar -xzf src.tgz; bash tools/runpod_gpu_probe/run_gpu_smoke.sh"             | tee "$RUNNER_TEMP/runpod-gpu-smoke.log"
+          grep -q 'DAGE_GPU_SMOKE=PASS' "$RUNNER_TEMP/runpod-gpu-smoke.log"
+          echo 'DAGE_REAL_AMD_GPU=PASS' >> "$GITHUB_STEP_SUMMARY"
+      - name: Retain bounded execution logs, even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runpod-dage-amd-gpu-smoke
+          path: ${{ runner.temp }}/runpod-gpu-smoke.log
+          if-no-files-found: ignore
+          retention-days: 14

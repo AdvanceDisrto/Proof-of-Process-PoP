@@ -1,0 +1,22 @@
+name: AMD external-gates readiness (operator activation NOT performed)
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run fail-closed gate preflight tests
+        run: python -m unittest discover -s tests -p test_amd_external_gate_probe.py -v
+      - name: Generate nonsecret machine-readiness record
+        run: python tools/amd_external_gate_probe.py --out amd-external-gates.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: amd-external-gates-local-only
+          path: amd-external-gates.json

@@ -1,0 +1,40 @@
+name: STRMKRD Universal Local API P256 and Z3 CI
+on:
+  push:
+    branches: [feat/strmkrd-universal-api-v0, main]
+    paths:
+      - 'hardware/strmkrd-node/universal_api.py'
+      - 'tests/test_strmkrd_universal_api.py'
+      - '.github/workflows/strmkrd_universal_api.yml'
+      - 'docs/STRMKRD_UNIVERSAL_API_V0.md'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install actual API, crypto and Z3 runtimes
+        run: python -m pip install 'fastapi>=0.110,<1' 'httpx>=0.27,<1' 'z3-solver>=4.12.2,<5' 'cryptography>=42,<47'
+      - name: Verify Z3-backed HTTP API and offline P256 signatures
+        run: python -m unittest discover -s tests -p 'test_strmkrd_universal_api.py' -v
+      - name: Ensure hardware receipt endpoint fails closed without secure chip
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('hardware/strmkrd-node/universal_api.py').read_text()
+          assert 'NO_PROVISIONED_HARDWARE_SIGNER_OR_PHYSICAL_EVIDENCE_BINDING' in s
+          assert '127.0.0.1' in s
+          assert 'NOT_MINTED' in s
+          print('ACCEPT_STRMKRD_UNIVERSAL_API_SOFTWARE_TIER')
+          print('HARDWARE_SIGNED_RECEIPT: NOT_VERIFIED')
+          print('REMOTE_NETWORK_TRANSPORT: NOT_IMPLEMENTED')
+          print('PHYSICAL_IPQR_CAMERA: NOT_VERIFIED')
+          PY

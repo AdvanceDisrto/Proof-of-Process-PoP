@@ -1,0 +1,28 @@
+{
+ "$schema":"https://json-schema.org/draft/2020-12/schema",
+ "title":"i™ physically fail-closed acceptance v1",
+ "type":"object",
+ "additionalProperties":false,
+ "required":["schema","gates","physical_acceptance","production_ready","does_not_prove"],
+ "properties":{
+  "schema":{"const":"i-physical-acceptance/v1"},
+  "physical_acceptance":{"const":false},
+  "production_ready":{"const":false},
+  "does_not_prove":{"type":"array","minItems":1,"items":{"type":"string"}},
+  "gates":{
+   "type":"object","minProperties":15,"maxProperties":15,
+   "additionalProperties":false,
+   "required":["RTL_SIMULATION","RTL_LINT","GENERIC_SYNTH","FPGA_BITSTREAM","FPGA_PROGRAMMED","SENSOR_MCP9808","SENSOR_INA226","SECURE_ELEMENT_P256","PHYSICAL_PRINTER","OPTICAL_PHYSICAL_SCAN","WITNESS_OPERATOR_INDEPENDENCE","EXTERNAL_ANCHOR","PRODUCTION_SECURITY_REVIEW","REGULATORY_VALIDATION","HUMAN_ACCOUNTABILITY"],
+   "patternProperties":{
+    "^(RTL_SIMULATION|RTL_LINT|GENERIC_SYNTH|FPGA_BITSTREAM|FPGA_PROGRAMMED|SENSOR_MCP9808|SENSOR_INA226|SECURE_ELEMENT_P256|PHYSICAL_PRINTER|OPTICAL_PHYSICAL_SCAN|WITNESS_OPERATOR_INDEPENDENCE|EXTERNAL_ANCHOR|PRODUCTION_SECURITY_REVIEW|REGULATORY_VALIDATION|HUMAN_ACCOUNTABILITY)$":{
+     "type":"object","additionalProperties":false,
+     "required":["status","required_evidence","evidence_sha256","source"],
+     "properties":{"status":{"enum":["PENDING","PASSED_SOFTWARE_ONLY"]},
+                   "required_evidence":{"type":"string","minLength":1},
+                   "evidence_sha256":{"type":["string","null"]},
+                   "source":{"type":"string","minLength":1}}
+    }
+   }
+  }
+ }
+}

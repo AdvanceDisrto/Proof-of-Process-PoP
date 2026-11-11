@@ -1,0 +1,1 @@
+{"project":"innovulis-pop","steps":["compile","frontier_tests","receipt_tests","ci_tests","sign_gate"]}

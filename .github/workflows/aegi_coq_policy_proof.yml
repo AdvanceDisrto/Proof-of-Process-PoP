@@ -1,0 +1,38 @@
+name: AeGi Coq integer-policy proof checker (scoped)
+
+on:
+  push:
+    branches:
+      - main
+      - fix/post-merge-ci-and-physical-gates
+    paths:
+      - proofs/aegi_policy.v
+      - .github/workflows/aegi_coq_policy_proof.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - proofs/aegi_policy.v
+      - .github/workflows/aegi_coq_policy_proof.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  coq-scope-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install proof checker
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y coq
+      - name: Compile Coq theorems, reject admitted proofs
+        run: |
+          if grep -En '(^|[^[:alpha:]])(Admitted|admit|Axiom)[[:space:].]' proofs/aegi_policy.v; then
+            echo 'Unproved axiom or admission found'
+            exit 1
+          fi
+          coqc -q proofs/aegi_policy.v
+          echo 'ACCEPT_SCOPED_COQ_INTEGER_POLICY_PROOFS (not HoTT)'

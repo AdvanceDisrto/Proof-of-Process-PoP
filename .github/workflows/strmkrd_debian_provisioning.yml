@@ -1,0 +1,120 @@
+name: STRMKRD Rev0 Debian Multiarch Firmware and P256 Protocol Smoke
+
+on:
+  push:
+    branches: [feat/strmkrd-modular-node-rev0, main]
+    paths:
+      - "hardware/strmkrd-node/**"
+      - "tests/test_strmkrd_p256_protocol.py"
+      - ".github/workflows/strmkrd_debian_provisioning.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "hardware/strmkrd-node/**"
+      - "tests/test_strmkrd_p256_protocol.py"
+      - ".github/workflows/strmkrd_debian_provisioning.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  debian-multiarch-acceptance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install native and cross-compile toolchains and crypto
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            g++ gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu \
+            dpkg-dev file python3-z3 python3-smbus2
+          python -m pip install 'cryptography>=42,<47'
+      - name: Compile strict native driver and cross-compile arm64
+        run: |
+          mkdir -p out/bin
+          g++ -std=c++17 -O2 -Wall -Wextra -Werror -pedantic \
+            hardware/strmkrd-node/strmkrd_driver.cpp -o out/bin/strmkrd-i2c-driver-amd64
+          aarch64-linux-gnu-g++ -std=c++17 -O2 -Wall -Wextra -Werror -pedantic \
+            hardware/strmkrd-node/strmkrd_driver.cpp -o out/bin/strmkrd-i2c-driver-arm64
+          file out/bin/*
+          readelf -h out/bin/strmkrd-i2c-driver-arm64 | grep -q 'AArch64'
+          readelf -h out/bin/strmkrd-i2c-driver-amd64 | grep -q 'Advanced Micro Devices'
+      - name: Execute native register smoke, and reject no-hardware probe
+        run: |
+          out/bin/strmkrd-i2c-driver-amd64 --self-test
+          if out/bin/strmkrd-i2c-driver-amd64 --hardware /dev/i2c-999; then
+            echo 'FAIL: absent sensor was accepted'
+            exit 1
+          fi
+          echo 'ACCEPT_NATIVE_I2C_REGISTER_VECTOR_SMOKE'
+          echo 'PHYSICAL_SILICON: NOT_VERIFIED'
+      - name: Run independent cryptographic P256 test vectors
+        run: |
+          python -m unittest discover -s tests -p 'test_strmkrd_p256_protocol.py' -v
+          echo 'ACCEPT_P256_SOFTWARE_PROOF_OF_POSSESSION_SMOKE'
+          echo 'ATECC_DEVICE_KEY: NOT_VERIFIED'
+      - name: Build both native-architecture Debian packages
+        run: |
+          mkdir -p out/packages
+          bash hardware/strmkrd-node/build_deb.sh amd64 out/bin/strmkrd-i2c-driver-amd64 out/packages
+          bash hardware/strmkrd-node/build_deb.sh arm64 out/bin/strmkrd-i2c-driver-arm64 out/packages
+          test -s out/packages/strmkrd-rev0_0.1.0-1_amd64.deb
+          test -s out/packages/strmkrd-rev0_0.1.0-1_arm64.deb
+      - name: Extract/check installer for package safety and OS compatibility
+        run: |
+          set -euo pipefail
+          for arch in amd64 arm64; do
+            pkg="out/packages/strmkrd-rev0_0.1.0-1_$arch.deb"
+            mkdir -p "out/check/$arch/data" "out/check/$arch/control"
+            dpkg-deb --extract "$pkg" "out/check/$arch/data"
+            dpkg-deb --control "$pkg" "out/check/$arch/control"
+            test -f "out/check/$arch/data/lib/systemd/system/strmkrd-observer.service"
+            test -f "out/check/$arch/data/usr/lib/strmkrd/bringup.py"
+            test -f "out/check/$arch/data/usr/lib/strmkrd/observer.py"
+            test -f "out/check/$arch/data/usr/lib/strmkrd/factory_provisioning_gate.py"
+            test -f "out/check/$arch/data/usr/share/doc/strmkrd-rev0/INSTALLATION_RUNBOOK.md"
+            test -f "out/check/$arch/data/usr/share/doc/strmkrd-rev0/DEVICE_KEY_PROVISIONING_PROTOCOL.md"
+            grep -q '^Architecture: '"$arch" "out/check/$arch/control/control"
+            grep -q 'SupplementaryGroups=i2c' "out/check/$arch/data/lib/systemd/system/strmkrd-observer.service"
+            if grep -Eq 'systemctl (enable|start)|service strmkrd (start|enable)' "out/check/$arch/control/postinst"; then
+              echo "Unsafe automatic activation in $arch package"
+              exit 1
+            fi
+          done
+          python -m compileall -q out/check/amd64/data/usr/lib/strmkrd
+          out/check/amd64/data/usr/bin/strmkrd-i2c-driver --self-test
+          echo 'ACCEPT_DEBIAN_MULTIARCH_PACKAGE_SMOKE'
+          echo 'INSTALL: NOT_PERFORMED'
+          echo 'FIRMWARE_FLASH: NOT_PERFORMED'
+      - name: Write checksums and evidence-bounded manifest
+        run: |
+          (cd out/packages && sha256sum *.deb > SHA256SUMS.txt)
+          cat > out/ACCEPTANCE.json <<EOF
+          {
+            "spec":"strmkrd/rev0/multiarch-unsigned-package/v1",
+            "git_commit":"$GITHUB_SHA",
+            "native_cpp_amd64":"COMPILED_AND_SMOKE_PASSED",
+            "native_cpp_arm64":"CROSS_COMPILED_ONLY",
+            "deb_amd64":"BUILD_AND_STRUCTURE_PASS",
+            "deb_arm64":"BUILD_AND_STRUCTURE_PASS",
+            "p256_software_sign_verify":"PASS",
+            "hardware_secure_element":"NOT_VERIFIED",
+            "real_sensor":"NOT_VERIFIED",
+            "manufacturing_erc_drc":"NOT_VERIFIED",
+            "military_fips_certification":"NOT_VERIFIED",
+            "installation_or_deployment":"NOT_PERFORMED"
+          }
+          EOF
+      - uses: actions/upload-artifact@v4
+        with:
+          name: STRMKRD-Rev0-amd64-arm64-Debian-P256-Engineering-Release
+          path: |
+            out/packages/*.deb
+            out/packages/SHA256SUMS.txt
+            out/ACCEPTANCE.json
+          if-no-files-found: error

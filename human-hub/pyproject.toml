@@ -1,0 +1,18 @@
+[build-system]
+requires=["setuptools>=68","wheel"]
+build-backend="setuptools.build_meta"
+[project]
+name="innovulis-human-hub"
+version="0.1.0"
+description="Synthetic, scoped human-centered signed ipQR console and verifier"
+requires-python=">=3.11"
+license={text="Apache-2.0"}
+dependencies=["innovulis-paper-console>=0.1.0","innovulis-open-receipt-verifier>=1.0.0","fastapi>=0.97","uvicorn>=0.21","qrcode>=7","Pillow>=9","cryptography>=41"]
+[project.optional-dependencies]
+test=["pytest>=8","httpx>=0.25","pyzbar>=0.1.9"]
+[project.scripts]
+innovulis-human-hub="human_hub.cli:main"
+[tool.setuptools]
+packages=["human_hub"]
+[tool.setuptools.package-data]
+human_hub=["index.html"]

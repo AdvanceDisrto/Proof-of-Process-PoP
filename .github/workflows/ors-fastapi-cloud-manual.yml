@@ -1,0 +1,35 @@
+name: ORS FastAPI Cloud — explicit authorized deployment
+
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    # Never deploy from a PR or an unmerged feature branch.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    environment: ors-production
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: astral-sh/setup-uv@v6
+      - name: Confirm distinct ORS Cloud app secret exists
+        env:
+          FASTAPI_CLOUD_APP_ID: ${{ secrets.ORS_FASTAPI_CLOUD_APP_ID }}
+          FASTAPI_CLOUD_TOKEN: ${{ secrets.ORS_FASTAPI_CLOUD_TOKEN }}
+        run: |
+          test -n "$FASTAPI_CLOUD_APP_ID"
+          test -n "$FASTAPI_CLOUD_TOKEN"
+          echo 'Cloud app/token secret names present; values not displayed'
+      - name: Deploy ORS research API (NOT iVerify)
+        working-directory: ors-research
+        env:
+          FASTAPI_CLOUD_APP_ID: ${{ secrets.ORS_FASTAPI_CLOUD_APP_ID }}
+          FASTAPI_CLOUD_TOKEN: ${{ secrets.ORS_FASTAPI_CLOUD_TOKEN }}
+        run: |
+          uv run fastapi deploy

@@ -1,0 +1,64 @@
+name: iNNOVULIS Twinions Legal Evidence Workflow (non-adjudicating)
+on:
+  pull_request:
+    paths:
+      - 'twinions-legal/**'
+      - '.github/workflows/twinions-legal-workflow-ci.yml'
+  push:
+    branches: ['review/istick-twinions-legal-evidence-dag-20261108']
+    paths:
+      - 'twinions-legal/**'
+      - '.github/workflows/twinions-legal-workflow-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  evidence-review-software:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install native libz3, Python test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libz3-4 g++
+          python -m pip install --upgrade pip
+          python -m pip install -e './twinions-legal[test]'
+      - name: Fail closed on legal test failures
+        run: |
+          cd twinions-legal
+          mkdir -p evidence
+          python -m pytest -q tests/ | tee evidence/pytest.log
+      - name: Compile C++ iStick HOST workflow validator
+        run: |
+          cd twinions-legal
+          g++ -std=c++17 -O2 -Wall -Wextra -Werror -pedantic hardware/innovulis_istick.cpp -o evidence/innovulis_istick_host
+      - name: "Synthetic case smoke: signed software receipt / fail-closed Z3"
+        run: |
+          cd twinions-legal
+          python -m twinions_legal demo --out evidence/github-demo | tee evidence/demo-summary.json
+          python -m twinions_legal cpp-export --db evidence/github-demo/synthetic_case.db --case SYNTHETIC-001 --out evidence/github-demo/gates.tsv
+          evidence/innovulis_istick_host evidence/github-demo/gates.tsv | tee evidence/istick-host-check.json
+          python hardware/readiness.py | tee evidence/hardware-blocked.json
+          grep -q '"legal_merits":"NOT_DETERMINED"' evidence/istick-host-check.json
+          grep -q 'BLOCKED_NO_FABRICABLE_PCB' evidence/hardware-blocked.json
+      - name: Build installable wheel
+        run: |
+          python -m pip install build
+          python -m build --wheel twinions-legal --outdir twinions-legal/dist
+      - name: Upload synthetic acceptance evidence; never secrets or raw legal files
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: twinions-legal-draft-software-evidence
+          path: |
+            twinions-legal/evidence/pytest.log
+            twinions-legal/evidence/demo-summary.json
+            twinions-legal/evidence/istick-host-check.json
+            twinions-legal/evidence/hardware-blocked.json
+            twinions-legal/dist/*.whl
+          retention-days: 14
+          if-no-files-found: ignore

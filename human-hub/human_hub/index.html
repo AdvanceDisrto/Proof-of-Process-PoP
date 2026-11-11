@@ -1,0 +1,59 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>iNNOVULIS™ Human-Centric Intelligence Hub</title>
+<style>
+:root{color-scheme:dark;font-family:Inter,system-ui,Segoe UI,sans-serif;color:#e5faf2;background:#06110f}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 80% -10%,#24695a80,transparent 60%),linear-gradient(135deg,#050e10,#0d2525 65%,#030b0b)}
+header{border-bottom:1px solid #9cffe32e;padding:25px 5vw;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;backdrop-filter:blur(20px)}
+.brand{letter-spacing:.12em;font-weight:900;font-size:25px}.brand span{color:#6afbc7}
+.label{font-size:11px;letter-spacing:.12em;color:#dfc79c;text-transform:uppercase}
+main{max-width:1200px;margin:32px auto;padding:0 20px}
+h1{font-size:clamp(29px,5vw,49px);line-height:1.1;margin:0 0 10px}
+p{color:#b1d4cd;line-height:1.6}
+.glass{background:linear-gradient(135deg,#18413cad,#101c20d6);border:1px solid #a5eed13e;box-shadow:0 20px 50px #0008;backdrop-filter:blur(26px);border-radius:21px;padding:24px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:22px 0}
+input{display:block;width:100%;padding:12px;border:1px solid #5b9788;border-radius:9px;background:#081916;color:#eafffa;margin:8px 0 14px}
+label{color:#c8e3db;font-size:12px}
+button{padding:13px 15px;margin:5px 6px 5px 0;border:0;border-radius:9px;cursor:pointer;color:#09221e;background:#81f6d2;font-weight:800}
+button:focus-visible,input:focus-visible{outline:3px solid white}
+#qr{display:none;max-width:min(100%,380px);background:white;padding:10px;image-rendering:pixelated}
+pre{white-space:pre-wrap;word-break:break-word;color:#d5ede6}
+ul{list-style:none;padding:0}
+li{background:#0b2524;padding:14px;margin:10px 0;border-left:3px solid #e0c68c;border-radius:6px;word-break:break-word}
+li.refuted{border-color:#ff837e}
+footer{text-align:center;padding:30px;color:#a0c4bb;font-size:12px}
+@media(max-width:750px){.grid{grid-template-columns:1fr}}
+</style></head><body>
+<header><div><div class="brand"><span>i™</span> iNNOVULIS</div><div class="label">Artificial Human-Centric Intelligence · Central Integrated Hub</div></div><strong class="label">NON-CLINICAL SYNTHETIC DEMO · NO PATIENT DATA</strong></header>
+<main>
+<h1>The machine computes.<br><span style="color:#87fad4">The individual decides.</span></h1>
+<p>The receipt is the interface. This demonstration cryptographically verifies <b>synthetic</b> laboratory equipment comparison claims and records a voluntary human reading acknowledgment. It does not diagnose illness, certify medical devices or measure physical energy.</p>
+<div class="grid">
+<section class="glass"><h2>Local Hub Console</h2>
+<label>Operator token <input id="token" type="password" autocomplete="off" placeholder="Local authentication token"></label>
+<div class="grid">
+<label>Synthetic observed value<input id="observed" type="number" value="45000"></label>
+<label>Synthetic policy limit<input id="limit" type="number" value="50000"></label>
+</div>
+<label><input id="ack" type="checkbox"> I acknowledge this is synthetic, not for patient care.</label>
+<button id="start">Generate signed demo receipt</button><button id="refresh">Refresh ledger</button>
+<pre id="status" role="status" aria-live="polite">No clinical system or physical printer connected.</pre>
+</section>
+<section class="glass"><h2>Screen is the receipt carrier</h2>
+<p>Scan this QR only with an independently trusted open verifier. The demonstration trust anchor is generated within the same run and therefore is not a production trust root.</p>
+<img id="qr" alt="Signed synthetic ipQR payload, not trusted evidence on its own">
+<br><button id="review">Acknowledge reading</button><button id="print">Export ESC/POS preview</button>
+<p>Physical printer: <b>NOT CONNECTED</b>. Clinical result: <b>NOT ESTABLISHED</b>.</p>
+</section>
+</div>
+<section class="glass"><h2>Live ledger feed</h2><p>Hash-linked local SQLite events, not immutable without external checkpoints. Receipt bytes are not exposed in the feed.</p><ul id="feed"><li>No demo receipts yet.</li></ul></section>
+</main><footer>i™ · Technology should serve humanity · Open cryptography, scoped claims, human judgment</footer>
+<script>
+const $=id=>document.getElementById(id);let selected=null,qrUrl=null;
+const auth=()=>({'X-I-Hub-Token':$('token').value});
+async function req(path,opts={}){const r=await fetch(path,{cache:'no-store',...opts,headers:{...auth(),...(opts.headers||{})}});if(!r.ok)throw Error('Rejected HTTP '+r.status);return r;}
+async function refresh(){try{const d=await(await req('/api/feeds')).json();const feed=$('feed');feed.replaceChildren();for(const e of d.events){const li=document.createElement('li');li.className=e.claim_verdict==='REFUTED_FALSE'?'refuted':'';li.textContent=e.event_id+' | '+e.claim_verdict+' | '+e.verification+' | DEMO ONLY';feed.appendChild(li);}if(!d.events.length){const li=document.createElement('li');li.textContent='No demo events';feed.appendChild(li);}}catch(e){$('status').textContent=e.message;}}
+$('start').onclick=async()=>{try{const body={explicit_demo_consent:$('ack').checked,observed:Number($('observed').value),limit:Number($('limit').value)};const d=await(await req('/api/demo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})).json();selected=d.event_id;$('status').textContent='Digital receipt: '+d.issuer_claim+'\nReal-world verification: NO\nReceipt SHA-256: '+d.receipt_sha256;if(qrUrl)URL.revokeObjectURL(qrUrl);qrUrl=URL.createObjectURL(await(await req('/api/qr/'+encodeURIComponent(selected))).blob());$('qr').src=qrUrl;$('qr').style.display='block';await refresh();}catch(e){$('status').textContent=e.message;}};
+$('refresh').onclick=refresh;
+$('review').onclick=async()=>{try{if(!selected)throw Error('Generate a receipt first');const d=await(await req('/api/review/'+encodeURIComponent(selected),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({confirm_scope:$('ack').checked})})).json();$('status').textContent='Human reading ACK only: '+d.review_event_hash;await refresh();}catch(e){$('status').textContent=e.message;}};
+$('print').onclick=async()=>{try{if(!selected)throw Error('Generate a receipt first');const b=await(await req('/api/print-preview/'+encodeURIComponent(selected))).blob();const u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download='demo-only.escpos';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);}catch(e){$('status').textContent=e.message;}};
+</script></body></html>
