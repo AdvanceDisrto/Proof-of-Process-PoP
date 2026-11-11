@@ -69,6 +69,17 @@ def database():
             receipt_sha256 TEXT PRIMARY KEY, krdid TEXT NOT NULL,
             receipt_json TEXT NOT NULL, created_at INTEGER NOT NULL
         )""")
+        db.execute("""CREATE TABLE IF NOT EXISTS mirror_queue (
+            receipt_sha256 TEXT PRIMARY KEY REFERENCES receipts(receipt_sha256),
+            state TEXT NOT NULL DEFAULT 'PENDING',
+            attempts INTEGER NOT NULL DEFAULT 0,
+            last_error TEXT,
+            last_attempt INTEGER,
+            replicated_at INTEGER
+        )""")
+        # Upgrade an existing local receipt ledger without rewriting old signed bytes.
+        db.execute("""INSERT OR IGNORE INTO mirror_queue(receipt_sha256)
+                      SELECT receipt_sha256 FROM receipts""")
         db.commit()
         if os.name != "nt":
             os.chmod(path, 0o600)
@@ -168,6 +179,8 @@ def commit_receipt(authorization: dict, receipt: dict) -> str:
                        (krdid, nonce, receipt_hash, int(time.time())))
             db.execute("INSERT INTO receipts(receipt_sha256,krdid,receipt_json,created_at) VALUES (?,?,?,?)",
                        (receipt_hash, krdid, json.dumps(receipt, ensure_ascii=False, sort_keys=True), int(time.time())))
+            # The remote mirror is optional: enqueue in the SAME durable local transaction.
+            db.execute("INSERT INTO mirror_queue(receipt_sha256) VALUES(?)", (receipt_hash,))
             db.commit()
     except sqlite3.IntegrityError as exc:
         raise HTTPException(status_code=409, detail="KRDID_REPLAY_OR_DUPLICATE") from exc
