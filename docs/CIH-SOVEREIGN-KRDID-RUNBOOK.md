@@ -81,6 +81,7 @@ Check the local replica queue:
 Retry manually using the signed Edge transport (no secret on the client):
 
 ```powershell
+$env:CIH_REPLICA_TRANSPORT = "edge"
 .\.venv\Scripts\python.exe -m cih_api.replica sync --limit 100
 ```
 
