@@ -31,6 +31,34 @@ jobs:
           deno test --allow-env tests/cih_edge_mirror_test.ts
       - run: python -m pip install -r cih_api/requirements-dev.txt
       - run: python -m pytest -q cih_api
+      - name: Live BUDDY Supabase signing route CIH mirror fail-closed smoke
+        run: |
+          python - <<'PY'
+          import json, urllib.request, urllib.error
+          origin = "https://tkrxmdonmxpeockpbazl.supabase.co/functions/v1/strmkrd-signing"
+          with urllib.request.urlopen(origin + "/cih-mirror", timeout=15) as resp:
+              assert resp.status == 200
+              status = json.load(resp)
+          assert status["service"] == "innovulis-cih-signed-receipt-mirror"
+          assert status["issues_receipts"] is False
+          req = urllib.request.Request(
+              origin + "/cih-mirror", data=b"{}",
+              method="POST", headers={"Content-Type":"application/json"})
+          try:
+              urllib.request.urlopen(req, timeout=15)
+              raise AssertionError("UNSIGNED_CIH_MIRROR_POST_WAS_NOT_REJECTED")
+          except urllib.error.HTTPError as error:
+              assert error.code == 401, error.code
+              reply = json.load(error)
+              assert reply["error"] == "SIGNED_RECEIPT_REQUIRED", reply
+          # Legacy route remains available and has not been replaced by the CIH mirror.
+          with urllib.request.urlopen(origin + "/status", timeout=15) as resp:
+              assert resp.status == 200
+              legacy = json.load(resp)
+          assert legacy.get("service") == "Master P Signing Authority"
+          print("LIVE_SUPABASE_EDGE_CIH_MIRROR_FAIL_CLOSED_PASS")
+          print("LEGACY_MASTERP_SIGNING_STATUS_PRESERVED_PASS")
+          PY
       - name: Brain Registry 21 brain unit acceptance
         run: |
           python brain_registry.py --tests
