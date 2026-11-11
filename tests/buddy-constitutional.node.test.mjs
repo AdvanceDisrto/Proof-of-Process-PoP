@@ -78,3 +78,16 @@ test("Malformed JSON is refused with 400",async()=>{
   }),{});
   assert.equal(r.status,400);
 });
+
+test("isolated browser voice diagnostic never starts the microphone automatically",async()=>{
+  const r=await buddyHandler(new Request("https://staged.worker/voice-test",{method:"GET"}),{});
+  assert.equal(r.status,200);
+  assert.match(r.headers.get("content-type")||"",/text\/html/);
+  const html=await r.text();
+  assert.match(html,/START MICROPHONE/);
+  assert.match(html,/SpeechRecognition/);
+  assert.match(html,/speechSynthesis/);
+  assert.match(html,/fetch\("\/api\/buddy"/);
+  assert.match(html,/Microphone remains off until you click/);
+  assert.match(html,/No model answer was produced/);
+});
