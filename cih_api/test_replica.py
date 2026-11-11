@@ -25,6 +25,7 @@ def local_receipt(monkeypatch, tmp_path):
     monkeypatch.delenv("SUPABASE_SECRET_KEY", raising=False)
     monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY", raising=False)
     monkeypatch.delenv("SUPABASE_URL", raising=False)
+    monkeypatch.delenv("CIH_REPLICA_TRANSPORT", raising=False)
     body = {
         "schema": "innovulis.cih.receipt.v0.1",
         "requester_subject": SUBJECT,
@@ -171,3 +172,49 @@ def test_legacy_server_role_key_still_supported_for_migration(local_receipt, mon
     with patch("cih_api.replica.urlopen", return_value=Response(201)) as request:
         assert mirror_receipt(HASH) == REMOTE_ACKNOWLEDGED
         assert request.call_args.args[0].headers["Authorization"].startswith("Bearer ")
+
+
+def test_edge_transport_needs_no_supabase_secret_on_local_node(local_receipt, monkeypatch):
+    monkeypatch.setenv("CIH_REPLICA_TRANSPORT", "edge")
+    assert replica_readiness()["configured"] is True
+    assert replica_readiness()["transport"] == "SIGNED_CIH_EDGE_NO_LOCAL_SECRET"
+    expected = {"status": "REPLICA_ACKNOWLEDGED", "receipt_hash": HASH}
+    with patch("cih_api.replica.urlopen", return_value=Response(200, expected)) as mocked:
+        assert mirror_receipt(HASH) == REMOTE_ACKNOWLEDGED
+        req = mocked.call_args.args[0]
+        assert req.get_method() == "POST"
+        assert req.full_url == "https://" + PROJECT_HOST + "/functions/v1/strmkrd-signing/cih-mirror"
+        assert "Apikey" not in req.headers
+        assert "Authorization" not in req.headers
+        sent = json.loads(req.data)
+        assert sent["signature_b64"] == local_receipt["signature_b64"]
+        assert sent["body_sha256"] == HASH
+    assert replica_readiness()["pending_count"] == 0
+
+
+def test_edge_unenrolled_node_is_pending_not_acknowledged(local_receipt, monkeypatch):
+    monkeypatch.setenv("CIH_REPLICA_TRANSPORT", "edge")
+    denial = HTTPError("https://"+PROJECT_HOST+"/functions/v1/strmkrd-signing/cih-mirror",
+                       403, "Node not enrolled", hdrs={}, fp=None)
+    with patch("cih_api.replica.urlopen", side_effect=denial):
+        assert mirror_receipt(HASH) == PENDING_RETRY
+    with sqlite3.connect(store_path()) as db:
+        assert db.execute("SELECT COUNT(*) FROM receipts").fetchone()[0] == 1
+        assert db.execute("SELECT last_error FROM mirror_queue").fetchone()[0] == "EDGE_HTTP_403"
+
+
+def test_edge_forged_ack_cannot_mark_local_queue_committed(local_receipt, monkeypatch):
+    monkeypatch.setenv("CIH_REPLICA_TRANSPORT", "edge")
+    wrong = {"status": "REPLICA_ACKNOWLEDGED", "receipt_hash": "b" * 64}
+    with patch("cih_api.replica.urlopen", return_value=Response(200, wrong)):
+        assert mirror_receipt(HASH) == PENDING_RETRY
+    assert replica_readiness()["pending_count"] == 1
+
+
+def test_edge_outage_does_not_block_signed_local_receipt(local_receipt, monkeypatch):
+    monkeypatch.setenv("CIH_REPLICA_TRANSPORT", "edge")
+    with patch("cih_api.replica.urlopen", side_effect=URLError("offline")):
+        assert mirror_receipt(HASH) == PENDING_RETRY
+    with sqlite3.connect(store_path()) as db:
+        assert db.execute("SELECT COUNT(*) FROM receipts").fetchone()[0] == 1
+        assert db.execute("SELECT COUNT(*) FROM mirror_queue WHERE state='PENDING'").fetchone()[0] == 1
