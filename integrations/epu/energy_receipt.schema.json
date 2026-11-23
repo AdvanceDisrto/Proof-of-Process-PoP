@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://innovulis.example/schemas/ITM-EPU-v1.schema.json",
+  "title": "iNNOVULIS EPU software evidence bundle v1 (not physical certification)",
+  "type": "object",
+  "required": ["registration", "execution", "allocation", "artifacts"],
+  "properties": {
+    "registration": {
+      "type": "object", "required": ["protocol", "epu_id", "meter_class", "manufacturer", "serial", "calibration", "signer_pubkey", "signature"],
+      "properties": {
+        "protocol": {"const":"ITM-EPU-REGISTRATION-v1"},
+        "epu_id": {"type":"string", "pattern":"^sha256:[0-9a-f]{64}$"},
+        "meter_class": {"enum":["WALL_PDU", "SMART_PDU", "RAPL_PER_CORE", "RAPL_PKG", "ON_DIE_SENSOR", "SBC_PMIC"]},
+        "manufacturer": {"type":"string", "minLength":1},
+        "serial": {"type":"string", "minLength":1},
+        "calibration": {"type":"object", "required":["certificate_hash"], "properties":{"certificate_hash":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"}}},
+        "signer_pubkey": {"type":"string", "pattern":"^[0-9a-f]{64}$"},
+        "signature": {"type":"string", "pattern":"^[0-9a-f]{128}$"}
+      }
+    },
+    "calibration": {
+      "type":["object","null"],
+      "properties": {
+        "protocol":{"const":"ITM-EPU-CALIBRATION-v1"},
+        "epu_id":{"type":"string"},
+        "calibrated_at":{"type":"string", "format":"date-time"},
+        "interval_days":{"type":"integer","minimum":1},
+        "lab_accreditation":{"enum":["SELF_REPORTED","ISO17025","NIST_TRACEABLE"]},
+        "cert_id":{"type":"string","minLength":1},
+        "signer_pubkey":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+        "signature":{"type":"string","pattern":"^[0-9a-f]{128}$"}
+      },
+      "required":["protocol","epu_id","calibrated_at","interval_days","lab_accreditation","cert_id","signer_pubkey","signature"]
+    },
+    "execution": {
+      "type":"object", "required":["protocol","job_id","epu_id","attribution_method","window","measurement","consumption","derivation","signer_pubkey","signature"],
+      "properties":{
+        "protocol":{"const":"ITM-EPU-EXECUTION-v1"},
+        "job_id":{"type":"string","minLength":1},
+        "epu_id":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},
+        "attribution_method":{"enum":["DEDICATED_CIRCUIT","DIFFERENTIAL","RAPL_PER_JOB","ESTIMATED_FROM_UTIL","NONE"]},
+        "window":{"type":"object","required":["start_ts","end_ts","duration_ms"],"properties":{"start_ts":{"type":"string","format":"date-time"},"end_ts":{"type":"string","format":"date-time"},"duration_ms":{"type":"integer","minimum":1}}},
+        "measurement":{"type":"object", "properties":{"joules_integrated":{"type":"string","pattern":"^[0-9]+\\.[0-9]{9}$"},"raw_samples_hash":{"type":"string","pattern":"^blake3:[0-9a-f]{64}$"},"sample_count":{"type":"integer","minimum":2}}},
+        "baseline":{"type":"object","required":["baseline_samples_hash","joules_idle_per_ms"],"properties":{"baseline_samples_hash":{"type":"string","pattern":"^blake3:[0-9a-f]{64}$"},"joules_idle_per_ms":{"type":"string"}}},
+        "consumption":{"type":"object","required":["status","joules"],"properties":{"status":{"enum":["METERED","METERED_STALE","NOT_MEASURED"]},"joules":{"type":["string","null"]}}},
+        "derivation":{"type":"object","required":["status"],"properties":{"status":{"const":"NONE"}}},
+        "uncertainty":{"type":"object","properties":{"combined_joules_1sigma":{"type":"string"},"accuracy_pct":{"type":"string"},"attribution_error_pct":{"type":"string"}}},
+        "job_scope_hash":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},
+        "signer_pubkey":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+        "signature":{"type":"string","pattern":"^[0-9a-f]{128}$"}
+      },
+      "allOf":[
+        {"if":{"properties":{"attribution_method":{"const":"DIFFERENTIAL"}},"required":["attribution_method"]},"then":{"required":["baseline","uncertainty"]}},
+        {"if":{"properties":{"attribution_method":{"enum":["NONE","ESTIMATED_FROM_UTIL"]}},"required":["attribution_method"]},"then":{"properties":{"consumption":{"properties":{"status":{"const":"NOT_MEASURED"},"joules":{"type":"null"}}}}}},
+        {"if":{"properties":{"consumption":{"properties":{"status":{"enum":["METERED","METERED_STALE"]}},"required":["status"]}},"required":["consumption"]},"then":{"properties":{"measurement":{"required":["joules_integrated","sample_count","raw_samples_hash"]}},"required":["measurement"]}}
+      ]
+    },
+    "allocation": {
+      "type":"object", "required":["status","bounded_domain_kw","available_kw","requests_kw","allocated_kw","constraints_hash","proof_hash"],
+      "properties": {
+        "status":{"enum":["VERIFIED","UNVERIFIED"]},
+        "bounded_domain_kw":{"type":"array","items":{"type":"integer","minimum":0},"minItems":2,"maxItems":2},
+        "available_kw":{"type":"integer","minimum":0},
+        "requests_kw":{"type":"array","items":{"type":"integer","minimum":0}},
+        "allocated_kw":{"type":"array","items":{"type":"integer","minimum":0}},
+        "constraints_hash":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},
+        "proof_hash":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"}
+      }
+    },
+    "artifacts":{"type":"object"}
+  },
+  "description":"JSON Schema checks shapes and conditional rules only. Ed25519 trust, JCS/BLAKE3 hashes, Z3, calibration expiry, independent meter/lab trust, measurement reconstruction and physical provenance require executable verification."
+}

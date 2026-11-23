@@ -1,0 +1,61 @@
+name: EPU calibrated energy and pinned challenge acceptance
+on:
+  push:
+    paths:
+      - 'integrations/epu/**'
+      - '.github/workflows/epu-software-gates.yml'
+  pull_request:
+    paths:
+      - 'integrations/epu/**'
+      - '.github/workflows/epu-software-gates.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-crypto-policy-acceptance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: integrations/epu
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: integrations/epu/requirements.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install offline verifier and Python dependencies
+        run: |
+          python -m pip install -r requirements.txt
+          npm install --no-audit --no-fund
+      - name: Execute T1–T6, π/τ and Z3 tests
+        run: bash run_epu.sh
+      - name: Cross-language signed fixture verification
+        run: npm test
+      - name: Build self-contained offline HTML with real BLAKE3 + Ed25519
+        run: npm run build
+      - name: Verify offline build does not reference remote scripts
+        run: |
+          test -s build/verifier.html
+          python - <<'PY'
+          from pathlib import Path
+          html=Path('build/verifier.html').read_text()
+          assert '<script src=' not in html
+          assert 'document.getElementById' in html
+          assert '__INLINE_BUNDLE__' not in html
+          print('EPU_OFFLINE_SINGLE_FILE_CHECK_PASS')
+          PY
+      - name: Publish test vectors, offline verifier and acceptance transcripts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: epu-signed-software-vectors-offline-verifier
+          path: |
+            integrations/epu/build/test_vectors.json
+            integrations/epu/build/verifier.html
+            integrations/epu/build/verifier.js
+          if-no-files-found: warn
