@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>iNNOVULIS EPU — Offline Cryptographic Verifier</title>
+<style>body{max-width:950px;margin:2rem auto;padding:1rem;background:#071018;color:#e2e8f0;font:14px system-ui,sans-serif}h1{font-size:1.35rem}label{display:block;margin:1rem 0 .3rem;color:#7dd3fc}textarea{width:100%;height:13rem;box-sizing:border-box;background:#101d27;color:#f8fafc;border:1px solid #466;padding:.8rem}button{background:#34d399;padding:.7rem 1.1rem;border:0;border-radius:.4rem;font-weight:700;cursor:pointer;margin-top:1rem}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#101d27;padding:1rem}.warning{color:#fbbf24}</style></head><body>
+<h1>iNNOVULIS™ EPU — Offline Signed Energy Receipt Verification</h1>
+<p class="warning">Software verifier only. The independently established trust configuration is not supplied by the prover. No software signature can prove a physical meter, calibration lab accreditation, or correct energy attribution.</p>
+<label for="trust">Trusted meter/lab keys, expected job, and policy (provisioned out-of-band)</label><textarea id="trust" placeholder="Paste separately supplied trusted JSON configuration"></textarea>
+<label for="bundle">Signed EPU registration + calibration + execution, allocation, and artifact store</label><textarea id="bundle" placeholder="Paste test vector or live receipt bundle"></textarea>
+<button id="go">Verify signed evidence offline</button>
+<pre id="results" aria-live="polite">No network calls; independently provision trust configuration before use.</pre>
+<script>__INLINE_BUNDLE__</script>
+<script>
+document.getElementById('go').addEventListener('click',()=>{
+ const output=document.getElementById('results');
+ try{
+  const trust=JSON.parse(document.getElementById('trust').value);
+  const bundle=JSON.parse(document.getElementById('bundle').value);
+  const verified=EPUOffline.verify(bundle,trust);
+  output.textContent='SOFTWARE CHECKS PASSED — NOT PHYSICAL CIH VERIFICATION\n'+JSON.stringify(verified,null,2);
+ }catch(e){output.textContent='REJECTED: '+(e.code||e.message);}
+});
+</script></body></html>
