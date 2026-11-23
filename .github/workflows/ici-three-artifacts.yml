@@ -1,0 +1,36 @@
+name: iCi three-artifact Rust integrity gates
+on:
+  push:
+    paths:
+      - 'integrations/innovulis_ici/**'
+      - '.github/workflows/ici-three-artifacts.yml'
+  pull_request:
+    paths:
+      - 'integrations/innovulis_ici/**'
+      - '.github/workflows/ici-three-artifacts.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  ici-three-artifacts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: integrations/innovulis_ici
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Format, test, release build, three artifact smoke, and negative tamper gates
+        run: |
+          cargo fmt --all
+          bash run_ici.sh
+      - name: Upload software-only CIH-pending receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ici-software-pending-receipts
+          path: integrations/innovulis_ici/build_ici/
+          if-no-files-found: ignore
